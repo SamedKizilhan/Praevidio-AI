@@ -49,5 +49,8 @@ Late diagnosis is the leading cause of cancer mortality. In Turkey, barriers lik
 ---
 
 ## 📄 License
-This project is developed as a Senior Project at Boğaziçi University. 
+
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
+This project is licensed under the **Apache License 2.0**. See the [LICENSE](LICENSE) file for the full text.
 
