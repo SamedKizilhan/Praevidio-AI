@@ -1,4 +1,10 @@
 ---
+name: Bug
+about: Report something that is broken
+title: "[Bug] "
+labels: ["bug"]
+---
+
 ## Summary
 What’s broken? One or two sentences.
 
