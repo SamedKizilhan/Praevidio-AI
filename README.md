@@ -22,13 +22,13 @@ Praevidio AI is a cutting-edge mobile application designed to bridge the gap bet
 
 ### **AI & NLP Engine**
 * **STT:** OpenAI Whisper (Optimized for Turkish)
-* **LLM:** GPT-4o / Llama 3
-* **Vector DB:** Pinecone / Milvus (RAG Implementation)
-* **Frameworks:** LangChain / LlamaIndex
+* **LLM:** GPT-4o
+* **Vector DB:** Supabase (PostgreSQL + pgvector)
+* **Frameworks:** LangChain / LangGraph
 
 ### **Data & Infrastructure**
 * **Sources:** WHO Globocan, Turkish Cancer Statistics, ICD-10 Mapping.
-* **Storage:** Firebase Storage (Secure PDF Handling).
+* **Storage:** Supabase
 
 ---
 
