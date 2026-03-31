@@ -1,0 +1,53 @@
+{
+  "total_samples": 2998,
+  "features": 17,
+  "target_distribution": {
+    "1": 1517,
+    "0": 1481
+  },
+  "cancer_rate": 0.5060040026684456,
+  "age_range": {
+    "min": 30,
+    "max": 80,
+    "mean": 55.1714476317545
+  },
+  "gender_distribution": {
+    "1": 1512,
+    "0": 1486
+  },
+  "smoking_rate": 0.49132755170113407,
+  "columns": [
+    "GENDER",
+    "AGE",
+    "SMOKING",
+    "YELLOW_FINGERS",
+    "ANXIETY",
+    "PEER_PRESSURE",
+    "CHRONIC_DISEASE",
+    "FATIGUE",
+    "ALLERGY",
+    "WHEEZING",
+    "ALCOHOL_CONSUMING",
+    "COUGHING",
+    "SHORTNESS_OF_BREATH",
+    "SWALLOWING_DIFFICULTY",
+    "CHEST_PAIN",
+    "LUNG_CANCER",
+    "AGE_GROUP"
+  ],
+  "icd10_mapping": {
+    "SMOKING": "F17",
+    "COUGHING": "R05",
+    "SHORTNESS_OF_BREATH": "R06.0",
+    "WHEEZING": "R06.2",
+    "CHEST_PAIN": "R07.9",
+    "SWALLOWING_DIFFICULTY": "R13",
+    "FATIGUE": "R53",
+    "YELLOW_FINGERS": "R23.8",
+    "ALCOHOL_CONSUMING": "F10",
+    "ANXIETY": "F41",
+    "ALLERGY": "T78.4",
+    "CHRONIC_DISEASE": "Z87.39",
+    "LUNG_CANCER": "C34"
+  }
+}

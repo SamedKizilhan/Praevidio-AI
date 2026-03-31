@@ -1,0 +1,170 @@
+{
+  "standard": "ICD-10",
+  "focus": "Lung Cancer (C34) - Related Codes",
+  "version": "2024",
+  "primary_diagnosis": {
+    "C34": {
+      "description": "Malignant neoplasm of bronchus and lung",
+      "description_tr": "Bronş ve akciğerin malign neoplazmı",
+      "subcodes": {
+        "C34.0": {
+          "description": "Main bronchus",
+          "description_tr": "Ana bronş",
+          "notes": "Carina of trachea, Hilus of lung"
+        },
+        "C34.1": {
+          "description": "Upper lobe, bronchus or lung",
+          "description_tr": "Üst lob, bronş veya akciğer",
+          "notes": "Most common site for lung cancer"
+        },
+        "C34.2": {
+          "description": "Middle lobe, bronchus or lung",
+          "description_tr": "Orta lob, bronş veya akciğer",
+          "notes": "Right lung only"
+        },
+        "C34.3": {
+          "description": "Lower lobe, bronchus or lung",
+          "description_tr": "Alt lob, bronş veya akciğer"
+        },
+        "C34.8": {
+          "description": "Overlapping sites of bronchus and lung",
+          "description_tr": "Bronş ve akciğerin çakışan bölgeleri"
+        },
+        "C34.9": {
+          "description": "Bronchus or lung, unspecified",
+          "description_tr": "Bronş veya akciğer, belirtilmemiş"
+        }
+      }
+    }
+  },
+  "symptoms": {
+    "R05": {
+      "description": "Cough",
+      "description_tr": "Öksürük",
+      "clinical_significance": "Persistent cough lasting >3 weeks is a key warning sign",
+      "dataset_mapping": "COUGHING",
+      "voice_descriptors_tr": ["öksürük", "öksürüyorum", "sürekli öksürük", "kuru öksürük", "balgamlı öksürük"]
+    },
+    "R06.0": {
+      "description": "Dyspnea",
+      "description_tr": "Nefes darlığı / Dispne",
+      "clinical_significance": "Difficulty breathing, may indicate tumor obstruction",
+      "dataset_mapping": "SHORTNESS_OF_BREATH",
+      "voice_descriptors_tr": ["nefes darlığı", "nefes alamıyorum", "nefesim kesiliyor", "nefes almakta zorlanıyorum"]
+    },
+    "R06.2": {
+      "description": "Wheezing",
+      "description_tr": "Hırıltılı solunum",
+      "clinical_significance": "Whistling sound during breathing, may indicate airway obstruction",
+      "dataset_mapping": "WHEEZING",
+      "voice_descriptors_tr": ["hırıltı", "hışıltı", "solunum sırasında ses", "nefes alırken ıslık sesi"]
+    },
+    "R04.2": {
+      "description": "Hemoptysis",
+      "description_tr": "Hemoptizi / Kan tükürme",
+      "clinical_significance": "Coughing up blood - critical warning sign requiring immediate evaluation",
+      "dataset_mapping": null,
+      "voice_descriptors_tr": ["kan tükürme", "balgamda kan", "öksürünce kan geliyor", "kanlı balgam"]
+    },
+    "R07.9": {
+      "description": "Chest pain, unspecified",
+      "description_tr": "Göğüs ağrısı, belirtilmemiş",
+      "clinical_significance": "May indicate pleural involvement or chest wall invasion",
+      "dataset_mapping": "CHEST_PAIN",
+      "voice_descriptors_tr": ["göğüs ağrısı", "göğsüm ağrıyor", "göğsümde baskı", "göğsümde sızı"]
+    },
+    "R13": {
+      "description": "Dysphagia",
+      "description_tr": "Yutma güçlüğü",
+      "clinical_significance": "Difficulty swallowing, may indicate mediastinal involvement",
+      "dataset_mapping": "SWALLOWING_DIFFICULTY",
+      "voice_descriptors_tr": ["yutma güçlüğü", "yutamıyorum", "yutkunma sorunu", "boğazımda takılıyor"]
+    },
+    "R53": {
+      "description": "Malaise and fatigue",
+      "description_tr": "Halsizlik ve yorgunluk",
+      "clinical_significance": "General weakness, common in advanced cancer",
+      "dataset_mapping": "FATIGUE",
+      "voice_descriptors_tr": ["yorgunluk", "halsizlik", "bitkinlik", "sürekli yorgunum", "enerjim yok"]
+    },
+    "R23.8": {
+      "description": "Other skin changes",
+      "description_tr": "Diğer cilt değişiklikleri",
+      "clinical_significance": "Yellow discoloration of fingers (nicotine staining)",
+      "dataset_mapping": "YELLOW_FINGERS",
+      "voice_descriptors_tr": ["sarı parmaklar", "parmaklarım sarardı", "tırnaklarım sarı"]
+    }
+  },
+  "risk_factors": {
+    "F17": {
+      "description": "Nicotine dependence",
+      "description_tr": "Nikotin bağımlılığı / Sigara kullanımı",
+      "clinical_significance": "Primary risk factor - responsible for ~85% of lung cancer cases",
+      "dataset_mapping": "SMOKING",
+      "subcodes": {
+        "F17.21": "Nicotine dependence, cigarettes",
+        "F17.22": "Nicotine dependence, chewing tobacco",
+        "F17.29": "Nicotine dependence, other tobacco product"
+      },
+      "voice_descriptors_tr": ["sigara içiyorum", "sigara kullanıyorum", "günde bir paket", "yıllardır içerim", "içici"]
+    },
+    "F10": {
+      "description": "Alcohol related disorders",
+      "description_tr": "Alkol kullanımı ile ilişkili bozukluklar",
+      "clinical_significance": "Contributory risk factor, synergistic with smoking",
+      "dataset_mapping": "ALCOHOL_CONSUMING",
+      "voice_descriptors_tr": ["alkol kullanıyorum", "içki içerim", "haftalık alkol"]
+    },
+    "F41": {
+      "description": "Other anxiety disorders",
+      "description_tr": "Anksiyete bozuklukları",
+      "clinical_significance": "Psychological factor, may affect symptom reporting",
+      "dataset_mapping": "ANXIETY",
+      "voice_descriptors_tr": ["kaygı", "endişe", "anksiyete", "stres", "tedirginlik"]
+    },
+    "T78.4": {
+      "description": "Allergy, unspecified",
+      "description_tr": "Alerji, belirtilmemiş",
+      "clinical_significance": "May complicate symptom differential diagnosis",
+      "dataset_mapping": "ALLERGY",
+      "voice_descriptors_tr": ["alerji", "alerjim var", "alerjik"]
+    },
+    "Z87.39": {
+      "description": "Personal history of other diseases of musculoskeletal system and connective tissue",
+      "description_tr": "Kronik hastalık öyküsü",
+      "clinical_significance": "Chronic disease history increases overall risk",
+      "dataset_mapping": "CHRONIC_DISEASE",
+      "voice_descriptors_tr": ["kronik hastalık", "sürekli bir rahatsızlığım var", "kronik"]
+    }
+  },
+  "demographic_factors": {
+    "age": {
+      "description": "Patient age",
+      "description_tr": "Hasta yaşı",
+      "clinical_significance": "Risk increases significantly after age 40. 87.5% of cases in Turkey are in 40+ age group",
+      "dataset_mapping": "AGE",
+      "risk_groups": {
+        "low": "< 40",
+        "moderate": "40-59",
+        "high": "60-84",
+        "very_high": "85+"
+      }
+    },
+    "gender": {
+      "description": "Patient gender",
+      "description_tr": "Hasta cinsiyeti",
+      "clinical_significance": "Lung cancer incidence is significantly higher in males in Turkey (ASR 68.0 vs lower in females)",
+      "dataset_mapping": "GENDER"
+    }
+  },
+  "screening_guidelines": {
+    "source": "KETEM - Kanser Erken Teşhis ve Tarama Merkezleri",
+    "note": "Currently no national population-based lung cancer screening program in Turkey",
+    "international_recommendation": "LDCT (Low-Dose CT) annually for high-risk individuals (age 50-80, 20+ pack-year smoking history)",
+    "ketem_services": [
+      "Risk assessment and counseling",
+      "Referral to diagnostic centers",
+      "Available in all 81 provinces of Turkey"
+    ]
+  }
+}

@@ -1,0 +1,159 @@
+{
+  "symptom_risk_mapping": {
+    "description": "Maps dataset features to their clinical risk relationships with lung cancer",
+    "version": "1.0",
+    "target": "LUNG_CANCER (C34)"
+  },
+  "features": [
+    {
+      "name": "SMOKING",
+      "icd10": "F17",
+      "type": "risk_factor",
+      "category": "behavioral",
+      "weight": "primary",
+      "clinical_notes": "Strongest single risk factor. 85% of lung cancers are attributable to smoking. Risk increases with pack-years.",
+      "bayesian_parent": true,
+      "influences": ["COUGHING", "WHEEZING", "YELLOW_FINGERS", "SHORTNESS_OF_BREATH"]
+    },
+    {
+      "name": "COUGHING",
+      "icd10": "R05",
+      "type": "symptom",
+      "category": "respiratory",
+      "weight": "high",
+      "clinical_notes": "Persistent cough (>3 weeks) is the most common presenting symptom. New or changed cough is significant.",
+      "bayesian_parent": false,
+      "influenced_by": ["SMOKING", "ALLERGY", "CHRONIC_DISEASE"]
+    },
+    {
+      "name": "SHORTNESS_OF_BREATH",
+      "icd10": "R06.0",
+      "type": "symptom",
+      "category": "respiratory",
+      "weight": "high",
+      "clinical_notes": "Dyspnea may be caused by tumor obstruction, pleural effusion, or lymphangitic spread.",
+      "bayesian_parent": false,
+      "influenced_by": ["SMOKING", "CHRONIC_DISEASE"]
+    },
+    {
+      "name": "WHEEZING",
+      "icd10": "R06.2",
+      "type": "symptom",
+      "category": "respiratory",
+      "weight": "moderate",
+      "clinical_notes": "Localized wheezing may indicate partial airway obstruction by tumor.",
+      "bayesian_parent": false,
+      "influenced_by": ["SMOKING", "ALLERGY"]
+    },
+    {
+      "name": "CHEST_PAIN",
+      "icd10": "R07.9",
+      "type": "symptom",
+      "category": "thoracic",
+      "weight": "high",
+      "clinical_notes": "Dull, persistent pain suggests pleural or chest wall involvement. Sharp pain may indicate pleuritis.",
+      "bayesian_parent": false,
+      "influenced_by": []
+    },
+    {
+      "name": "SWALLOWING_DIFFICULTY",
+      "icd10": "R13",
+      "type": "symptom",
+      "category": "systemic",
+      "weight": "moderate",
+      "clinical_notes": "May indicate mediastinal lymph node enlargement or esophageal compression.",
+      "bayesian_parent": false,
+      "influenced_by": []
+    },
+    {
+      "name": "FATIGUE",
+      "icd10": "R53",
+      "type": "symptom",
+      "category": "systemic",
+      "weight": "moderate",
+      "clinical_notes": "Generalized fatigue is common in cancer patients. May be early or late symptom.",
+      "bayesian_parent": false,
+      "influenced_by": ["CHRONIC_DISEASE"]
+    },
+    {
+      "name": "YELLOW_FINGERS",
+      "icd10": "R23.8",
+      "type": "sign",
+      "category": "dermatological",
+      "weight": "low",
+      "clinical_notes": "Nicotine staining of fingers. Indicator of heavy smoking rather than direct cancer sign.",
+      "bayesian_parent": false,
+      "influenced_by": ["SMOKING"]
+    },
+    {
+      "name": "ALCOHOL_CONSUMING",
+      "icd10": "F10",
+      "type": "risk_factor",
+      "category": "behavioral",
+      "weight": "low",
+      "clinical_notes": "Synergistic effect with smoking. Alone, alcohol is a weak risk factor for lung cancer.",
+      "bayesian_parent": true,
+      "influences": []
+    },
+    {
+      "name": "ANXIETY",
+      "icd10": "F41",
+      "type": "psychological",
+      "category": "mental_health",
+      "weight": "low",
+      "clinical_notes": "May affect symptom reporting accuracy. Not a direct risk factor.",
+      "bayesian_parent": false,
+      "influenced_by": []
+    },
+    {
+      "name": "ALLERGY",
+      "icd10": "T78.4",
+      "type": "comorbidity",
+      "category": "immunological",
+      "weight": "low",
+      "clinical_notes": "Some studies suggest allergies may be inversely related to cancer risk. Complicates differential diagnosis.",
+      "bayesian_parent": true,
+      "influences": ["COUGHING", "WHEEZING"]
+    },
+    {
+      "name": "CHRONIC_DISEASE",
+      "icd10": "Z87.39",
+      "type": "risk_factor",
+      "category": "medical_history",
+      "weight": "moderate",
+      "clinical_notes": "COPD, pulmonary fibrosis, and other chronic lung diseases increase lung cancer risk.",
+      "bayesian_parent": true,
+      "influences": ["FATIGUE", "COUGHING", "SHORTNESS_OF_BREATH"]
+    },
+    {
+      "name": "PEER_PRESSURE",
+      "icd10": null,
+      "type": "psychosocial",
+      "category": "social",
+      "weight": "minimal",
+      "clinical_notes": "Social factor. May correlate with smoking initiation.",
+      "bayesian_parent": false,
+      "influenced_by": []
+    },
+    {
+      "name": "AGE",
+      "icd10": null,
+      "type": "demographic",
+      "category": "demographic",
+      "weight": "high",
+      "clinical_notes": "Risk increases exponentially after age 40. Median age at diagnosis is 70 years.",
+      "bayesian_parent": true,
+      "influences": ["CHRONIC_DISEASE"]
+    },
+    {
+      "name": "GENDER",
+      "icd10": null,
+      "type": "demographic",
+      "category": "demographic",
+      "weight": "moderate",
+      "clinical_notes": "In Turkey, male incidence (ASR 68.0) is significantly higher than female. Primarily due to higher smoking rates.",
+      "bayesian_parent": true,
+      "influences": ["SMOKING"]
+    }
+  ]
+}

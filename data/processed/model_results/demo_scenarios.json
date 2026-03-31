@@ -1,0 +1,186 @@
+[
+  {
+    "risk_score": 50.0,
+    "risk_probability": 0.5,
+    "no_cancer_probability": 0.5,
+    "risk_level": "moderate",
+    "risk_level_tr": "Orta Risk",
+    "risk_level_en": "Moderate Risk",
+    "evidence_provided": {
+      "SMOKING": 1,
+      "COUGHING": 1,
+      "SHORTNESS_OF_BREATH": 1,
+      "WHEEZING": 1,
+      "CHEST_PAIN": 1,
+      "FATIGUE": 1,
+      "YELLOW_FINGERS": 1,
+      "AGE": 3,
+      "GENDER": 1,
+      "CHRONIC_DISEASE": 1
+    },
+    "icd10_findings": [
+      {
+        "code": "F17",
+        "feature": "SMOKING",
+        "status": "Present"
+      },
+      {
+        "code": "R05",
+        "feature": "COUGHING",
+        "status": "Present"
+      },
+      {
+        "code": "R06.0",
+        "feature": "SHORTNESS_OF_BREATH",
+        "status": "Present"
+      },
+      {
+        "code": "R06.2",
+        "feature": "WHEEZING",
+        "status": "Present"
+      },
+      {
+        "code": "R07.9",
+        "feature": "CHEST_PAIN",
+        "status": "Present"
+      },
+      {
+        "code": "R53",
+        "feature": "FATIGUE",
+        "status": "Present"
+      },
+      {
+        "code": "R23.8",
+        "feature": "YELLOW_FINGERS",
+        "status": "Present"
+      },
+      {
+        "code": "Z87.39",
+        "feature": "CHRONIC_DISEASE",
+        "status": "Present"
+      }
+    ],
+    "recommendation_tr": "Bazı risk faktörleri tespit edilmiştir. En yakın sağlık kuruluşuna veya KETEM merkezine başvurmanızı öneririz.",
+    "recommendation_en": "Some risk factors have been identified. We recommend visiting your nearest healthcare facility or KETEM center.",
+    "scenario": "Patient A — High Risk (Heavy Smoker, Multiple Symptoms)"
+  },
+  {
+    "risk_score": 54.54,
+    "risk_probability": 0.5454,
+    "no_cancer_probability": 0.4546,
+    "risk_level": "moderate",
+    "risk_level_tr": "Orta Risk",
+    "risk_level_en": "Moderate Risk",
+    "evidence_provided": {
+      "SMOKING": 1,
+      "COUGHING": 1,
+      "FATIGUE": 1,
+      "AGE": 2,
+      "GENDER": 1,
+      "SHORTNESS_OF_BREATH": 0,
+      "CHEST_PAIN": 0,
+      "WHEEZING": 0,
+      "YELLOW_FINGERS": 0
+    },
+    "icd10_findings": [
+      {
+        "code": "F17",
+        "feature": "SMOKING",
+        "status": "Present"
+      },
+      {
+        "code": "R05",
+        "feature": "COUGHING",
+        "status": "Present"
+      },
+      {
+        "code": "R53",
+        "feature": "FATIGUE",
+        "status": "Present"
+      }
+    ],
+    "recommendation_tr": "Bazı risk faktörleri tespit edilmiştir. En yakın sağlık kuruluşuna veya KETEM merkezine başvurmanızı öneririz.",
+    "recommendation_en": "Some risk factors have been identified. We recommend visiting your nearest healthcare facility or KETEM center.",
+    "scenario": "Patient B — Moderate Risk (Smoker, Some Symptoms)"
+  },
+  {
+    "risk_score": 46.98,
+    "risk_probability": 0.4698,
+    "no_cancer_probability": 0.5302,
+    "risk_level": "moderate",
+    "risk_level_tr": "Orta Risk",
+    "risk_level_en": "Moderate Risk",
+    "evidence_provided": {
+      "SMOKING": 0,
+      "COUGHING": 0,
+      "SHORTNESS_OF_BREATH": 0,
+      "WHEEZING": 0,
+      "CHEST_PAIN": 0,
+      "FATIGUE": 0,
+      "YELLOW_FINGERS": 0,
+      "AGE": 0,
+      "GENDER": 0,
+      "ALLERGY": 1
+    },
+    "icd10_findings": [
+      {
+        "code": "T78.4",
+        "feature": "ALLERGY",
+        "status": "Present"
+      }
+    ],
+    "recommendation_tr": "Bazı risk faktörleri tespit edilmiştir. En yakın sağlık kuruluşuna veya KETEM merkezine başvurmanızı öneririz.",
+    "recommendation_en": "Some risk factors have been identified. We recommend visiting your nearest healthcare facility or KETEM center.",
+    "scenario": "Patient C — Low Risk (Non-smoker, Young, No Major Symptoms)"
+  },
+  {
+    "risk_score": 53.08,
+    "risk_probability": 0.5308,
+    "no_cancer_probability": 0.4692,
+    "risk_level": "moderate",
+    "risk_level_tr": "Orta Risk",
+    "risk_level_en": "Moderate Risk",
+    "evidence_provided": {
+      "SMOKING": 0,
+      "COUGHING": 1,
+      "SHORTNESS_OF_BREATH": 1,
+      "WHEEZING": 1,
+      "CHEST_PAIN": 0,
+      "FATIGUE": 1,
+      "AGE": 3,
+      "GENDER": 0,
+      "CHRONIC_DISEASE": 1,
+      "ALLERGY": 0
+    },
+    "icd10_findings": [
+      {
+        "code": "R05",
+        "feature": "COUGHING",
+        "status": "Present"
+      },
+      {
+        "code": "R06.0",
+        "feature": "SHORTNESS_OF_BREATH",
+        "status": "Present"
+      },
+      {
+        "code": "R06.2",
+        "feature": "WHEEZING",
+        "status": "Present"
+      },
+      {
+        "code": "R53",
+        "feature": "FATIGUE",
+        "status": "Present"
+      },
+      {
+        "code": "Z87.39",
+        "feature": "CHRONIC_DISEASE",
+        "status": "Present"
+      }
+    ],
+    "recommendation_tr": "Bazı risk faktörleri tespit edilmiştir. En yakın sağlık kuruluşuna veya KETEM merkezine başvurmanızı öneririz.",
+    "recommendation_en": "Some risk factors have been identified. We recommend visiting your nearest healthcare facility or KETEM center.",
+    "scenario": "Patient D — Elderly Non-Smoker with Respiratory Symptoms"
+  }
+]
