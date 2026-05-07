@@ -1,0 +1,246 @@
+[
+  {
+    "risk_score": 99.98,
+    "risk_probability": 0.999822,
+    "no_cancer_probability": 0.000178,
+    "risk_level": "high",
+    "risk_level_tr": "Yüksek Risk",
+    "risk_level_en": "High Risk",
+    "risk_color": "#e74c3c",
+    "evidence_provided": {
+      "SMOKING": 1,
+      "AGE": 4,
+      "GENDER": 1,
+      "COUGHING": 1,
+      "SHORTNESS_OF_BREATH": 1,
+      "CHEST_PAIN": 1,
+      "HEMOPTYSIS": 1,
+      "FATIGUE": 1,
+      "WEIGHT_LOSS": 1,
+      "WHEEZING": 1
+    },
+    "icd10_findings": [
+      {
+        "code": "F17.2",
+        "feature": "SMOKING",
+        "status": "Present"
+      },
+      {
+        "code": "R05",
+        "feature": "COUGHING",
+        "status": "Present"
+      },
+      {
+        "code": "R06.0",
+        "feature": "SHORTNESS_OF_BREATH",
+        "status": "Present"
+      },
+      {
+        "code": "R07.9",
+        "feature": "CHEST_PAIN",
+        "status": "Present"
+      },
+      {
+        "code": "R04.2",
+        "feature": "HEMOPTYSIS",
+        "status": "Present"
+      },
+      {
+        "code": "R53.83",
+        "feature": "FATIGUE",
+        "status": "Present"
+      },
+      {
+        "code": "R63.4",
+        "feature": "WEIGHT_LOSS",
+        "status": "Present"
+      },
+      {
+        "code": "R06.2",
+        "feature": "WHEEZING",
+        "status": "Present"
+      }
+    ],
+    "risk_factors_tr": [
+      "Aktif sigara kullanımı",
+      "65 yaş üstü"
+    ],
+    "symptoms_present": [
+      "COUGHING",
+      "SHORTNESS_OF_BREATH",
+      "CHEST_PAIN",
+      "WHEEZING",
+      "FATIGUE",
+      "HEMOPTYSIS",
+      "WEIGHT_LOSS"
+    ],
+    "data_sources": {
+      "risk_factors": "NLST Clinical Trial (n=53,452)",
+      "symptoms": "Peer-reviewed medical literature"
+    },
+    "recommendation_tr": "Önemli risk faktörleri ve semptomlar tespit edilmiştir. En kısa sürede bir göğüs hastalıkları uzmanına veya onkoloji polikliniğine başvurmanızı şiddetle öneriyoruz. Düşük doz BT taraması veya ileri tetkik gerekebilir.",
+    "recommendation_en": "Significant risk factors and symptoms have been identified. We strongly recommend an urgent consultation with a pulmonologist or oncology department. Low-dose CT screening or further evaluation may be needed.",
+    "scenario": "Hasta A — Yüksek Risk (Yaşlı, Aktif İçici, Çoklu Semptom)"
+  },
+  {
+    "risk_score": 10.77,
+    "risk_probability": 0.107659,
+    "no_cancer_probability": 0.892341,
+    "risk_level": "moderate",
+    "risk_level_tr": "Orta Risk",
+    "risk_level_en": "Moderate Risk",
+    "risk_color": "#f39c12",
+    "evidence_provided": {
+      "SMOKING": 0,
+      "AGE": 3,
+      "GENDER": 1,
+      "COUGHING": 1,
+      "FATIGUE": 1,
+      "SHORTNESS_OF_BREATH": 0,
+      "CHEST_PAIN": 0,
+      "HEMOPTYSIS": 0,
+      "WEIGHT_LOSS": 0,
+      "WHEEZING": 0
+    },
+    "icd10_findings": [
+      {
+        "code": "R05",
+        "feature": "COUGHING",
+        "status": "Present"
+      },
+      {
+        "code": "R53.83",
+        "feature": "FATIGUE",
+        "status": "Present"
+      }
+    ],
+    "risk_factors_tr": [
+      "Eski sigara kullanıcısı",
+      "65 yaş üstü"
+    ],
+    "symptoms_present": [
+      "COUGHING",
+      "FATIGUE"
+    ],
+    "data_sources": {
+      "risk_factors": "NLST Clinical Trial (n=53,452)",
+      "symptoms": "Peer-reviewed medical literature"
+    },
+    "recommendation_tr": "Bazı risk faktörleri ve/veya semptomlar tespit edilmiştir. En yakın sağlık kuruluşuna veya KETEM merkezine başvurmanızı öneririz. Düşük doz BT taraması hakkında doktorunuzla görüşünüz.",
+    "recommendation_en": "Some risk factors and/or symptoms have been identified. We recommend visiting your nearest healthcare facility. Discuss low-dose CT screening with your physician.",
+    "scenario": "Hasta B — Orta Risk (Yaşlı, Eski İçici, Az Semptom)"
+  },
+  {
+    "risk_score": 0.08,
+    "risk_probability": 0.000807,
+    "no_cancer_probability": 0.999193,
+    "risk_level": "low",
+    "risk_level_tr": "Düşük Risk",
+    "risk_level_en": "Low Risk",
+    "risk_color": "#2ecc71",
+    "evidence_provided": {
+      "SMOKING": 0,
+      "AGE": 1,
+      "GENDER": 0,
+      "COUGHING": 0,
+      "SHORTNESS_OF_BREATH": 0,
+      "CHEST_PAIN": 0,
+      "WHEEZING": 0,
+      "FATIGUE": 0,
+      "HEMOPTYSIS": 0,
+      "WEIGHT_LOSS": 0
+    },
+    "icd10_findings": [],
+    "risk_factors_tr": [
+      "Eski sigara kullanıcısı"
+    ],
+    "symptoms_present": [],
+    "data_sources": {
+      "risk_factors": "NLST Clinical Trial (n=53,452)",
+      "symptoms": "Peer-reviewed medical literature"
+    },
+    "recommendation_tr": "Şu an için belirgin risk faktörleri tespit edilmemiştir. Yıllık sağlık kontrollerinizi ihmal etmeyiniz. Bu değerlendirme bir tarama aracıdır, kesin tanı yerine geçmez.",
+    "recommendation_en": "No significant risk factors detected at this time. Please maintain regular annual health check-ups. This assessment is a screening tool, not a definitive diagnosis.",
+    "scenario": "Hasta C — Düşük Risk (Genç, Eski İçici, Semptomsuz)"
+  },
+  {
+    "risk_score": 19.23,
+    "risk_probability": 0.192278,
+    "no_cancer_probability": 0.807722,
+    "risk_level": "high",
+    "risk_level_tr": "Yüksek Risk",
+    "risk_level_en": "High Risk",
+    "risk_color": "#e74c3c",
+    "evidence_provided": {
+      "SMOKING": 0,
+      "AGE": 1,
+      "GENDER": 1,
+      "COUGHING": 1,
+      "HEMOPTYSIS": 1,
+      "SHORTNESS_OF_BREATH": 0,
+      "CHEST_PAIN": 0,
+      "WHEEZING": 0,
+      "FATIGUE": 0,
+      "WEIGHT_LOSS": 0
+    },
+    "icd10_findings": [
+      {
+        "code": "R05",
+        "feature": "COUGHING",
+        "status": "Present"
+      },
+      {
+        "code": "R04.2",
+        "feature": "HEMOPTYSIS",
+        "status": "Present"
+      }
+    ],
+    "risk_factors_tr": [
+      "Eski sigara kullanıcısı"
+    ],
+    "symptoms_present": [
+      "COUGHING",
+      "HEMOPTYSIS"
+    ],
+    "data_sources": {
+      "risk_factors": "NLST Clinical Trial (n=53,452)",
+      "symptoms": "Peer-reviewed medical literature"
+    },
+    "recommendation_tr": "Önemli risk faktörleri ve semptomlar tespit edilmiştir. En kısa sürede bir göğüs hastalıkları uzmanına veya onkoloji polikliniğine başvurmanızı şiddetle öneriyoruz. Düşük doz BT taraması veya ileri tetkik gerekebilir.",
+    "recommendation_en": "Significant risk factors and symptoms have been identified. We strongly recommend an urgent consultation with a pulmonologist or oncology department. Low-dose CT screening or further evaluation may be needed.",
+    "scenario": "Hasta D — Alarm: Hemoptizi (Genç, Eski İçici, Kan Tükürme)"
+  },
+  {
+    "risk_score": 10.92,
+    "risk_probability": 0.109236,
+    "no_cancer_probability": 0.890764,
+    "risk_level": "moderate",
+    "risk_level_tr": "Orta Risk",
+    "risk_level_en": "Moderate Risk",
+    "risk_color": "#f39c12",
+    "evidence_provided": {
+      "SMOKING": 1,
+      "AGE": 4,
+      "GENDER": 1
+    },
+    "icd10_findings": [
+      {
+        "code": "F17.2",
+        "feature": "SMOKING",
+        "status": "Present"
+      }
+    ],
+    "risk_factors_tr": [
+      "Aktif sigara kullanımı",
+      "65 yaş üstü"
+    ],
+    "symptoms_present": [],
+    "data_sources": {
+      "risk_factors": "NLST Clinical Trial (n=53,452)",
+      "symptoms": "Peer-reviewed medical literature"
+    },
+    "recommendation_tr": "Bazı risk faktörleri ve/veya semptomlar tespit edilmiştir. En yakın sağlık kuruluşuna veya KETEM merkezine başvurmanızı öneririz. Düşük doz BT taraması hakkında doktorunuzla görüşünüz.",
+    "recommendation_en": "Some risk factors and/or symptoms have been identified. We recommend visiting your nearest healthcare facility. Discuss low-dose CT screening with your physician.",
+    "scenario": "Hasta E — Sadece Risk Faktörleri (Semptom Yok)"
+  }
+]
