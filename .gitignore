@@ -210,3 +210,12 @@ __marimo__/
 ProjectPlan.md
 claude/ 
 report/
+
+#recordings
+*.wav
+
+# ChromaDB vector store (auto-generated from knowledge base)
+data/chroma_db/
+
+# Generated reports (reproducible via pipeline)
+data/processed/reports/

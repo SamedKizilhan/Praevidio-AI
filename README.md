@@ -39,8 +39,8 @@ Praevidio AI is a hybrid AI system that combines **Large Language Models (LLMs)*
 │    │                                                            │
 │    ▼                                                            │
 │  ┌──────────────┐    ┌──────────────────┐    ┌───────────────┐  │
-│  │  Whisper STT  │───▶│  GPT-4o Symptom  │───▶│  RAG Engine   │  │
-│  │  (Turkish)    │    │  Extractor       │    │  (LangChain)  │  │
+│  │  Whisper STT  │───▶│ GPT-4o-mini   │───▶│  RAG Engine   │  │
+│  │  (Turkish)    │    │  Extraction   │    │  (ChromaDB)   │  │
 │  └──────────────┘    └──────────────────┘    └───────┬───────┘  │
 │                                                      │          │
 │                              ┌──────────────────┐    │          │
@@ -50,23 +50,34 @@ Praevidio AI is a hybrid AI system that combines **Large Language Models (LLMs)*
 │                              └────────┬─────────┘              │
 │                                       │                         │
 │                                       ▼                         │
-│                         ┌──────────────────────┐                │
-│                         │  Bayesian Belief      │                │
-│                         │  Network (pgmpy)      │                │
-│                         │  15 nodes, 23 edges   │                │
-│                         └──────────┬───────────┘                │
-│                                    │                            │
-│                                    ▼                            │
-│                         ┌──────────────────────┐                │
-│                         │  Risk Score (0-100%)  │                │
-│                         │  + ICD-10 Findings    │                │
-│                         └──────────┬───────────┘                │
-│                                    │                            │
-│                                    ▼                            │
-│                         ┌──────────────────────┐                │
-│                         │  📄 Doctor-Ready      │                │
-│                         │  PDF Report           │                │
-│                         └──────────────────────┘                │
+│              ┌────────────────────────────────────────┐          │
+│              │     HYBRID BAYESIAN BELIEF NETWORK     │          │
+│              │                                        │          │
+│              │  Part A: Risk Factor CPTs              │          │
+│              │  ┌────────────────────────────────┐    │          │
+│              │  │ NLST Clinical Trial (n=53,452) │    │          │
+│              │  │ P(Cancer | Age,Gender,Smoking)  │    │          │
+│              │  └────────────────────────────────┘    │          │
+│              │                                        │          │
+│              │  Part B: Symptom CPTs                  │          │
+│              │  ┌────────────────────────────────┐    │          │
+│              │  │ Peer-Reviewed Literature        │    │          │
+│              │  │ 7 symptoms, 5 references        │    │          │
+│              │  └────────────────────────────────┘    │          │
+│              │  11 nodes, 13 edges (pgmpy)           │          │
+│              └──────────────────┬─────────────────────┘          │
+│                                 │                                │
+│                                 ▼                                │
+│                      ┌──────────────────────┐                   │
+│                      │  Risk Score (0-100%)  │                   │
+│                      │  + ICD-10 Findings    │                   │
+│                      └──────────┬───────────┘                   │
+│                                 │                                │
+│                                 ▼                                │
+│                      ┌──────────────────────┐                   │
+│                      │  📄 Doctor-Ready      │                   │
+│                      │  PDF Report           │                   │
+│                      └──────────────────────┘                   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -74,7 +85,7 @@ Praevidio AI is a hybrid AI system that combines **Large Language Models (LLMs)*
 1. **Voice → Text:** OpenAI Whisper transcribes Turkish speech to text.
 2. **Text → Structured Symptoms:** GPT-4o extracts symptom data as structured JSON.
 3. **Symptoms → ICD-10 Codes:** RAG retrieves relevant medical codes from the knowledge base.
-4. **Evidence → Risk Score:** BBN performs probabilistic inference: `P(Lung Cancer | Evidence)`.
+4. **Evidence → Risk Score:** Hybrid BBN performs probabilistic inference: `P(Lung Cancer | Evidence)`.
 5. **Result → Report:** Generates a PDF with findings, risk level, and recommendations.
 
 ---
@@ -82,11 +93,12 @@ Praevidio AI is a hybrid AI system that combines **Large Language Models (LLMs)*
 ## 🛠️ Technical Stack
 
 | Layer | Technology | Purpose |
-|-------|-----------|---------|
+|-------|-----------|---------| 
 | **Speech-to-Text** | OpenAI Whisper | Turkish voice transcription |
-| **LLM** | GPT-4o | Symptom extraction & report generation |
+| **LLM** | GPT-4o-mini | Symptom extraction (cost-efficient) |
 | **Vector DB** | ChromaDB (dev) | ICD-10 knowledge retrieval |
-| **Probabilistic Model** | pgmpy (BBN) | Explainable risk scoring |
+| **Probabilistic Model** | pgmpy (Hybrid BBN) | Explainable risk scoring |
+| **Clinical Data** | NLST (n=53,452) | Real-world risk factor CPTs |
 | **Data Science** | pandas, scikit-learn, seaborn | EDA & model evaluation |
 | **Report Gen** | Jinja2, WeasyPrint | PDF report generation |
 | **Clinical Standards** | ICD-10, ICD-O-3 | International medical coding |
@@ -99,22 +111,43 @@ Praevidio AI is a hybrid AI system that combines **Large Language Models (LLMs)*
 ```
 Praevidio-AI/
 ├── src/
-│   ├── config.py                          # Centralized configuration
-│   ├── data_preprocessing.py              # Data cleaning & ICD-10 mapping pipeline
+│   ├── config.py                          # Centralized configuration & model settings
+│   ├── pipeline.py                        # End-to-end CLI (STT → NLP → RAG → BBN → PDF)
+│   ├── data_preprocessing.py              # Kaggle data cleaning & ICD-10 mapping
+│   ├── nlst_data_preprocessing.py         # NLST clinical data merge & normalization
 │   ├── model/
-│   │   └── bayesian_network.py            # BBN model, risk engine, evaluation
-│   ├── stt/                               # Whisper STT integration (WIP)
-│   ├── nlp/                               # GPT-4o symptom extractor (WIP)
-│   ├── rag/                               # RAG pipeline (WIP)
-│   └── report/                            # PDF report generator (WIP)
+│   │   ├── bayesian_network.py            # Original BBN (Kaggle data, 15 nodes)
+│   │   └── hybrid_bayesian_network.py     # Hybrid BBN (NLST + literature, 11 nodes)
+│   ├── stt/
+│   │   └── whisper_stt.py                 # Whisper STT + Turkish medical term correction
+│   ├── nlp/
+│   │   └── symptom_extractor.py           # Keyword + GPT-4o-mini symptom extraction
+│   ├── rag/
+│   │   └── rag_pipeline.py                # ChromaDB indexer + semantic ICD-10 retrieval
+│   └── report/
+│       ├── report_generator.py            # Jinja2 → WeasyPrint PDF report generator
+│       └── templates/
+│           └── report_template.html       # Bilingual (TR/EN) A4 report template
 ├── data/
-│   ├── raw/                               # Raw datasets
-│   ├── processed/                         # Cleaned data, EDA plots, model results
+│   ├── raw/                               # Raw datasets (Kaggle + NLST)
+│   ├── processed/
+│   │   ├── lung_cancer_cleaned.csv        # Cleaned Kaggle data (3,000 samples)
+│   │   ├── nlst_cleaned.csv               # Cleaned NLST data (53,452 participants)
+│   │   ├── nlst_summary.json              # NLST statistics & conditional probabilities
+│   │   ├── eda_plots/                     # Exploratory data analysis visualizations
+│   │   ├── model_results/                 # Original BBN evaluation results
+│   │   ├── hybrid_model_results/          # Hybrid BBN demo scenarios & visualizations
+│   │   └── reports/                       # Generated PDF/HTML risk assessment reports
 │   ├── knowledge_base/
-│   │   ├── icd10_lung_codes.json          # Lung cancer ICD-10 codes & TR descriptors
+│   │   ├── icd10_lung_codes.json          # Lung cancer ICD-10 codes & TR voice descriptors
 │   │   └── symptom_risk_factors.json      # Clinical feature-risk mappings
+│   ├── chroma_db/                         # ChromaDB vector store (auto-generated)
 │   └── models/
-│       └── bbn_lung_cancer_v1.pkl         # Trained BBN model
+│       ├── bbn_lung_cancer_v1.pkl         # Trained BBN model (Kaggle)
+│       └── hybrid_bbn_nlst_v1.pkl         # Trained Hybrid BBN model (NLST)
+├── docs/
+│   ├── appendix_cpt_derivation.md         # Formal CPT derivation table & references
+│   └── sensitivity_analysis_calibration.md # Explaining-away fix & calibration report
 ├── report/                                # CMPE 491 midterm report (LaTeX)
 ├── requirements.txt
 └── README.md
@@ -122,20 +155,31 @@ Praevidio-AI/
 
 ---
 
-## 📊 Current Status (Spring 2026 — Midterm)
+## 📊 Current Status (Spring 2026 — Phase 4 In Progress)
+
+### Core Components
 
 | Component | Status | Details |
 |-----------|--------|---------|
-| Data Preprocessing | ✅ Done | 3,000 samples cleaned, 13 features → ICD-10 mapped |
+| Kaggle Data Preprocessing | ✅ Done | 3,000 samples cleaned, 13 features → ICD-10 mapped |
+| NLST Data Integration | ✅ Done | 53,452 real clinical trial participants merged & normalized |
 | ICD-10 Knowledge Base | ✅ Done | 6 subcodes, 8 symptoms, 5 risk factors, TR voice descriptors |
-| Bayesian Belief Network | ✅ Done | 15 nodes, 23 edges, MLE-fitted CPTs |
-| Model Evaluation | ✅ Done | 5-Fold CV: Recall 97.2%, F1 66.6% |
-| Risk Scoring Engine | ✅ Done | Evidence → risk score + ICD-10 findings |
-| EDA Visualizations | ✅ Done | 6 plots (correlation, feature impact, distributions) |
-| RAG Pipeline | 🔄 In Progress | LangChain + ChromaDB |
-| Whisper STT | 📋 Planned | Turkish-optimized voice input |
-| PDF Report Generator | 📋 Planned | Jinja2 templates + WeasyPrint |
-| Mobile App (Flutter) | 📋 Fall 2026 | Voice UI + KETEM map |
+| Original BBN (Kaggle) | ✅ Done | 15 nodes, 23 edges, MLE-fitted CPTs, 5-Fold CV |
+| Hybrid BBN (NLST + Lit.) | ✅ Done | 11 nodes, 13 edges — NLST risk factors + literature symptom CPTs |
+| CPT Derivation & Calibration | ✅ Done | 7 symptom CPTs with sensitivity analysis & explaining-away fix |
+| Risk Scoring Engine | ✅ Done | Evidence → risk score + ICD-10 findings + TR/EN recommendations |
+| Whisper STT | ✅ Done | Turkish voice input + medical term post-processing ("kan tükürdüm" → hemoptizi) |
+| NLP Symptom Extractor | ✅ Done | Dual mode: keyword matching (offline) + GPT-4o-mini (semantic) |
+| RAG Pipeline | ✅ Done | ChromaDB vector store, 34 ICD-10 documents, OpenAI embeddings |
+| PDF Report Generator | ✅ Done | Bilingual (TR/EN) Jinja2 → WeasyPrint, A4 doctor-ready reports |
+| End-to-End Pipeline | ✅ Done | CLI: `--interactive`, `--audio`, `--record`, `--demo` modes |
+
+### Upcoming Components
+
+| Component | Status | Details |
+|-----------|--------|---------|
+| Performance Benchmarks | 🔄 Phase 4 | Accuracy, F1-Score on hold-out test data |
+| Mobile App (Flutter) | 📋 Fall 2026 | Voice UI + KETEM map integration |
 
 ---
 
@@ -153,11 +197,56 @@ source .venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Run data preprocessing pipeline
+# Set up your OpenAI API key
+cp .env.example .env
+# Edit .env and add your OPENAI_API_KEY
+```
+
+### Data Preprocessing
+
+```bash
+# Run Kaggle data preprocessing
 python src/data_preprocessing.py
 
-# Train and evaluate the Bayesian Network
+# Run NLST data preprocessing
+python src/nlst_data_preprocessing.py
+```
+
+### Model Training
+
+```bash
+# Train and evaluate the original BBN (Kaggle) - Artificial Data
 python src/model/bayesian_network.py
+
+# Build and validate the Hybrid BBN (NLST + Literature) - Real Data - RECOMMENDED
+python src/model/hybrid_bayesian_network.py
+```
+
+### 🩺 Pipeline Usage (CLI)
+
+```bash
+# Quick demo — runs 3 predefined clinical scenarios
+python src/pipeline.py --demo
+
+# Interactive text mode (type symptoms in Turkish)
+python src/pipeline.py --interactive
+
+# Interactive mode with GPT-4o-mini extraction
+python src/pipeline.py --interactive --nlp-mode llm
+
+# Record from microphone → full pipeline (requires sox)
+brew install sox
+python src/pipeline.py --record --nlp-mode llm
+
+# Process an existing audio file
+python src/pipeline.py --audio recording.m4a --nlp-mode llm
+```
+
+### RAG Index
+
+```bash
+# Build/rebuild the ChromaDB vector index
+python src/rag/rag_pipeline.py
 ```
 
 ---

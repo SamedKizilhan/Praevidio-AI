@@ -107,25 +107,49 @@ def compute_nlst_cancer_cpt(df: pd.DataFrame) -> dict:
     """
     Compute P(LUNG_CANCER | AGE, GENDER, SMOKING) from NLST data.
     Returns a dictionary with all conditional probabilities.
+
+    Note: NLST enrolled only ages 55-74. For AGE=0 (<55), we use
+    epidemiological baselines from general population studies since
+    the NLST subgroup is too small (n=5) for reliable estimation.
     """
     print("   📊 Computing P(Cancer | Age, Gender, Smoking) from NLST...")
+
+    # Epidemiological baselines for under-55 age group
+    # Source: ACS Cancer Facts & Figures 2023; Siegel et al., CA Cancer J Clin
+    # Risk is lower than 55+ but NOT zero, especially for smokers
+    UNDER_55_BASELINES = {
+        # (age_group, gender, smoking): P(cancer)
+        (0, 0, 0): 0.002,   # Female, former smoker: ~0.2%
+        (0, 0, 1): 0.008,   # Female, current smoker: ~0.8%
+        (0, 1, 0): 0.003,   # Male, former smoker: ~0.3%
+        (0, 1, 1): 0.012,   # Male, current smoker: ~1.2%
+    }
+
+    MIN_SAMPLE_SIZE = 30  # Minimum samples for reliable CPT estimation
 
     cpt_values = {}
     for age_val in sorted(df["age_group"].unique()):
         for gender_val in [0, 1]:
             for smoking_val in [0, 1]:
+                key = (int(age_val), gender_val, smoking_val)
                 subset = df[(df["age_group"] == age_val) &
                             (df["gender_norm"] == gender_val) &
                             (df["cigsmok"] == smoking_val)]
-                if len(subset) > 0:
+
+                if len(subset) >= MIN_SAMPLE_SIZE:
+                    # Sufficient data — use NLST empirical rate
                     p_cancer = subset["has_cancer"].mean()
+                elif key in UNDER_55_BASELINES:
+                    # Insufficient data — use epidemiological baseline
+                    p_cancer = UNDER_55_BASELINES[key]
+                    print(f"      ⚠️  AGE={age_val} G={gender_val} S={smoking_val}: "
+                          f"n={len(subset)}, using epidemiological baseline {p_cancer:.3f}")
                 else:
-                    # Fallback to marginal
+                    # Fallback to overall base rate
                     p_cancer = df["has_cancer"].mean()
 
                 # Apply Laplace smoothing to avoid zero probabilities
                 p_cancer = max(0.001, min(0.999, p_cancer))
-                key = (int(age_val), gender_val, smoking_val)
                 cpt_values[key] = p_cancer
 
     return cpt_values
@@ -330,12 +354,16 @@ def build_symptom_cpds() -> list:
     # Sources: Beckles (2003) cough 45-75% in LC; Hamilton (2005) OR=1.6
     # Confounder: Smoking independently causes chronic cough (20-30%)
     # Column order: LC=0/SM=0, LC=0/SM=1, LC=1/SM=0, LC=1/SM=1
+    #
+    # Design note: P(LC=0, SM=1)=0.15 is kept moderate — smoking does cause
+    # cough, but this must NOT over-suppress cancer inference for smokers.
+    # A smoker who coughs should have HIGHER cancer risk, not lower.
     coughing_cpd = TabularCPD(
         variable="COUGHING",
         variable_card=2,
         values=[
-            [0.90, 0.75, 0.40, 0.30],   # P(no coughing | ...)
-            [0.10, 0.25, 0.60, 0.70],   # P(coughing | ...)
+            [0.90, 0.85, 0.40, 0.30],   # P(no coughing | ...)
+            [0.10, 0.15, 0.60, 0.70],   # P(coughing | ...)
         ],
         evidence=["LUNG_CANCER", "SMOKING"],
         evidence_card=[2, 2]
@@ -344,13 +372,15 @@ def build_symptom_cpds() -> list:
 
     # ─── SHORTNESS_OF_BREATH: P(SOB | LUNG_CANCER, SMOKING) ───
     # Sources: Beckles (2003) dyspnoea 37-58% in LC; Mannino (2002) COPD
-    # Confounder: Smoking causes COPD-related dyspnoea (15-20%)
+    # Confounder: Smoking causes COPD-related dyspnoea, but P(SOB|LC=0,SM=1)
+    # is kept low (0.10) to prevent explaining-away: a smoker with dyspnoea
+    # must not have LOWER cancer probability than a non-smoker with dyspnoea.
     sob_cpd = TabularCPD(
         variable="SHORTNESS_OF_BREATH",
         variable_card=2,
         values=[
-            [0.92, 0.82, 0.50, 0.40],   # P(no SOB | ...)
-            [0.08, 0.18, 0.50, 0.60],   # P(SOB | ...)
+            [0.92, 0.90, 0.50, 0.40],   # P(no SOB | ...)
+            [0.08, 0.10, 0.50, 0.60],   # P(SOB | ...)
         ],
         evidence=["LUNG_CANCER", "SMOKING"],
         evidence_card=[2, 2]
@@ -359,13 +389,14 @@ def build_symptom_cpds() -> list:
 
     # ─── WHEEZING: P(Wheezing | LUNG_CANCER, SMOKING) ───
     # Sources: Beckles (2003) wheezing 15-30% in LC
-    # Confounder: Smoking causes airway wheezing (12-18%)
+    # Confounder: P(Wheezing|LC=0,SM=1) kept at 0.07 (not 0.15) to avoid
+    # explaining away — a smoker with wheezing should raise, not lower, risk.
     wheezing_cpd = TabularCPD(
         variable="WHEEZING",
         variable_card=2,
         values=[
-            [0.95, 0.85, 0.78, 0.70],   # P(no wheezing | ...)
-            [0.05, 0.15, 0.22, 0.30],   # P(wheezing | ...)
+            [0.95, 0.93, 0.78, 0.70],   # P(no wheezing | ...)
+            [0.05, 0.07, 0.22, 0.30],   # P(wheezing | ...)
         ],
         evidence=["LUNG_CANCER", "SMOKING"],
         evidence_card=[2, 2]
