@@ -145,7 +145,7 @@ def run_interactive_pipeline(nlp_mode: str = "keyword"):
         print(f"\n   ────── Adım 5: Rapor Oluşturma ──────")
         try:
             report_path = generate_report(
-                risk_result, evidence, format="html"
+                risk_result, evidence, format="pdf"
             )
             print(f"   📄 Rapor oluşturuldu: {report_path}")
         except Exception as e:
@@ -204,7 +204,7 @@ def run_audio_pipeline(audio_path: str, nlp_mode: str = "keyword"):
 
     # Step 5: Generate Report
     print(f"\n────── Adım 5: Rapor Oluşturma ──────")
-    report_path = generate_report(risk_result, evidence, format="html")
+    report_path = generate_report(risk_result, evidence, format="pdf")
     print(f"   📄 {report_path}")
 
 
@@ -261,7 +261,7 @@ def run_demo():
 
             # Generate report
             report_path = generate_report(
-                risk_result, evidence, format="html"
+                risk_result, evidence, format="pdf"
             )
             print(f"  📄 Report: {report_path}")
         except Exception as e:
