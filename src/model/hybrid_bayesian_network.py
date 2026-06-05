@@ -79,6 +79,13 @@ def get_hybrid_structure():
         ("GENDER", "LUNG_CANCER"),
         ("SMOKING", "LUNG_CANCER"),
 
+        # Part A2: Additional risk factors → Cancer (literature OR-adjusted)
+        # NLST veri setinde bu 3 değişken yok; bu yüzden veriden öğrenilmez,
+        # NLST tabanına literatür odds-ratio'ları çarpılarak entegre edilir.
+        ("FAMILY_HISTORY", "LUNG_CANCER"),   # Ailede 1. derece akraba öyküsü
+        ("ASBESTOS", "LUNG_CANCER"),          # Mesleki asbest/risk maruziyeti (proxy)
+        ("AIR_POLLUTION", "LUNG_CANCER"),     # İl bazlı yıllık PM2.5 kademesi
+
         # Part B: Cancer → Symptoms (CPTs from literature)
         # This is the "generative" or "Naive Bayes" direction:
         # Cancer CAUSES symptoms to appear
@@ -102,6 +109,45 @@ def get_hybrid_structure():
 # ==============================================================
 # 2. CPT CONSTRUCTION
 # ==============================================================
+
+# --- Literatür temelli odds-ratio'lar (yeni risk faktörleri) ---
+# Bunlar NLST tabanına çarpılarak P(cancer | ...) hesaplanır.
+# Başlangıç değerleri; duyarlılık analizi ile kalibre edilebilir
+# (bkz. docs/v2_genisletme_tasarim.md ve sensitivity_analysis_calibration.md).
+RISK_FACTOR_ORS = {
+    # Ailede 1. derece akraba öyküsü — ILCCO pooled RR≈1.51, meta RR≈1.88
+    "FAMILY_HISTORY": {0: 1.00, 1: 1.70},
+    # Mesleki asbest/risk maruziyeti (öz-bildirim proxy) — ever-exposed OR≈1.24,
+    # belirgin maruziyet OR≈2.04; muhafazakâr orta değer
+    "ASBESTOS": {0: 1.00, 1: 1.50},
+    # Hava kirliliği kademesi (il PM2.5) — her 10µg/m³ için RR≈1.16 ankrajlı
+    "AIR_POLLUTION": {0: 1.00, 1: 1.15, 2: 1.30},
+}
+
+
+# --- Paket-yıl temelli sigara düzeltmesi (A kuralı) ---
+# NLST'nin ikili "aktif/eski içici" sınıflaması dozu (paket-yıl) görmez ve
+# tüm NLST nüfusu ≥30 paket-yıl olduğu için "eski içici" hücresi AĞIR eski
+# içiciyi temsil eder. Bu yüzden:
+#   • Hiç/çok hafif içen (paket-yıl < 1): NLST ağır-eski-içici oranına takılı
+#     kalmasın diye taban riske aşağı çarpan uygulanır.
+#   • Ağır + yakın zamanda bırakmış eski içici (≥20 paket-yıl ve bırakalı ≤15 yıl):
+#     NLST'nin kendi yüksek-risk tanımına girer → aktif içici gibi değerlendirilir.
+NEVER_SMOKER_OR = 0.15            # hiç içmeyen ~6-7 kat düşük (epidemiyolojik)
+HEAVY_FORMER_PACK_YEARS = 20      # "ağır" eşiği (paket-yıl)
+HEAVY_FORMER_MAX_QUIT_YEARS = 15  # "yakın zamanda bırakmış" eşiği (yıl)
+
+
+def _apply_odds_ratio(p_base: float, or_product: float) -> float:
+    """
+    Taban olasılığa odds-ratio çarpımı uygular (logit/odds dünyasında).
+        odds_adj = (p/(1-p)) * OR_product ;  p_adj = odds_adj/(1+odds_adj)
+    """
+    p_base = min(max(p_base, 1e-6), 1 - 1e-6)
+    odds = p_base / (1.0 - p_base)
+    odds_adj = odds * or_product
+    return odds_adj / (1.0 + odds_adj)
+
 
 def compute_nlst_cancer_cpt(df: pd.DataFrame) -> dict:
     """
@@ -157,38 +203,49 @@ def compute_nlst_cancer_cpt(df: pd.DataFrame) -> dict:
 
 def build_cancer_cpd(nlst_cpts: dict) -> TabularCPD:
     """
-    Build the LUNG_CANCER CPD conditioned on AGE, GENDER, SMOKING.
+    Build the LUNG_CANCER CPD conditioned on:
+      AGE, GENDER, SMOKING  (NLST tabanı) +
+      FAMILY_HISTORY, ASBESTOS, AIR_POLLUTION  (literatür OR çarpımı)
 
-    Variable ordering for TabularCPD:
-      - AGE: 5 states (0,1,2,3,4)
-      - GENDER: 2 states (0=Female, 1=Male)
-      - SMOKING: 2 states (0=Former, 1=Current)
+    Variable ordering / cardinality:
+      - AGE: 5, GENDER: 2, SMOKING: 2  → NLST tabanı P(cancer|age,gender,smoking)
+      - FAMILY_HISTORY: 2, ASBESTOS: 2, AIR_POLLUTION: 3  → OR çarpanı
+    Toplam sütun: 5*2*2*2*2*3 = 240 (programatik üretilir, elle girilmez).
+
+    pgmpy sütun sırası: ilk evidence (AGE) en yavaş, son evidence (AIR_POLLUTION)
+    en hızlı değişir. Aşağıdaki iç içe döngü bu sırayı birebir takip eder.
     """
-    age_states = 5
-    gender_states = 2
-    smoking_states = 2
-    total_cols = age_states * gender_states * smoking_states  # 20
+    age_states, gender_states, smoking_states = 5, 2, 2
+    fam_states, asb_states, air_states = 2, 2, 3
 
-    # Build probability table
-    # Column order: iterate over parents in order (AGE, GENDER, SMOKING)
-    # pgmpy iterates: AGE changes slowest, SMOKING changes fastest
     p_cancer_vals = []
     p_no_cancer_vals = []
 
     for age_val in range(age_states):
         for gender_val in range(gender_states):
             for smoking_val in range(smoking_states):
-                key = (age_val, gender_val, smoking_val)
-                p_cancer = nlst_cpts.get(key, 0.0385)  # fallback to base rate
-                p_cancer_vals.append(p_cancer)
-                p_no_cancer_vals.append(1.0 - p_cancer)
+                p_base = nlst_cpts.get((age_val, gender_val, smoking_val), 0.0385)
+                for fam_val in range(fam_states):
+                    for asb_val in range(asb_states):
+                        for air_val in range(air_states):
+                            or_product = (
+                                RISK_FACTOR_ORS["FAMILY_HISTORY"][fam_val] *
+                                RISK_FACTOR_ORS["ASBESTOS"][asb_val] *
+                                RISK_FACTOR_ORS["AIR_POLLUTION"][air_val]
+                            )
+                            p_cancer = _apply_odds_ratio(p_base, or_product)
+                            p_cancer = max(0.001, min(0.999, p_cancer))
+                            p_cancer_vals.append(p_cancer)
+                            p_no_cancer_vals.append(1.0 - p_cancer)
 
     cpd = TabularCPD(
         variable="LUNG_CANCER",
         variable_card=2,
         values=[p_no_cancer_vals, p_cancer_vals],
-        evidence=["AGE", "GENDER", "SMOKING"],
-        evidence_card=[age_states, gender_states, smoking_states]
+        evidence=["AGE", "GENDER", "SMOKING",
+                  "FAMILY_HISTORY", "ASBESTOS", "AIR_POLLUTION"],
+        evidence_card=[age_states, gender_states, smoking_states,
+                       fam_states, asb_states, air_states]
     )
 
     return cpd
@@ -223,7 +280,31 @@ def build_prior_cpds() -> list:
         values=[[0.518], [0.482]]
     )
 
-    return [age_cpd, gender_cpd, smoking_cpd]
+    # --- Yeni risk faktörü priorları ---
+    # Bunlar yalnızca değişken GÖZLENMEDİĞİNDE devreye girer (kanıt yoksa
+    # popülasyon priori üzerinden marjinalize edilir → ~nötr etki).
+    # FAMILY_HISTORY: ~%10 birinci derece akraba öyküsü
+    family_history_cpd = TabularCPD(
+        variable="FAMILY_HISTORY",
+        variable_card=2,
+        values=[[0.90], [0.10]]
+    )
+    # ASBESTOS: ~%8 mesleki risk maruziyeti
+    asbestos_cpd = TabularCPD(
+        variable="ASBESTOS",
+        variable_card=2,
+        values=[[0.92], [0.08]]
+    )
+    # AIR_POLLUTION: Türkiye nüfusunun çoğu "orta" kademede (il PM2.5 dağılımı)
+    # 0=düşük (10%), 1=orta (70%), 2=yüksek (20%)
+    air_pollution_cpd = TabularCPD(
+        variable="AIR_POLLUTION",
+        variable_card=3,
+        values=[[0.10], [0.70], [0.20]]
+    )
+
+    return [age_cpd, gender_cpd, smoking_cpd,
+            family_history_cpd, asbestos_cpd, air_pollution_cpd]
 
 
 def build_symptom_cpds() -> list:
@@ -557,6 +638,10 @@ class HybridLungCancerEngine:
         "FATIGUE": "R53.83",
         "HEMOPTYSIS": "R04.2",
         "WEIGHT_LOSS": "R63.4",
+        # Yeni risk faktörleri
+        "FAMILY_HISTORY": "Z80.1",   # Family history of malignant neoplasm of bronchus/lung
+        "ASBESTOS": "Z57.2",         # Occupational exposure to dust (asbestos proxy)
+        "AIR_POLLUTION": "Z77.110",  # Contact with/exposure to air pollution
         "LUNG_CANCER": "C34"
     }
 
@@ -587,6 +672,28 @@ class HybridLungCancerEngine:
         self.inference = VariableElimination(model)
         print("✅ Hybrid Risk Engine initialized")
 
+    def _refine_smoking(self, ev: dict):
+        """
+        Paket-yıl + bırakma süresine göre etkin SMOKING değerini belirler (A kuralı).
+        Returns: (effective_smoking | None, never_flag: bool, note_tr: str | None)
+        Veri yoksa (paket-yıl bilinmiyor) mevcut SMOKING korunur — geriye dönük uyumlu.
+        """
+        smoking = ev.get("SMOKING")
+        py = ev.get("_pack_years")
+        yq = ev.get("_years_quit")
+        if smoking is None:
+            return None, False, None
+        # Hiç / çok hafif içici → aşağı düzeltme bayrağı
+        if smoking == 0 and py is not None and py < 1:
+            return 0, True, ("Sigara öyküsü yok/çok az: taban risk hiç-içmeyen "
+                             "seviyesine düşürüldü.")
+        # Ağır + yakın zamanda bırakmış eski içici → aktif gibi
+        if (smoking == 0 and py is not None and py >= HEAVY_FORMER_PACK_YEARS
+                and (yq is None or yq <= HEAVY_FORMER_MAX_QUIT_YEARS)):
+            return 1, False, (f"Ağır eski içici ({py:.0f} paket-yıl, bırakalı "
+                              f"≤{HEAVY_FORMER_MAX_QUIT_YEARS} yıl): aktif içici gibi değerlendirildi.")
+        return smoking, False, None
+
     def predict_risk(self, evidence: dict) -> dict:
         """
         Calculate lung cancer risk given patient evidence.
@@ -598,6 +705,12 @@ class HybridLungCancerEngine:
         Returns:
             Dict with risk score, level, and detailed analysis
         """
+        # Paket-yıl temelli sigara düzeltmesi (A kuralı) — inference ÖNCESİ
+        evidence = dict(evidence)
+        eff_smoking, never_flag, smoking_note = self._refine_smoking(evidence)
+        if eff_smoking is not None:
+            evidence["SMOKING"] = eff_smoking
+
         # Filter evidence to only include valid model variables
         valid_vars = set(self.model.nodes()) - {"LUNG_CANCER"}
         filtered_evidence = {k: v for k, v in evidence.items() if k in valid_vars}
@@ -610,7 +723,15 @@ class HybridLungCancerEngine:
 
         # Extract probability of cancer
         cancer_prob = float(result.values[1])  # P(LUNG_CANCER=1)
-        no_cancer_prob = float(result.values[0])  # P(LUNG_CANCER=0)
+
+        # Hiç içmeyen için taban riske aşağı odds-çarpanı (inference SONRASI;
+        # odds çarpımı değişmeli olduğundan prior'a uygulamakla matematiksel olarak eşdeğer)
+        if never_flag:
+            _o = cancer_prob / max(1e-9, 1 - cancer_prob)
+            _o *= NEVER_SMOKER_OR
+            cancer_prob = _o / (1 + _o)
+        cancer_prob = max(0.0001, min(0.9999, cancer_prob))
+        no_cancer_prob = 1.0 - cancer_prob
 
         # Determine risk level
         risk_level = "high"  # default for >= 0.15
@@ -619,13 +740,13 @@ class HybridLungCancerEngine:
                 risk_level = level
                 break
 
-        # Map symptoms to ICD-10
+        # Map findings to ICD-10 (value >= 1 → present; AIR_POLLUTION orta=1/yüksek=2)
         icd10_findings = []
-        for symptom, value in filtered_evidence.items():
-            if value == 1 and symptom in self.ICD10_MAP:
+        for feature, value in filtered_evidence.items():
+            if value >= 1 and feature in self.ICD10_MAP:
                 icd10_findings.append({
-                    "code": self.ICD10_MAP[symptom],
-                    "feature": symptom,
+                    "code": self.ICD10_MAP[feature],
+                    "feature": feature,
                     "status": "Present"
                 })
 
@@ -639,6 +760,20 @@ class HybridLungCancerEngine:
             risk_factors.append("65 yaş üstü")
         elif filtered_evidence.get("AGE", 0) >= 2:
             risk_factors.append("60-64 yaş arası")
+
+        # Yeni risk faktörleri + açıklanabilirlik (her faktörün OR katkısı)
+        or_contributions = {}
+        if filtered_evidence.get("FAMILY_HISTORY") == 1:
+            risk_factors.append("Ailede akciğer kanseri öyküsü")
+            or_contributions["Ailede akciğer kanseri öyküsü"] = RISK_FACTOR_ORS["FAMILY_HISTORY"][1]
+        if filtered_evidence.get("ASBESTOS") == 1:
+            risk_factors.append("Mesleki asbest/risk maruziyeti (öz-bildirim)")
+            or_contributions["Mesleki risk maruziyeti"] = RISK_FACTOR_ORS["ASBESTOS"][1]
+        _air = filtered_evidence.get("AIR_POLLUTION")
+        if _air in (1, 2):
+            _air_lbl = "Hava kirliliği (orta)" if _air == 1 else "Hava kirliliği (yüksek)"
+            risk_factors.append(_air_lbl)
+            or_contributions[_air_lbl] = RISK_FACTOR_ORS["AIR_POLLUTION"][_air]
 
         # Count symptoms present
         symptom_names = ["COUGHING", "SHORTNESS_OF_BREATH", "CHEST_PAIN",
@@ -656,6 +791,8 @@ class HybridLungCancerEngine:
             "evidence_provided": filtered_evidence,
             "icd10_findings": icd10_findings,
             "risk_factors_tr": risk_factors,
+            "or_contributions": or_contributions,
+            "smoking_adjustment": smoking_note,
             "symptoms_present": symptoms_present,
             "data_sources": {
                 "risk_factors": "NLST Clinical Trial (n=53,452)",
@@ -667,9 +804,11 @@ class HybridLungCancerEngine:
 
     def _get_recommendation_tr(self, level: str) -> str:
         recommendations = {
-            "low": ("Şu an için belirgin risk faktörleri tespit edilmemiştir. "
-                    "Yıllık sağlık kontrollerinizi ihmal etmeyiniz. "
-                    "Bu değerlendirme bir tarama aracıdır, kesin tanı yerine geçmez."),
+            "low": ("Semptomlarınıza dayalı anlık risk düzeyiniz düşük görünmektedir. "
+                    "Bu, risk faktörünüz olmadığı anlamına gelmez; sigara, yaş veya "
+                    "mesleki maruziyet gibi etkenler varsa önemini korur. Yıllık sağlık "
+                    "kontrollerinizi ihmal etmeyiniz ve tarama uygunluğunuzu hekiminizle "
+                    "değerlendiriniz. Bu değerlendirme bir tarama aracıdır, tanı yerine geçmez."),
             "moderate": ("Bazı risk faktörleri ve/veya semptomlar tespit edilmiştir. "
                          "En yakın sağlık kuruluşuna veya KETEM merkezine başvurmanızı öneririz. "
                          "Düşük doz BT taraması hakkında doktorunuzla görüşünüz."),
@@ -682,9 +821,10 @@ class HybridLungCancerEngine:
 
     def _get_recommendation_en(self, level: str) -> str:
         recommendations = {
-            "low": ("No significant risk factors detected at this time. "
-                    "Please maintain regular annual health check-ups. "
-                    "This assessment is a screening tool, not a definitive diagnosis."),
+            "low": ("Your symptom-based risk appears low at this time. This does not mean "
+                    "you have no risk factors; smoking, age, or occupational exposure remain "
+                    "important if present. Maintain regular annual check-ups and discuss your "
+                    "screening eligibility with your physician. This is a screening tool, not a diagnosis."),
             "moderate": ("Some risk factors and/or symptoms have been identified. "
                          "We recommend visiting your nearest healthcare facility. "
                          "Discuss low-dose CT screening with your physician."),
@@ -711,6 +851,7 @@ def run_demo_scenarios(engine: HybridLungCancerEngine) -> list:
             "name_en": "Patient A — High Risk (Elderly, Current Smoker, Multiple Symptoms)",
             "evidence": {
                 "SMOKING": 1, "AGE": 4, "GENDER": 1,
+                "FAMILY_HISTORY": 1, "ASBESTOS": 1, "AIR_POLLUTION": 2,
                 "COUGHING": 1, "SHORTNESS_OF_BREATH": 1,
                 "CHEST_PAIN": 1, "HEMOPTYSIS": 1,
                 "FATIGUE": 1, "WEIGHT_LOSS": 1, "WHEEZING": 1
@@ -721,6 +862,7 @@ def run_demo_scenarios(engine: HybridLungCancerEngine) -> list:
             "name_en": "Patient B — Moderate Risk (Elderly, Former Smoker, Few Symptoms)",
             "evidence": {
                 "SMOKING": 0, "AGE": 3, "GENDER": 1,
+                "FAMILY_HISTORY": 0, "ASBESTOS": 0, "AIR_POLLUTION": 1,
                 "COUGHING": 1, "FATIGUE": 1,
                 "SHORTNESS_OF_BREATH": 0, "CHEST_PAIN": 0,
                 "HEMOPTYSIS": 0, "WEIGHT_LOSS": 0, "WHEEZING": 0
@@ -731,6 +873,7 @@ def run_demo_scenarios(engine: HybridLungCancerEngine) -> list:
             "name_en": "Patient C — Low Risk (Young, Former Smoker, No Symptoms)",
             "evidence": {
                 "SMOKING": 0, "AGE": 1, "GENDER": 0,
+                "FAMILY_HISTORY": 0, "ASBESTOS": 0, "AIR_POLLUTION": 0,
                 "COUGHING": 0, "SHORTNESS_OF_BREATH": 0,
                 "CHEST_PAIN": 0, "WHEEZING": 0, "FATIGUE": 0,
                 "HEMOPTYSIS": 0, "WEIGHT_LOSS": 0
@@ -741,6 +884,7 @@ def run_demo_scenarios(engine: HybridLungCancerEngine) -> list:
             "name_en": "Patient D — Alarm: Hemoptysis (Young, Former Smoker, Coughing Blood)",
             "evidence": {
                 "SMOKING": 0, "AGE": 1, "GENDER": 1,
+                "FAMILY_HISTORY": 1, "ASBESTOS": 0, "AIR_POLLUTION": 1,
                 "COUGHING": 1, "HEMOPTYSIS": 1,
                 "SHORTNESS_OF_BREATH": 0, "CHEST_PAIN": 0,
                 "WHEEZING": 0, "FATIGUE": 0, "WEIGHT_LOSS": 0
@@ -751,6 +895,16 @@ def run_demo_scenarios(engine: HybridLungCancerEngine) -> list:
             "name_en": "Patient E — Risk Factors Only (No Symptoms)",
             "evidence": {
                 "SMOKING": 1, "AGE": 4, "GENDER": 1,
+                "FAMILY_HISTORY": 1, "ASBESTOS": 1, "AIR_POLLUTION": 2,
+            }
+        },
+        {
+            "name": "Hasta F — Genç Temiz Hava vs Kirli Hava Karşılaştırması",
+            "name_en": "Patient F — Air Pollution Sensitivity (same profile, high pollution)",
+            "evidence": {
+                "SMOKING": 0, "AGE": 2, "GENDER": 0,
+                "FAMILY_HISTORY": 0, "ASBESTOS": 0, "AIR_POLLUTION": 2,
+                "COUGHING": 1,
             }
         },
     ]

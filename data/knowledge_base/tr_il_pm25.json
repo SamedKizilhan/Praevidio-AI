@@ -1,0 +1,831 @@
+{
+  "_meta": {
+    "description": "İl bazlı yıllık ortalama PM2.5 (µg/m³) ve akciğer kanseri risk kademesi.",
+    "unit": "µg/m3 (yıllık ortalama, kronik maruziyet için 2023-2025 ortalaması)",
+    "tiers": {
+      "0": "düşük (<15)",
+      "1": "orta (15-25)",
+      "2": "yüksek (>25)"
+    },
+    "odds_ratios": {
+      "0": 1.0,
+      "1": 1.15,
+      "2": 1.3
+    },
+    "or_basis": "PM2.5 her 10 µg/m³ için RR≈1.16 (meta-analiz). Kademe OR'ları bu ankraja göre.",
+    "data_source": "IQAir 2025 World Air Quality Report (2023-2025 sütunları). İl adı listede yoksa il merkezi/büyük ilçe istasyonu kullanıldı; hiç yoksa bölgesel tahmin (source alanında belirtildi).",
+    "version": "2.0-measured",
+    "province_count": 81,
+    "measured_count": 48,
+    "estimated_count": 33
+  },
+  "provinces": {
+    "Adana": {
+      "pm25": 18,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Adıyaman": {
+      "pm25": 20,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Afyonkarahisar": {
+      "pm25": 22,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Aksaray": {
+      "pm25": 21.0,
+      "pm25_years": {
+        "2023": 18.8,
+        "2024": 19.7,
+        "2025": 24.4
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Amasya": {
+      "pm25": 25.6,
+      "pm25_years": {
+        "2023": 25.4,
+        "2024": 24.4,
+        "2025": 26.9
+      },
+      "tier": 2,
+      "tier_label": "yüksek",
+      "odds_ratio": 1.3,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Ankara": {
+      "pm25": 10.6,
+      "pm25_years": {
+        "2023": 11.3,
+        "2024": 9,
+        "2025": 11.4
+      },
+      "tier": 0,
+      "tier_label": "düşük",
+      "odds_ratio": 1.0,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Antalya": {
+      "pm25": 19.2,
+      "pm25_years": {
+        "2023": 21.4,
+        "2024": 16,
+        "2025": 20.2
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Ardahan": {
+      "pm25": 19,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Artvin": {
+      "pm25": 17.9,
+      "pm25_years": {
+        "2023": 19.5,
+        "2024": 16.9,
+        "2025": 17.3
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Aydın": {
+      "pm25": 22.2,
+      "pm25_years": {
+        "2023": 22.2,
+        "2024": 21.9,
+        "2025": 22.4
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Ağrı": {
+      "pm25": 22,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Balıkesir": {
+      "pm25": 17.7,
+      "pm25_years": {
+        "2023": 18.4,
+        "2024": 17.2,
+        "2025": 17.4
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Bartın": {
+      "pm25": 17.4,
+      "pm25_years": {
+        "2023": 19.4,
+        "2024": 18.5,
+        "2025": 14.3
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Batman": {
+      "pm25": 21,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Bayburt": {
+      "pm25": 19,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Bilecik": {
+      "pm25": 15.1,
+      "pm25_years": {
+        "2023": 14.7,
+        "2024": 14.7,
+        "2025": 16
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Bingöl": {
+      "pm25": 20,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Bitlis": {
+      "pm25": 21,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Bolu": {
+      "pm25": 14.9,
+      "pm25_years": {
+        "2023": 15.9,
+        "2024": 12.4,
+        "2025": 16.3
+      },
+      "tier": 0,
+      "tier_label": "düşük",
+      "odds_ratio": 1.0,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Burdur": {
+      "pm25": 17.6,
+      "pm25_years": {
+        "2023": 18.7,
+        "2024": 16.5,
+        "2025": 17.7
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Bursa": {
+      "pm25": 22.7,
+      "pm25_years": {
+        "2023": 24.4,
+        "2024": 19.4,
+        "2025": 24.4
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Denizli": {
+      "pm25": 18,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Diyarbakır": {
+      "pm25": 20,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Düzce": {
+      "pm25": 29.4,
+      "pm25_years": {
+        "2023": 30.1,
+        "2024": 27.6,
+        "2025": 30.5
+      },
+      "tier": 2,
+      "tier_label": "yüksek",
+      "odds_ratio": 1.3,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Edirne": {
+      "pm25": 17.7,
+      "pm25_years": {
+        "2023": 18.7,
+        "2024": 14.8,
+        "2025": 19.5
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Elazığ": {
+      "pm25": 19,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Erzincan": {
+      "pm25": 21.2,
+      "pm25_years": {
+        "2023": 24.5,
+        "2024": 21.1,
+        "2025": 17.9
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Erzurum": {
+      "pm25": 19.2,
+      "pm25_years": {
+        "2023": 14.6,
+        "2024": 19.2,
+        "2025": 23.8
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Eskişehir": {
+      "pm25": 9.4,
+      "pm25_years": {
+        "2023": 7.8,
+        "2024": 10.1,
+        "2025": 10.2
+      },
+      "tier": 0,
+      "tier_label": "düşük",
+      "odds_ratio": 1.0,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.) — istasyon: Odunpazarı"
+    },
+    "Gaziantep": {
+      "pm25": 20,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Giresun": {
+      "pm25": 12.3,
+      "pm25_years": {
+        "2023": 12.5,
+        "2024": 11.7,
+        "2025": 12.7
+      },
+      "tier": 0,
+      "tier_label": "düşük",
+      "odds_ratio": 1.0,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Gümüşhane": {
+      "pm25": 18,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Hakkari": {
+      "pm25": 22,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Hatay": {
+      "pm25": 18,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Isparta": {
+      "pm25": 17,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Iğdır": {
+      "pm25": 53.5,
+      "pm25_years": {
+        "2023": 47.2,
+        "2024": 48.9,
+        "2025": 64.4
+      },
+      "tier": 2,
+      "tier_label": "yüksek",
+      "odds_ratio": 1.3,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Kahramanmaraş": {
+      "pm25": 21.0,
+      "pm25_years": {
+        "2023": 29,
+        "2024": 16.9,
+        "2025": 17.2
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Karabük": {
+      "pm25": 14.2,
+      "pm25_years": {
+        "2023": 12.7,
+        "2024": 12.5,
+        "2025": 17.5
+      },
+      "tier": 0,
+      "tier_label": "düşük",
+      "odds_ratio": 1.0,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Karaman": {
+      "pm25": 13.8,
+      "pm25_years": {
+        "2023": 14.1,
+        "2024": 13.7,
+        "2025": 13.6
+      },
+      "tier": 0,
+      "tier_label": "düşük",
+      "odds_ratio": 1.0,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Kars": {
+      "pm25": 18.5,
+      "pm25_years": {
+        "2023": 17.1,
+        "2024": 18.9,
+        "2025": 19.6
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Kastamonu": {
+      "pm25": 18,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Kayseri": {
+      "pm25": 14.3,
+      "pm25_years": {
+        "2023": 15.6,
+        "2024": 12.9,
+        "2025": 14.4
+      },
+      "tier": 0,
+      "tier_label": "düşük",
+      "odds_ratio": 1.0,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Kilis": {
+      "pm25": 19,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Kocaeli": {
+      "pm25": 23.2,
+      "pm25_years": {
+        "2023": 20.9,
+        "2024": 22.2,
+        "2025": 26.6
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.) — istasyon: İzmit"
+    },
+    "Konya": {
+      "pm25": 29.4,
+      "pm25_years": {
+        "2023": 33.2,
+        "2024": 24,
+        "2025": 31.1
+      },
+      "tier": 2,
+      "tier_label": "yüksek",
+      "odds_ratio": 1.3,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Kütahya": {
+      "pm25": 13.0,
+      "pm25_years": {
+        "2023": 12.1,
+        "2024": 13.6,
+        "2025": 13.4
+      },
+      "tier": 0,
+      "tier_label": "düşük",
+      "odds_ratio": 1.0,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Kırklareli": {
+      "pm25": 11.3,
+      "pm25_years": {
+        "2023": 12.6,
+        "2024": 11.3,
+        "2025": 10
+      },
+      "tier": 0,
+      "tier_label": "düşük",
+      "odds_ratio": 1.0,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Kırıkkale": {
+      "pm25": 11.8,
+      "pm25_years": {
+        "2023": 11.7,
+        "2024": 10.9,
+        "2025": 12.7
+      },
+      "tier": 0,
+      "tier_label": "düşük",
+      "odds_ratio": 1.0,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Kırşehir": {
+      "pm25": 9.0,
+      "pm25_years": {
+        "2023": 9,
+        "2024": 7.7,
+        "2025": 10.2
+      },
+      "tier": 0,
+      "tier_label": "düşük",
+      "odds_ratio": 1.0,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Malatya": {
+      "pm25": 20,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Manisa": {
+      "pm25": 19,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Mardin": {
+      "pm25": 20,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Mersin": {
+      "pm25": 17,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Muğla": {
+      "pm25": 21.8,
+      "pm25_years": {
+        "2023": 28.3,
+        "2024": 18.4,
+        "2025": 18.8
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.) — istasyon: İçmeler/Marmaris"
+    },
+    "Muş": {
+      "pm25": 22,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Nevşehir": {
+      "pm25": 18,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Niğde": {
+      "pm25": 20.0,
+      "pm25_years": {
+        "2023": 23.3,
+        "2024": 19.9,
+        "2025": 16.7
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Ordu": {
+      "pm25": 15.5,
+      "pm25_years": {
+        "2023": 14.4,
+        "2024": 14.8,
+        "2025": 17.3
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Osmaniye": {
+      "pm25": 20,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Rize": {
+      "pm25": 12.8,
+      "pm25_years": {
+        "2023": 7.4,
+        "2024": 13.4,
+        "2025": 17.7
+      },
+      "tier": 0,
+      "tier_label": "düşük",
+      "odds_ratio": 1.0,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.) — istasyon: Ardeşen"
+    },
+    "Sakarya": {
+      "pm25": 22.0,
+      "pm25_years": {
+        "2023": 23.5,
+        "2024": 21.9,
+        "2025": 20.6
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Samsun": {
+      "pm25": 13.2,
+      "pm25_years": {
+        "2023": 13.4,
+        "2024": 13,
+        "2025": 13.1
+      },
+      "tier": 0,
+      "tier_label": "düşük",
+      "odds_ratio": 1.0,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Siirt": {
+      "pm25": 21,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Sinop": {
+      "pm25": 15,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Sivas": {
+      "pm25": 17.2,
+      "pm25_years": {
+        "2023": 15,
+        "2024": 17,
+        "2025": 19.7
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Tekirdağ": {
+      "pm25": 21.3,
+      "pm25_years": {
+        "2023": 22.7,
+        "2024": 20.5,
+        "2025": 20.7
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.) — istasyon: Çorlu"
+    },
+    "Tokat": {
+      "pm25": 22.3,
+      "pm25_years": {
+        "2023": 23.7,
+        "2024": 19.9,
+        "2025": 23.3
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Trabzon": {
+      "pm25": 20.9,
+      "pm25_years": {
+        "2023": 21.8,
+        "2024": 22.2,
+        "2025": 18.6
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Tunceli": {
+      "pm25": 16,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Uşak": {
+      "pm25": 19,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Van": {
+      "pm25": 20,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Yalova": {
+      "pm25": 13.5,
+      "pm25_years": {
+        "2023": 13.1,
+        "2024": 13,
+        "2025": 14.3
+      },
+      "tier": 0,
+      "tier_label": "düşük",
+      "odds_ratio": 1.0,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.) — istasyon: Armutlu"
+    },
+    "Yozgat": {
+      "pm25": 13.5,
+      "pm25_years": {
+        "2023": 14.5,
+        "2024": 13,
+        "2025": 13
+      },
+      "tier": 0,
+      "tier_label": "düşük",
+      "odds_ratio": 1.0,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.) — istasyon: Sorgun"
+    },
+    "Zonguldak": {
+      "pm25": 15.5,
+      "pm25_years": {
+        "2023": 14.5,
+        "2024": 15.6,
+        "2025": 16.3
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Çanakkale": {
+      "pm25": 15.3,
+      "pm25_years": {
+        "2023": 14,
+        "2024": 16,
+        "2025": 16
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Çankırı": {
+      "pm25": 8.4,
+      "pm25_years": {
+        "2023": 8.1,
+        "2024": 9.4,
+        "2025": 7.7
+      },
+      "tier": 0,
+      "tier_label": "düşük",
+      "odds_ratio": 1.0,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Çorum": {
+      "pm25": 22.9,
+      "pm25_years": {
+        "2023": 24.6,
+        "2024": 21.8,
+        "2025": 22.3
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "İstanbul": {
+      "pm25": 17.3,
+      "pm25_years": {
+        "2023": 18.7,
+        "2024": 15.3,
+        "2025": 17.9
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "İzmir": {
+      "pm25": 20.2,
+      "pm25_years": {
+        "2023": 22.5,
+        "2024": 16.4,
+        "2025": 21.8
+      },
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "ölçülmüş (IQAir 2023-2025 ort.)"
+    },
+    "Şanlıurfa": {
+      "pm25": 20,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    },
+    "Şırnak": {
+      "pm25": 20,
+      "tier": 1,
+      "tier_label": "orta",
+      "odds_ratio": 1.15,
+      "source": "tahmini (bölgesel profil — raporda yok)"
+    }
+  }
+}
