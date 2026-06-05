@@ -219,3 +219,8 @@ data/chroma_db/
 
 # Generated reports (reproducible via pipeline)
 data/processed/reports/
+
+# docs
+docs/proje_sorulari_cevaplari.md
+docs/v2_genisletme_tasarim.md
+docs/risk_skoru_nasil_hesaplanir.md

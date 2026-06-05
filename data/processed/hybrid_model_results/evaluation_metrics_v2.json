@@ -1,0 +1,26 @@
+{
+  "scope": "NLST hold-out (P(cancer|age,gender,smoking)). Semptom/yeni faktör CPT'leri literatür temelli, NLST ile doğrulanamaz.",
+  "n_test": 16036,
+  "base_rate": 0.03850183342063908,
+  "discrimination": {
+    "auc_roc": 0.6499767751652042,
+    "auprc": 0.06622631732893906
+  },
+  "calibration": {
+    "brier": 0.03657389201952743,
+    "ece": 0.0016622655869623858,
+    "slope": 0.9987737120111062,
+    "intercept": 0.002286164647056147
+  },
+  "threshold_metrics": {
+    "@5%": {
+      "sensitivity": 0.42301458670988656,
+      "specificity": 0.7867565990012323
+    },
+    "@15%": {
+      "sensitivity": 0.0,
+      "specificity": 1.0
+    }
+  },
+  "note": "F1/accuracy birincil metrik DEĞİL — bkz. modül başlığı."
+}

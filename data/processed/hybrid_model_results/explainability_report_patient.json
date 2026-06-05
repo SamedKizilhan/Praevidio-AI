@@ -1,0 +1,122 @@
+{
+  "report_patient_evidence": {
+    "AGE": 1,
+    "GENDER": 1,
+    "SMOKING": 1,
+    "FAMILY_HISTORY": 1,
+    "ASBESTOS": 1,
+    "AIR_POLLUTION": 1,
+    "COUGHING": 1,
+    "CHEST_PAIN": 1,
+    "FATIGUE": 1,
+    "SHORTNESS_OF_BREATH": 0,
+    "WHEEZING": 0,
+    "HEMOPTYSIS": 0,
+    "WEIGHT_LOSS": 0
+  },
+  "shapley": {
+    "base_risk_pct": 0.08,
+    "full_risk_pct": 56.12,
+    "shapley_pct": {
+      "COUGHING": 18.15,
+      "CHEST_PAIN": 17.09,
+      "FATIGUE": 11.48,
+      "FAMILY_HISTORY": 4.59,
+      "ASBESTOS": 3.52,
+      "AIR_POLLUTION": 1.22
+    },
+    "sum_check_pct": 56.13
+  },
+  "build_up": [
+    {
+      "label": "Referans (demografi, semptomsuz)",
+      "risk_pct": 0.08,
+      "delta": null
+    },
+    {
+      "label": "+ Ailede kanser öyküsü",
+      "risk_pct": 0.14,
+      "delta": 0.06
+    },
+    {
+      "label": "+ Mesleki maruziyet",
+      "risk_pct": 0.21,
+      "delta": 0.07
+    },
+    {
+      "label": "+ Hava kirliliği",
+      "risk_pct": 0.24,
+      "delta": 0.03
+    },
+    {
+      "label": "+ Öksürük",
+      "risk_pct": 3.03,
+      "delta": 2.79
+    },
+    {
+      "label": "+ Göğüs ağrısı",
+      "risk_pct": 24.22,
+      "delta": 21.19
+    },
+    {
+      "label": "+ Yorgunluk",
+      "risk_pct": 56.12,
+      "delta": 31.89
+    }
+  ],
+  "context_dependence": {
+    "WHEEZING_confounded": [
+      {
+        "context": "C1: 50y kadın, hiç içmemiş (düşük taban)",
+        "risk_off_pct": 0.26,
+        "risk_on_pct": 1.13,
+        "delta_pp": 0.87,
+        "odds_multiplier": 4.4
+      },
+      {
+        "context": "C2: 55-59 erkek, aktif içici (orta taban)",
+        "risk_off_pct": 3.6,
+        "risk_on_pct": 13.8,
+        "delta_pp": 10.2,
+        "odds_multiplier": 4.29
+      },
+      {
+        "context": "C3: 70+ erkek, aktif içici (yüksek taban)",
+        "risk_off_pct": 13.62,
+        "risk_on_pct": 40.34,
+        "delta_pp": 26.71,
+        "odds_multiplier": 4.29
+      },
+      {
+        "context": "C4: 70+ erkek içici + hemoptizi + kilo kaybı (doyma yakın)",
+        "risk_off_pct": 95.67,
+        "risk_on_pct": 98.95,
+        "delta_pp": 3.29,
+        "odds_multiplier": 4.29
+      }
+    ],
+    "HEMOPTYSIS_unconfounded": [
+      {
+        "context": "C1: 50y kadın, hiç içmemiş (düşük taban)",
+        "risk_off_pct": 0.26,
+        "risk_on_pct": 4.94,
+        "delta_pp": 4.68,
+        "odds_multiplier": 20.0
+      },
+      {
+        "context": "C2: 55-59 erkek, aktif içici (orta taban)",
+        "risk_off_pct": 3.6,
+        "risk_on_pct": 42.76,
+        "delta_pp": 39.16,
+        "odds_multiplier": 20.0
+      },
+      {
+        "context": "C3: 70+ erkek, aktif içici (yüksek taban)",
+        "risk_off_pct": 13.62,
+        "risk_on_pct": 75.93,
+        "delta_pp": 62.31,
+        "odds_multiplier": 20.0
+      }
+    ]
+  }
+}

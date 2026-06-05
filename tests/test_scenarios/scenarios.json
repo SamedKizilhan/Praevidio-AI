@@ -1,0 +1,174 @@
+{
+  "_meta": {
+    "description": "Praevidio AI demo & test senaryoları. 'demo' = bağımsız gerçekçi vakalar; 'pair' = yalnızca TEK faktör değişen kontrollü çiftler (açıklanabilirlik gösterimi için).",
+    "evidence_encoding": {
+      "AGE": "0=<55, 1=55-59, 2=60-64, 3=65-69, 4=70+",
+      "GENDER": "0=Kadın, 1=Erkek",
+      "SMOKING": "0=Eski/hiç, 1=Aktif",
+      "FAMILY_HISTORY": "0/1", "ASBESTOS": "0/1",
+      "AIR_POLLUTION": "0=düşük, 1=orta, 2=yüksek",
+      "semptomlar": "0=yok, 1=var (öksürük, nefes darlığı, göğüs ağrısı, hırıltı, yorgunluk, hemoptizi, kilo kaybı)"
+    },
+    "note": "Yok semptomlar AÇIKÇA 0 verilir (ajan akışı her semptomu sorar).",
+    "pair_explanations": {
+      "Hava kirliliği etkisi": "Diğer her şey sabitken yalnızca yaşanılan ilin PM2.5 kademesi değişiyor. Orta→Yüksek geçişinde riskin literatür temelli odds-ratio (1.15→1.30) ile arttığını gösterir.",
+      "Ailede öykü etkisi": "Birinci derece akrabada akciğer kanseri öyküsünün (OR≈1.70) tek başına riske katkısını izole eder.",
+      "Sigara etkisi (solunum semptomlu)": "Aynı solunum semptomlarıyla, aktif içicinin eski içiciden DAHA yüksek risk almasını gösterir. 'Explaining-away' düzeltmesinin kanıtıdır: sigara semptomu açıklayıp kanseri bastırmaz.",
+      "Bağlam-bağımlılığı (hırıltı)": "Aynı semptom (hırıltı) farklı tabanlarda farklı yüzde-puan katkı yapar. Katkının sabit olmadığını, taban riske (yaş/cinsiyet/sigara) bağlı olduğunu gösterir (doygunluk).",
+      "Cevapsız vs açıkça YOK (negatif kanıt)": "Aynı kişide semptomların 'cevapsız' (bilinmiyor) olması ile 'açıkça yok' olması arasındaki farkı gösterir. Açık negatif yanıtlar riski düşürür — modelin tek yönlü olmadığını kanıtlar.",
+      "Sigara dozu (paket-yıl)": "Aynı yaş/cinsiyette, yalnızca sigara dozunu (paket-yıl) ve bırakma süresini değiştirir. İkili aktif/eski sınıflamanın ötesine geçip: hiç içmeyeni düşürdüğümüzü, ağır+yakın eski içiciyi aktif gibi değerlendirdiğimizi gösterir."
+    }
+  },
+  "scenarios": [
+    {
+      "id": "D1", "group": "demo",
+      "name": "Düşük risk — genç, hiç içmemiş, semptomsuz",
+      "purpose": "Asemptomatik düşük-risk taban davranışı",
+      "expected_level": "low",
+      "evidence": {"AGE":0,"GENDER":0,"SMOKING":0,"FAMILY_HISTORY":0,"ASBESTOS":0,"AIR_POLLUTION":0,
+        "COUGHING":0,"SHORTNESS_OF_BREATH":0,"CHEST_PAIN":0,"WHEEZING":0,"FATIGUE":0,"HEMOPTYSIS":0,"WEIGHT_LOSS":0}
+    },
+    {
+      "id": "D2", "group": "demo",
+      "name": "Orta risk — yaşlı eski içici, hafif semptom",
+      "purpose": "Eşik üstü ama yüksek değil",
+      "expected_level": "moderate",
+      "evidence": {"AGE":3,"GENDER":1,"SMOKING":0,"FAMILY_HISTORY":0,"ASBESTOS":0,"AIR_POLLUTION":1,
+        "COUGHING":1,"SHORTNESS_OF_BREATH":0,"CHEST_PAIN":0,"WHEEZING":0,"FATIGUE":1,"HEMOPTYSIS":0,"WEIGHT_LOSS":0}
+    },
+    {
+      "id": "D3", "group": "demo",
+      "name": "Yüksek risk — örnek rapor vakası (PRA-3C1DEB10)",
+      "purpose": "Belgede açıklanan %56.1 vakası",
+      "expected_level": "high",
+      "evidence": {"AGE":1,"GENDER":1,"SMOKING":1,"FAMILY_HISTORY":1,"ASBESTOS":1,"AIR_POLLUTION":1,
+        "COUGHING":1,"SHORTNESS_OF_BREATH":0,"CHEST_PAIN":1,"WHEEZING":0,"FATIGUE":1,"HEMOPTYSIS":0,"WEIGHT_LOSS":0}
+    },
+    {
+      "id": "D4", "group": "demo",
+      "name": "Alarm — hemoptizi (genç ama kan tükürme)",
+      "purpose": "Tek güçlü alarm semptomunun (hemoptizi) etkisi",
+      "expected_level": "high",
+      "evidence": {"AGE":1,"GENDER":1,"SMOKING":0,"FAMILY_HISTORY":0,"ASBESTOS":0,"AIR_POLLUTION":0,
+        "COUGHING":1,"SHORTNESS_OF_BREATH":0,"CHEST_PAIN":0,"WHEEZING":0,"FATIGUE":0,"HEMOPTYSIS":1,"WEIGHT_LOSS":0}
+    },
+    {
+      "id": "D5", "group": "demo",
+      "name": "Risk faktörleri var, semptom bilgisi YOK (gözlenmemiş)",
+      "purpose": "Semptomlar henüz sorulmamış → semptom öncesi taban risk (prior)",
+      "expected_level": "high",
+      "evidence": {"AGE":4,"GENDER":1,"SMOKING":1,"FAMILY_HISTORY":1,"ASBESTOS":1,"AIR_POLLUTION":2}
+    },
+
+    {
+      "id": "P1a", "group": "pair", "pair": "Hava kirliliği etkisi",
+      "name": "Hava ORTA (İzmir) — diğer her şey sabit",
+      "varies": "AIR_POLLUTION",
+      "evidence": {"AGE":3,"GENDER":1,"SMOKING":1,"FAMILY_HISTORY":0,"ASBESTOS":0,"AIR_POLLUTION":1,
+        "COUGHING":1,"SHORTNESS_OF_BREATH":0,"CHEST_PAIN":1,"WHEEZING":0,"FATIGUE":0,"HEMOPTYSIS":0,"WEIGHT_LOSS":0}
+    },
+    {
+      "id": "P1b", "group": "pair", "pair": "Hava kirliliği etkisi",
+      "name": "Hava YÜKSEK (Iğdır) — diğer her şey sabit",
+      "varies": "AIR_POLLUTION",
+      "evidence": {"AGE":3,"GENDER":1,"SMOKING":1,"FAMILY_HISTORY":0,"ASBESTOS":0,"AIR_POLLUTION":2,
+        "COUGHING":1,"SHORTNESS_OF_BREATH":0,"CHEST_PAIN":1,"WHEEZING":0,"FATIGUE":0,"HEMOPTYSIS":0,"WEIGHT_LOSS":0}
+    },
+
+    {
+      "id": "P2a", "group": "pair", "pair": "Ailede öykü etkisi",
+      "name": "Ailede öykü YOK",
+      "varies": "FAMILY_HISTORY",
+      "evidence": {"AGE":3,"GENDER":1,"SMOKING":1,"FAMILY_HISTORY":0,"ASBESTOS":0,"AIR_POLLUTION":1,
+        "COUGHING":1,"SHORTNESS_OF_BREATH":0,"CHEST_PAIN":0,"WHEEZING":0,"FATIGUE":0,"HEMOPTYSIS":0,"WEIGHT_LOSS":0}
+    },
+    {
+      "id": "P2b", "group": "pair", "pair": "Ailede öykü etkisi",
+      "name": "Ailede öykü VAR",
+      "varies": "FAMILY_HISTORY",
+      "evidence": {"AGE":3,"GENDER":1,"SMOKING":1,"FAMILY_HISTORY":1,"ASBESTOS":0,"AIR_POLLUTION":1,
+        "COUGHING":1,"SHORTNESS_OF_BREATH":0,"CHEST_PAIN":0,"WHEEZING":0,"FATIGUE":0,"HEMOPTYSIS":0,"WEIGHT_LOSS":0}
+    },
+
+    {
+      "id": "P3a", "group": "pair", "pair": "Sigara etkisi (solunum semptomlu)",
+      "name": "ESKİ içici + nefes darlığı/göğüs/hırıltı",
+      "varies": "SMOKING",
+      "evidence": {"AGE":3,"GENDER":1,"SMOKING":0,"FAMILY_HISTORY":0,"ASBESTOS":0,"AIR_POLLUTION":1,
+        "COUGHING":0,"SHORTNESS_OF_BREATH":1,"CHEST_PAIN":1,"WHEEZING":1,"FATIGUE":0,"HEMOPTYSIS":0,"WEIGHT_LOSS":0}
+    },
+    {
+      "id": "P3b", "group": "pair", "pair": "Sigara etkisi (solunum semptomlu)",
+      "name": "AKTİF içici + nefes darlığı/göğüs/hırıltı",
+      "varies": "SMOKING",
+      "evidence": {"AGE":3,"GENDER":1,"SMOKING":1,"FAMILY_HISTORY":0,"ASBESTOS":0,"AIR_POLLUTION":1,
+        "COUGHING":0,"SHORTNESS_OF_BREATH":1,"CHEST_PAIN":1,"WHEEZING":1,"FATIGUE":0,"HEMOPTYSIS":0,"WEIGHT_LOSS":0}
+    },
+
+    {
+      "id": "P4a", "group": "pair", "pair": "Bağlam-bağımlılığı (hırıltı)",
+      "name": "Hırıltı — DÜŞÜK taban (50y kadın, hiç içmemiş)",
+      "varies": "AGE/GENDER/SMOKING (bağlam)",
+      "evidence": {"AGE":0,"GENDER":0,"SMOKING":0,"FAMILY_HISTORY":0,"ASBESTOS":0,"AIR_POLLUTION":0,
+        "COUGHING":0,"SHORTNESS_OF_BREATH":0,"CHEST_PAIN":0,"WHEEZING":1,"FATIGUE":0,"HEMOPTYSIS":0,"WEIGHT_LOSS":0}
+    },
+    {
+      "id": "P4b", "group": "pair", "pair": "Bağlam-bağımlılığı (hırıltı)",
+      "name": "Hırıltı — YÜKSEK taban (70+ erkek, aktif içici)",
+      "varies": "AGE/GENDER/SMOKING (bağlam)",
+      "evidence": {"AGE":4,"GENDER":1,"SMOKING":1,"FAMILY_HISTORY":0,"ASBESTOS":0,"AIR_POLLUTION":0,
+        "COUGHING":0,"SHORTNESS_OF_BREATH":0,"CHEST_PAIN":0,"WHEEZING":1,"FATIGUE":0,"HEMOPTYSIS":0,"WEIGHT_LOSS":0}
+    },
+
+    {
+      "id": "P5a", "group": "pair", "pair": "Cevapsız vs açıkça YOK (negatif kanıt)",
+      "name": "Semptomlar CEVAPSIZ (gözlenmemiş)",
+      "varies": "semptom gözlemi",
+      "evidence": {"AGE":4,"GENDER":1,"SMOKING":1,"FAMILY_HISTORY":1,"ASBESTOS":1,"AIR_POLLUTION":2}
+    },
+    {
+      "id": "P5b", "group": "pair", "pair": "Cevapsız vs açıkça YOK (negatif kanıt)",
+      "name": "Aynı kişi, tüm semptomlar AÇIKÇA YOK (=0)",
+      "varies": "semptom gözlemi",
+      "evidence": {"AGE":4,"GENDER":1,"SMOKING":1,"FAMILY_HISTORY":1,"ASBESTOS":1,"AIR_POLLUTION":2,
+        "COUGHING":0,"SHORTNESS_OF_BREATH":0,"CHEST_PAIN":0,"WHEEZING":0,"FATIGUE":0,"HEMOPTYSIS":0,"WEIGHT_LOSS":0}
+    },
+
+    {
+      "id": "S1", "group": "pair", "pair": "Sigara dozu (paket-yıl)",
+      "name": "Hiç içmemiş (0 paket-yıl)",
+      "varies": "sigara dozu",
+      "evidence": {"AGE":2,"GENDER":1,"SMOKING":0,"_pack_years":0}
+    },
+    {
+      "id": "S2", "group": "pair", "pair": "Sigara dozu (paket-yıl)",
+      "name": "Hafif eski içici (10 paket-yıl)",
+      "varies": "sigara dozu",
+      "evidence": {"AGE":2,"GENDER":1,"SMOKING":0,"_pack_years":10}
+    },
+    {
+      "id": "S3", "group": "pair", "pair": "Sigara dozu (paket-yıl)",
+      "name": "Ağır eski içici, yakın bırakmış (30 py, 3 yıl önce)",
+      "varies": "sigara dozu",
+      "evidence": {"AGE":2,"GENDER":1,"SMOKING":0,"_pack_years":30,"_years_quit":3}
+    },
+    {
+      "id": "S4", "group": "pair", "pair": "Sigara dozu (paket-yıl)",
+      "name": "Ağır eski içici, çok önce bırakmış (30 py, 20 yıl önce)",
+      "varies": "sigara dozu",
+      "evidence": {"AGE":2,"GENDER":1,"SMOKING":0,"_pack_years":30,"_years_quit":20}
+    },
+    {
+      "id": "S5", "group": "pair", "pair": "Sigara dozu (paket-yıl)",
+      "name": "Aktif içici (30 paket-yıl)",
+      "varies": "sigara dozu",
+      "evidence": {"AGE":2,"GENDER":1,"SMOKING":1,"_pack_years":30}
+    },
+    {
+      "id": "S6", "group": "pair", "pair": "Sigara dozu (paket-yıl)",
+      "name": "Eski içici, paket-yıl bilinmiyor (eski davranış)",
+      "varies": "sigara dozu",
+      "evidence": {"AGE":2,"GENDER":1,"SMOKING":0}
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "_meta": {
+    "description": "Uzman doğrulama seti — göğüs hastalıkları uzmanına gösterilecek 10 klinik vaka. Uzman, model sonucunu GÖRMEDEN her vaka için risk seviyesi (Düşük/Orta/Yüksek) ve dilerse yüzde tahmini verir. Eşikler önceden bildirilir: Düşük <%5, Orta %5–15, Yüksek >%15.",
+    "encoding": {
+      "AGE": "0=<55, 1=55-59, 2=60-64, 3=65-69, 4=70+",
+      "GENDER": "0=Kadın, 1=Erkek", "SMOKING": "0=eski/hiç, 1=aktif",
+      "AIR_POLLUTION": "0=düşük,1=orta,2=yüksek", "semptom/faktör": "0/1",
+      "_pack_years": "paket-yıl", "_years_quit": "bırakmadan bu yana geçen yıl"
+    }
+  },
+  "scenarios": [
+    {
+      "id": "E1",
+      "vignette": "45 yaşında kadın. Hayatı boyunca hiç sigara içmemiş. Herhangi bir solunum şikâyeti yok. Temiz havalı bir ilde (Rize) yaşıyor. Ailede kanser öyküsü yok.",
+      "evidence": {"AGE":0,"GENDER":0,"SMOKING":0,"_pack_years":0,"FAMILY_HISTORY":0,"ASBESTOS":0,"AIR_POLLUTION":0,
+        "COUGHING":0,"SHORTNESS_OF_BREATH":0,"CHEST_PAIN":0,"WHEEZING":0,"FATIGUE":0,"HEMOPTYSIS":0,"WEIGHT_LOSS":0}
+    },
+    {
+      "id": "E2",
+      "vignette": "58 yaşında erkek. 40 paket-yıl aktif sigara içicisi. Son iki aydır geçmeyen öksürük ve eforla artan nefes darlığı şikâyeti var.",
+      "evidence": {"AGE":1,"GENDER":1,"SMOKING":1,"_pack_years":40,"FAMILY_HISTORY":0,"ASBESTOS":0,"AIR_POLLUTION":1,
+        "COUGHING":1,"SHORTNESS_OF_BREATH":1,"CHEST_PAIN":0,"WHEEZING":0,"FATIGUE":0,"HEMOPTYSIS":0,"WEIGHT_LOSS":0}
+    },
+    {
+      "id": "E3",
+      "vignette": "67 yaşında erkek. Halen aktif içici, 50 paket-yıl. Kan tükürme (hemoptizi), son üç ayda yaklaşık 7 kilo istemsiz kayıp ve belirgin halsizlik var.",
+      "evidence": {"AGE":3,"GENDER":1,"SMOKING":1,"_pack_years":50,"FAMILY_HISTORY":0,"ASBESTOS":0,"AIR_POLLUTION":1,
+        "COUGHING":0,"SHORTNESS_OF_BREATH":0,"CHEST_PAIN":0,"WHEEZING":0,"FATIGUE":1,"HEMOPTYSIS":1,"WEIGHT_LOSS":1}
+    },
+    {
+      "id": "E4",
+      "vignette": "52 yaşında kadın. 15 yıl önce sigarayı bırakmış (toplam 12 paket-yıl). Ara sıra hafif öksürük dışında şikâyeti yok.",
+      "evidence": {"AGE":0,"GENDER":0,"SMOKING":0,"_pack_years":12,"_years_quit":15,"FAMILY_HISTORY":0,"ASBESTOS":0,"AIR_POLLUTION":1,
+        "COUGHING":1,"SHORTNESS_OF_BREATH":0,"CHEST_PAIN":0,"WHEEZING":0,"FATIGUE":0,"HEMOPTYSIS":0,"WEIGHT_LOSS":0}
+    },
+    {
+      "id": "E5",
+      "vignette": "70 yaşında erkek. Aktif içici, 45 paket-yıl. Hiçbir solunum semptomu yok. Babasında akciğer kanseri öyküsü var.",
+      "evidence": {"AGE":4,"GENDER":1,"SMOKING":1,"_pack_years":45,"FAMILY_HISTORY":1,"ASBESTOS":0,"AIR_POLLUTION":1,
+        "COUGHING":0,"SHORTNESS_OF_BREATH":0,"CHEST_PAIN":0,"WHEEZING":0,"FATIGUE":0,"HEMOPTYSIS":0,"WEIGHT_LOSS":0}
+    },
+    {
+      "id": "E6",
+      "vignette": "61 yaşında erkek. 2 yıl önce bırakmış ağır içici (35 paket-yıl). Göğüs ağrısı ve yorgunluk var. Gençliğinde tersanede çalışmış. Iğdır'da (yüksek hava kirliliği) yaşıyor.",
+      "evidence": {"AGE":2,"GENDER":1,"SMOKING":0,"_pack_years":35,"_years_quit":2,"FAMILY_HISTORY":0,"ASBESTOS":1,"AIR_POLLUTION":2,
+        "COUGHING":0,"SHORTNESS_OF_BREATH":0,"CHEST_PAIN":1,"WHEEZING":0,"FATIGUE":1,"HEMOPTYSIS":0,"WEIGHT_LOSS":0}
+    },
+    {
+      "id": "E7",
+      "vignette": "49 yaşında erkek. Aktif içici, 20 paket-yıl. Hafif öksürük dışında semptom yok. Ailesinde (kardeş) akciğer kanseri öyküsü var.",
+      "evidence": {"AGE":0,"GENDER":1,"SMOKING":1,"_pack_years":20,"FAMILY_HISTORY":1,"ASBESTOS":0,"AIR_POLLUTION":1,
+        "COUGHING":1,"SHORTNESS_OF_BREATH":0,"CHEST_PAIN":0,"WHEEZING":0,"FATIGUE":0,"HEMOPTYSIS":0,"WEIGHT_LOSS":0}
+    },
+    {
+      "id": "E8",
+      "vignette": "63 yaşında kadın. Hiç sigara içmemiş. Ancak annesinde akciğer kanseri öyküsü var, Konya'da (yüksek hava kirliliği) yaşıyor ve birkaç aydır süren öksürüğü var.",
+      "evidence": {"AGE":2,"GENDER":0,"SMOKING":0,"_pack_years":0,"FAMILY_HISTORY":1,"ASBESTOS":0,"AIR_POLLUTION":2,
+        "COUGHING":1,"SHORTNESS_OF_BREATH":0,"CHEST_PAIN":0,"WHEEZING":0,"FATIGUE":0,"HEMOPTYSIS":0,"WEIGHT_LOSS":0}
+    },
+    {
+      "id": "E9",
+      "vignette": "55 yaşında erkek. Aktif içici, 30 paket-yıl. Tek şikâyeti yorgunluk; başka hiçbir solunum semptomu yok.",
+      "evidence": {"AGE":1,"GENDER":1,"SMOKING":1,"_pack_years":30,"FAMILY_HISTORY":0,"ASBESTOS":0,"AIR_POLLUTION":1,
+        "COUGHING":0,"SHORTNESS_OF_BREATH":0,"CHEST_PAIN":0,"WHEEZING":0,"FATIGUE":1,"HEMOPTYSIS":0,"WEIGHT_LOSS":0}
+    },
+    {
+      "id": "E10",
+      "vignette": "72 yaşında kadın. 5 yıl önce bırakmış (25 paket-yıl). Nefes darlığı ve hırıltılı solunum var.",
+      "evidence": {"AGE":4,"GENDER":0,"SMOKING":0,"_pack_years":25,"_years_quit":5,"FAMILY_HISTORY":0,"ASBESTOS":0,"AIR_POLLUTION":1,
+        "COUGHING":0,"SHORTNESS_OF_BREATH":1,"CHEST_PAIN":0,"WHEEZING":1,"FATIGUE":0,"HEMOPTYSIS":0,"WEIGHT_LOSS":0}
+    }
+  ]
+}
