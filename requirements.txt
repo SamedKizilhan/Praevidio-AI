@@ -2,11 +2,8 @@
 # ============================
 
 # --- AI & NLP ---
-openai>=1.30.0           # Whisper STT + GPT-4o
-langchain>=0.2.0         # RAG orchestration
-langchain-openai>=0.1.0  # OpenAI LLM integration
-langchain-community>=0.2.0  # Community integrations
-chromadb>=0.5.0          # Local vector database (dev)
+openai>=1.30.0           # Whisper STT + GPT-4o-mini slot extraction + TTS
+chromadb>=0.5.0          # Local vector database for ICD-10 RAG (dev)
 
 # --- Bayesian Network ---
 pgmpy>=0.0.21            # Bayesian Belief Networks
