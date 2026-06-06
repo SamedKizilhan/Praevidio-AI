@@ -155,7 +155,8 @@ Praevidio-AI/
 │   ├── calibration_new_factors.md         # New-factor OR calibration & sensitivity report
 │   ├── explainability_demo.md             # Shapley + context-dependence presentation notes
 │   ├── risk_skoru_nasil_hesaplanir.md     # How the score is computed (BBN, odds, order-independence)
-│   ├── sozluk.md                          # Glossary (BBN, CPT, ICD-10, NLST, OR, AUC, DCA, …)
+│   ├── architecture.md                    # System architecture, RAG/ChromaDB, models, make-voice flow diagram
+│   ├── dictionary.md                      # Glossary (BBN, CPT, ICD-10, NLST, OR, AUC, DCA, …)
 │   └── proje_sorulari_cevaplari.md        # Defense Q&A (incl. risk-threshold analysis)
 ├── tests/test_scenarios/                  # Clean demo/test scenarios + golden runner (make scenarios)
 │   ├── scenarios.json                     # Demo cases + controlled A/B pairs (incl. pack-year group)
