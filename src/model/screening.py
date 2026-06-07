@@ -99,13 +99,37 @@ def _result(eligible, msg_tr, msg_en):
     }
 
 
+_TR_NUM = {
+    "sıfır": 0, "bir": 1, "iki": 2, "üç": 3, "uc": 3, "dört": 4, "dort": 4,
+    "beş": 5, "bes": 5, "altı": 6, "alti": 6, "yedi": 7, "sekiz": 8, "dokuz": 9,
+    "on": 10, "yirmi": 20, "otuz": 30, "kırk": 40, "kirk": 40, "elli": 50,
+    "altmış": 60, "altmis": 60, "yetmiş": 70, "yetmis": 70, "seksen": 80, "doksan": 90,
+}
+
+
+def normalize_tr_numbers(text: str) -> str:
+    """Ardışık Türkçe sayı kelimelerini rakama çevirir: 'altmış beş' -> '65', 'on' -> '10'."""
+    out, acc = [], None
+    for w in text.split():
+        key = w.strip(".,;:!?")
+        if key in _TR_NUM:
+            acc = (acc or 0) + _TR_NUM[key]
+        else:
+            if acc is not None:
+                out.append(str(acc)); acc = None
+            out.append(w)
+    if acc is not None:
+        out.append(str(acc))
+    return " ".join(out)
+
+
 def parse_pack_years(text: str) -> dict:
     """
     Serbest Türkçe metinden günlük adet, içilen yıl, paket-yıl ve bırakma süresini çıkarır.
     Örn: "günde bir paket, 30 yıldır içiyorum" → 20 adet × 30 yıl = 30 paket-yıl.
     """
     import re
-    t = text.lower().replace("̇", "")
+    t = normalize_tr_numbers(text.lower().replace("̇", ""))
     out = {}
 
     # Hiç içmemiş → paket-yıl 0 (tarama için sigara öyküsü yok)

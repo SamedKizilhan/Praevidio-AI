@@ -151,13 +151,11 @@ Praevidio-AI/
 ├── docs/
 │   ├── appendix_cpt_derivation.md         # Formal CPT derivation table & references
 │   ├── sensitivity_analysis_calibration.md # Explaining-away fix & calibration report
-│   ├── v2_genisletme_tasarim.md           # v2 design: new factors, data collection, agent, metrics
 │   ├── calibration_new_factors.md         # New-factor OR calibration & sensitivity report
+│   ├── contribution_coefficients.md       # Contribution coefficients of each factor
 │   ├── explainability_demo.md             # Shapley + context-dependence presentation notes
-│   ├── risk_skoru_nasil_hesaplanir.md     # How the score is computed (BBN, odds, order-independence)
 │   ├── architecture.md                    # System architecture, RAG/ChromaDB, models, make-voice flow diagram
 │   ├── dictionary.md                      # Glossary (BBN, CPT, ICD-10, NLST, OR, AUC, DCA, …)
-│   └── proje_sorulari_cevaplari.md        # Defense Q&A (incl. risk-threshold analysis)
 ├── tests/test_scenarios/                  # Clean demo/test scenarios + golden runner (make scenarios)
 │   ├── scenarios.json                     # Demo cases + controlled A/B pairs (incl. pack-year group)
 │   ├── run_scenarios.py                   # Runs, verifies levels, writes SENARYO_RAPORU.md

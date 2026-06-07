@@ -118,16 +118,11 @@ def resolve_air_pollution(province: str) -> dict:
         table = json.load(f)
     provinces = table.get("provinces", {})
 
-    # Türkçe normalize ederek eşleştir (büyük/küçük + i/ı duyarsız)
-    def norm(s):
-        return (s.lower()
-                .replace("i̇", "i").replace("ı", "i")
-                .replace("ş", "s").replace("ğ", "g").replace("ü", "u")
-                .replace("ö", "o").replace("ç", "c").strip())
-
-    target = norm(province)
+    # Türkçe normalize + kelime-sınırı eşleştirmesi (alt-dize yanlış eşleşmesini önler)
+    target = _norm_tr(province)
     for il, info in provinces.items():
-        if norm(il) == target or norm(il) in target or target in norm(il):
+        nil = _norm_tr(il)
+        if nil == target or re.search(r"\b" + re.escape(nil) + r"\b", target):
             return {
                 "AIR_POLLUTION": info["tier"],
                 "province": il,
@@ -137,16 +132,23 @@ def resolve_air_pollution(province: str) -> dict:
     return {}
 
 
-# Cümleden il adı yakalama (basit): bilinen il adları tablodan taranır
+# Cümleden il adı yakalama. KELİME-SINIRI eşleştirmesi kullanılır; aksi halde
+# "içiyordum" içindeki "ordu" gibi alt-dizeler yanlış ile eşleşir.
+def _norm_tr(s: str) -> str:
+    return (s.lower().replace("̇", "").replace("ı", "i")
+            .replace("ş", "s").replace("ğ", "g").replace("ü", "u")
+            .replace("ö", "o").replace("ç", "c").strip())
+
+
 def extract_province(text: str) -> str:
     table_path = KNOWLEDGE_BASE_DIR / "tr_il_pm25.json"
     if not table_path.exists():
         return ""
     with open(table_path, encoding="utf-8") as f:
         provinces = json.load(f).get("provinces", {})
-    tl = text.lower()
+    tl = _norm_tr(text)
     for il in provinces:
-        if il.lower() in tl:
+        if re.search(r"\b" + re.escape(_norm_tr(il)) + r"\b", tl):
             return il
     return ""
 
@@ -161,6 +163,7 @@ FORMER_SMOKER_KEYWORDS = [
     # Hiç içmeyenler de bu modelde 0 (former/non-smoker) kovasına düşer
     "içmiyorum", "sigara içmiyorum", "içmem", "kullanmıyorum",
     "sigara kullanmıyorum", "hiç içmedim", "içmedim", "içmeyen",
+    "kullanmadım", "kullanmam", "sigara kullanmam", "içmemiş",
 ]
 
 # Age group detection patterns
@@ -181,8 +184,10 @@ def extract_keywords(text: str) -> dict:
         dict compatible with HybridLungCancerEngine.predict_risk()
         e.g., {"SMOKING": 1, "COUGHING": 1, "AGE": 3, ...}
     """
-    # Türkçe büyük "İ".lower() => "i̇" (i + U+0307 birleşik nokta) sorununu gider
-    text_lower = text.lower().replace("̇", "")
+    # Türkçe büyük "İ".lower() => "i̇" (i + U+0307 birleşik nokta) sorununu gider;
+    # ayrıca "altmış beş" gibi sayı kelimelerini rakama çevirir (Whisper sık üretir).
+    from model.screening import normalize_tr_numbers
+    text_lower = normalize_tr_numbers(text.lower().replace("̇", ""))
     evidence = {}
 
     # --- Extract symptoms ---
