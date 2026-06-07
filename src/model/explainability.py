@@ -307,6 +307,104 @@ def main():
     return report
 
 
+def score_analysis_markdown(engine, evidence: dict, risk_result: dict) -> str:
+    """
+    Tek bir hasta için skorun nasıl üretildiğini gösteren markdown üretir.
+    Gerçek kanıt üzerinden (paket-yıl sigara düzeltmesi dahil) hesaplanır; bu yüzden
+    nihai değer rapordaki skorla birebir tutuyor. Her rapora eşlik etmek üzere.
+    """
+    def risk(ev):
+        return engine.predict_risk(ev)["risk_score"]
+
+    meta = {k: v for k, v in evidence.items() if k.startswith("_")}       # paket-yıl vb.
+    demo = {k: v for k, v in evidence.items() if k in DEMO_KEYS}
+    # Gözlenen (demografi-dışı) bulgular: önce risk faktörleri, sonra semptomlar
+    rf_order = ["FAMILY_HISTORY", "ASBESTOS", "AIR_POLLUTION"]
+    findings = [k for k in rf_order if k in evidence] + \
+               [k for k in SYMPTOMS_7 if k in evidence]
+
+    base_ev = {**demo, **meta}     # semptom/faktör gözlenmemiş; sigara düzeltmesi geçerli
+    base = risk(base_ev)
+    final = risk({**evidence})
+
+    # Build-up (sıralı) — her bulgunun eklenince getirdiği değişim
+    cur = dict(base_ev)
+    steps = [("Taban (yaş/cinsiyet/sigara)", base, None)]
+    for k in findings:
+        prev = risk(cur)
+        cur[k] = evidence[k]
+        now = risk(cur)
+        steps.append((_label_val(k, evidence[k]), now, now - prev))
+
+    # Leave-one-out — her bulgunun NİHAİ skora katkısı (sıra-bağımsız okuma)
+    loo = []
+    for k in findings:
+        ev2 = dict(evidence)
+        ev2.pop(k, None)
+        loo.append((_label_val(k, evidence[k]), final - risk(ev2)))
+
+    L = [
+        f"# Risk Skoru Analizi — {risk_result.get('risk_score')}% "
+        f"({risk_result.get('risk_level_tr','')})",
+        "",
+        "Bu dosya, eşlik ettiği PDF raporundaki skorun **nasıl üretildiğini** gösterir. "
+        "Tüm değerler hastanın gerçek yanıtları üzerinden hesaplanmıştır.",
+        "",
+        f"**Risk eşikleri:** Düşük < %5 · Orta %5–15 · Yüksek > %15",
+        "",
+        "## 1. Skorun adım adım oluşumu (build-up)",
+        "",
+        "| Adım | Risk (%) | Değişim (puan) |",
+        "|---|---|---|",
+    ]
+    for lbl, val, d in steps:
+        L.append(f"| {lbl} | {val:.1f} | {'' if d is None else format(d, '+.1f')} |")
+    L += [
+        "",
+        f"Taban **%{base:.1f}** → nihai **%{final:.1f}**. *(Ara adımlar ekleme sırasına "
+        "bağlıdır; sıra-bağımsız adil katkı için aşağıdaki leave-one-out'a bakınız.)*",
+        "",
+        "## 2. Her bulgunun nihai skora katkısı (leave-one-out)",
+        "",
+        "| Bulgu | Katkı (puan) |",
+        "|---|---|",
+    ]
+    for lbl, c in sorted(loo, key=lambda x: -x[1]):
+        L.append(f"| {lbl} | {c:+.1f} |")
+
+    if risk_result.get("or_contributions"):
+        L += ["", "## 3. Risk faktörü çarpanları (literatür OR)", "",
+              "| Faktör | Çarpan |", "|---|---|"]
+        for n, m in risk_result["or_contributions"].items():
+            L.append(f"| {n} | ×{m:.2f} |")
+
+    if risk_result.get("smoking_adjustment"):
+        L += ["", f"**Sigara değerlendirme notu:** {risk_result['smoking_adjustment']}"]
+    sc = risk_result.get("screening")
+    if sc:
+        L += ["", f"**Tarama değerlendirmesi:** {sc.get('label_tr','')} — {sc.get('message_tr','')}"]
+
+    L += ["", "---",
+          "*Not: Skor bir olasılıktır, tanı değildir. Semptomlar kanserin sonucu olduğu "
+          "için 'kanıt gücü' (olasılık oranı, LR) ile; risk faktörleri kanserin nedeni "
+          "olduğu için odds-ratio (OR) ile etki eder. Ayrıntı: docs/contribution_coefficients.md*",
+          ""]
+    return "\n".join(L)
+
+
+def _label_val(k, v):
+    base = LABELS.get(k, k)
+    if k in SYMPTOMS_7:
+        return f"{base} ({'var' if v == 1 else 'yok'})"
+    if k == "AIR_POLLUTION":
+        return f"{base} ({'yüksek' if v == 2 else 'orta' if v == 1 else 'düşük'})"
+    return f"{base} ({'var' if v == 1 else 'yok'})"
+
+
+SYMPTOMS_7 = ["COUGHING", "SHORTNESS_OF_BREATH", "CHEST_PAIN", "WHEEZING",
+              "FATIGUE", "HEMOPTYSIS", "WEIGHT_LOSS"]
+
+
 def _write_markdown(r):
     DOCS_DIR.mkdir(parents=True, exist_ok=True)
     s = r["shapley"]

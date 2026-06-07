@@ -392,10 +392,10 @@ class ConversationAgent:
         self.ch.say(summary)
         return result, clean
 
-    def _generate_report(self, result, clean):
+    def _generate_report(self, result, evidence):
         try:
             from report.report_generator import generate_report
-            path = generate_report(result, clean, format="pdf")
+            path = generate_report(result, evidence, format="pdf", engine=self.engine)
             print(f"\n   📄 Rapor hazır: {path}")
             return path
         except Exception as e:
