@@ -118,13 +118,30 @@ def load_voice_descriptors() -> dict:
     return descriptors
 
 
-def transcribe_audio(audio_path: str, language: str = "tr") -> dict:
+# Whisper'ın sessiz/çok kısa seste ürettiği tipik halüsinasyon kalıpları
+# (YouTube altyazıları eğitim verisinde olduğu için). Bunlar tespit edilirse
+# transkripsiyon boş kabul edilir ve ajan soruyu tekrar sorar.
+HALLUCINATION_PATTERNS = [
+    "abone ol", "beğen", "beğenmeyi", "yorum yap", "butona", "kanalıma",
+    "altyazı", "izlediğiniz için teşekkür", "subscribe", "thanks for watching",
+    "like and subscribe", "amara.org", "m.k.",
+]
+
+
+def _looks_like_hallucination(text: str) -> bool:
+    t = text.lower().replace("̇", "")
+    return any(p in t for p in HALLUCINATION_PATTERNS)
+
+
+def transcribe_audio(audio_path: str, language: str = "tr", prompt: str = "") -> dict:
     """
     Transcribe audio file using OpenAI Whisper API.
 
     Args:
         audio_path: Path to audio file (wav, mp3, m4a, webm)
         language: ISO 639-1 language code (default: Turkish)
+        prompt: Optional context hint to bias Whisper (reduces hallucination
+                on short/quiet audio, e.g. "Kullanıcı bir Türkiye ilinin adını söylüyor.")
 
     Returns:
         dict with: text, language, duration, raw_response
@@ -149,14 +166,18 @@ def transcribe_audio(audio_path: str, language: str = "tr") -> dict:
     print(f"   Model: {WHISPER_MODEL}, Language: {language}")
 
     with open(audio_file, "rb") as f:
-        response = client.audio.transcriptions.create(
-            model=WHISPER_MODEL,
-            file=f,
-            language=language,
-            response_format="verbose_json"
-        )
+        kwargs = dict(model=WHISPER_MODEL, file=f, language=language,
+                      response_format="verbose_json", temperature=0)
+        if prompt:
+            kwargs["prompt"] = prompt
+        response = client.audio.transcriptions.create(**kwargs)
 
     raw_text = response.text
+    # Halüsinasyon kalıbı (sessiz/kısa ses) → boş kabul et, ajan tekrar sorsun
+    if _looks_like_hallucination(raw_text):
+        print(f"   ⚠️  Olası halüsinasyon yok sayıldı: \"{raw_text}\"")
+        return {"text": "", "raw_text": raw_text, "language": language,
+                "duration": getattr(response, "duration", None), "corrections_applied": False}
     corrected_text = post_process_medical_terms(raw_text)
 
     result = {

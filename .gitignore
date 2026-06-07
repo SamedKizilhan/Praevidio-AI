@@ -224,3 +224,9 @@ data/processed/reports/
 docs/proje_sorulari_cevaplari.md
 docs/v2_genisletme_tasarim.md
 docs/risk_skoru_nasil_hesaplanir.md
+
+# Federated tool output (generated on hospital side)
+tools/federated
+
+# mp3
+*.mp3
