@@ -1,8 +1,8 @@
 [
   {
-    "risk_score": 100.0,
-    "risk_probability": 0.999992,
-    "no_cancer_probability": 8e-06,
+    "risk_score": 99.99,
+    "risk_probability": 0.9999,
+    "no_cancer_probability": 0.0001,
     "risk_level": "high",
     "risk_level_tr": "Yüksek Risk",
     "risk_level_en": "High Risk",
@@ -91,6 +91,7 @@
       "Mesleki risk maruziyeti": 1.5,
       "Hava kirliliği (yüksek)": 1.3
     },
+    "smoking_adjustment": null,
     "symptoms_present": [
       "COUGHING",
       "SHORTNESS_OF_BREATH",
@@ -156,6 +157,7 @@
     "or_contributions": {
       "Hava kirliliği (orta)": 1.15
     },
+    "smoking_adjustment": null,
     "symptoms_present": [
       "COUGHING",
       "FATIGUE"
@@ -196,13 +198,14 @@
       "Eski sigara kullanıcısı"
     ],
     "or_contributions": {},
+    "smoking_adjustment": null,
     "symptoms_present": [],
     "data_sources": {
       "risk_factors": "NLST Clinical Trial (n=53,452)",
       "symptoms": "Peer-reviewed medical literature"
     },
-    "recommendation_tr": "Şu an için belirgin risk faktörleri tespit edilmemiştir. Yıllık sağlık kontrollerinizi ihmal etmeyiniz. Bu değerlendirme bir tarama aracıdır, kesin tanı yerine geçmez.",
-    "recommendation_en": "No significant risk factors detected at this time. Please maintain regular annual health check-ups. This assessment is a screening tool, not a definitive diagnosis.",
+    "recommendation_tr": "Semptomlarınıza dayalı anlık risk düzeyiniz düşük görünmektedir. Bu, risk faktörünüz olmadığı anlamına gelmez; sigara, yaş veya mesleki maruziyet gibi etkenler varsa önemini korur. Yıllık sağlık kontrollerinizi ihmal etmeyiniz ve tarama uygunluğunuzu hekiminizle değerlendiriniz. Bu değerlendirme bir tarama aracıdır, tanı yerine geçmez.",
+    "recommendation_en": "Your symptom-based risk appears low at this time. This does not mean you have no risk factors; smoking, age, or occupational exposure remain important if present. Maintain regular annual check-ups and discuss your screening eligibility with your physician. This is a screening tool, not a diagnosis.",
     "scenario": "Hasta C — Düşük Risk (Genç, Eski İçici, Semptomsuz)"
   },
   {
@@ -259,6 +262,7 @@
       "Ailede akciğer kanseri öyküsü": 1.7,
       "Hava kirliliği (orta)": 1.15
     },
+    "smoking_adjustment": null,
     "symptoms_present": [
       "COUGHING",
       "HEMOPTYSIS"
@@ -321,6 +325,7 @@
       "Mesleki risk maruziyeti": 1.5,
       "Hava kirliliği (yüksek)": 1.3
     },
+    "smoking_adjustment": null,
     "symptoms_present": [],
     "data_sources": {
       "risk_factors": "NLST Clinical Trial (n=53,452)",
@@ -367,6 +372,7 @@
     "or_contributions": {
       "Hava kirliliği (yüksek)": 1.3
     },
+    "smoking_adjustment": null,
     "symptoms_present": [
       "COUGHING"
     ],

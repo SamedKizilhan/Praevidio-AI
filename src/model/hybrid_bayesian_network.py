@@ -942,7 +942,7 @@ def generate_evaluation_plots(demo_results: list, output_dir: Path):
     # --- Plot 1: Risk Scores by Scenario ---
     fig, ax = plt.subplots(figsize=(12, 6))
 
-    names = [r["scenario"].split("—")[0].strip() for r in demo_results]
+    names = [r["scenario"].split("—")[0].strip().replace("Hasta", "Patient") for r in demo_results]
     scores = [r["risk_score"] for r in demo_results]
     colors = [r["risk_color"] for r in demo_results]
 
@@ -963,7 +963,7 @@ def generate_evaluation_plots(demo_results: list, output_dir: Path):
     ax.legend(loc="lower right")
 
     plt.tight_layout()
-    plt.savefig(output_dir / "hybrid_risk_scores.png", dpi=150, bbox_inches="tight")
+    plt.savefig(output_dir / "hybrid_risk_scores.png", dpi=300, bbox_inches="tight")
     plt.close()
     print(f"   ✅ hybrid_risk_scores.png")
 
