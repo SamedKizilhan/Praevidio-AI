@@ -187,36 +187,39 @@ def evaluate():
 def _plot_roc(y_true, y_prob, auc):
     fpr, tpr, _ = roc_curve(y_true, y_prob)
     plt.figure(figsize=(6, 6))
-    plt.plot(fpr, tpr, color="#e74c3c", lw=2, label=f"Hibrit BBN (AUC={auc:.3f})")
-    plt.plot([0, 1], [0, 1], "--", color="#999", label="Şans (0.5)")
-    plt.xlabel("1 - Özgüllük (FPR)"); plt.ylabel("Duyarlılık (TPR)")
-    plt.title("ROC Eğrisi — Risk Faktörü Modeli (NLST hold-out)")
+    plt.plot(fpr, tpr, color="#e74c3c", lw=2, label=f"Hybrid BBN (AUC={auc:.3f})")
+    plt.plot([0, 1], [0, 1], "--", color="#999", label="Chance (0.5)")
+    plt.xlabel("1 - Specificity (FPR)"); plt.ylabel("Sensitivity (TPR)")
+    plt.title("ROC Curve - Risk-Factor Model (NLST hold-out)")
     plt.legend(loc="lower right"); plt.tight_layout()
-    plt.savefig(RESULTS_DIR / "roc_curve_v2.png", dpi=150); plt.close()
+    plt.savefig(RESULTS_DIR / "roc_curve_v2.png", dpi=300); plt.close()
 
 
 def _plot_calibration(y_true, y_prob):
     frac_pos, mean_pred = calibration_curve(y_true, y_prob, n_bins=10, strategy="quantile")
+    hi = float(max(mean_pred.max(), frac_pos.max())) * 1.18   # eksenleri veri aralığına yakınlaştır
     plt.figure(figsize=(6, 6))
-    plt.plot(mean_pred, frac_pos, "o-", color="#2980b9", label="Hibrit BBN")
-    plt.plot([0, 1], [0, 1], "--", color="#999", label="Mükemmel kalibrasyon")
-    plt.xlabel("Tahmin edilen risk"); plt.ylabel("Gözlenen frekans")
-    plt.title("Kalibrasyon (Reliability) Eğrisi")
-    plt.legend(loc="upper left"); plt.tight_layout()
-    plt.savefig(RESULTS_DIR / "calibration_curve_v2.png", dpi=150); plt.close()
+    plt.plot([0, hi], [0, hi], "--", color="#999", label="Perfect calibration")
+    plt.plot(mean_pred, frac_pos, "o-", color="#2980b9", lw=2, markersize=9, label="Hybrid BBN")
+    plt.xlabel("Predicted risk"); plt.ylabel("Observed frequency")
+    plt.title("Calibration (Reliability) Curve")
+    plt.xlim(0, hi); plt.ylim(0, hi)
+    plt.gca().set_aspect("equal", adjustable="box")
+    plt.legend(loc="upper left"); plt.grid(alpha=0.25); plt.tight_layout()
+    plt.savefig(RESULTS_DIR / "calibration_curve_v2.png", dpi=300); plt.close()
 
 
 def _plot_dca(y_true, y_prob):
     thr, nb_model, nb_all = decision_curve_analysis(y_true, y_prob)
     plt.figure(figsize=(7, 5))
     plt.plot(thr, nb_model, color="#e74c3c", lw=2, label="Model")
-    plt.plot(thr, nb_all, "--", color="#888", label="Herkesi tara")
-    plt.axhline(0, color="#333", lw=1, label="Kimseyi tarama")
-    plt.xlabel("Eşik olasılığı (pt)"); plt.ylabel("Net fayda")
-    plt.title("Decision Curve Analysis — Klinik Fayda")
+    plt.plot(thr, nb_all, "--", color="#888", label="Screen all")
+    plt.axhline(0, color="#333", lw=1, label="Screen none")
+    plt.xlabel("Threshold probability (pt)"); plt.ylabel("Net benefit")
+    plt.title("Decision Curve Analysis - Clinical Utility")
     plt.legend(loc="upper right"); plt.ylim(bottom=min(0, min(nb_model)) - 0.005)
     plt.tight_layout()
-    plt.savefig(RESULTS_DIR / "decision_curve_v2.png", dpi=150); plt.close()
+    plt.savefig(RESULTS_DIR / "decision_curve_v2.png", dpi=300); plt.close()
 
 
 if __name__ == "__main__":
