@@ -28,7 +28,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from config import OPENAI_API_KEY, NLP_MODE, PROCESSED_DATA_DIR
+from config import (
+    OPENAI_API_KEY, NLP_MODE, PROCESSED_DATA_DIR,
+    TTS_MODEL, TTS_VOICE, TTS_SPEED,
+    REC_AUTOSTOP, REC_SILENCE_THRESHOLD, REC_SILENCE_SECONDS, REC_WARMUP_SEC,
+)
 from nlp.symptom_extractor import (
     extract_symptoms, resolve_air_pollution, extract_province
 )
@@ -67,23 +71,59 @@ class Channel:
             return ""
 
     # --- Voice yardımcıları ---
+    def _cache_path(self, text: str) -> Path:
+        import hashlib
+        key = hashlib.sha1(
+            f"{TTS_MODEL}|{TTS_VOICE}|{TTS_SPEED}|{text}".encode("utf-8")
+        ).hexdigest()[:16]
+        d = PROCESSED_DATA_DIR / "tts_cache"
+        d.mkdir(parents=True, exist_ok=True)
+        return d / f"{key}.mp3"
+
+    def _synthesize(self, text: str, out: Path) -> bool:
+        """Metni OpenAI TTS ile sentezleyip `out` dosyasına yazar. Başarı: True."""
+        try:
+            kwargs = dict(model=TTS_MODEL, voice=TTS_VOICE, input=text,
+                          response_format="mp3")
+            if TTS_MODEL.startswith("tts-1") and abs(TTS_SPEED - 1.0) > 1e-6:
+                kwargs["speed"] = TTS_SPEED   # speed yalnızca tts-1/tts-1-hd'de var
+            with self._client().audio.speech.with_streaming_response.create(**kwargs) as resp:
+                resp.stream_to_file(str(out))
+            return out.exists() and out.stat().st_size > 0
+        except Exception as e:
+            print(f"   ⚠️  TTS sentez atlandı: {e}", flush=True)
+            return False
+
+    def prewarm(self, texts):
+        """Sabit istemleri önceden sentezleyip diske önbellekler (demo'da anında oynar).
+        Zoom/yavaş internet gecikmesini ve takılmaları büyük ölçüde ortadan kaldırır."""
+        if self.mode != "voice" or not OPENAI_API_KEY or OPENAI_API_KEY.startswith("sk-your"):
+            return
+        missing = [t for t in dict.fromkeys(texts) if t and not self._cache_path(t).exists()]
+        if not missing:
+            return
+        print(f"   🔥 TTS önbelleği ısıtılıyor ({len(missing)} istem)…", flush=True)
+        for t in missing:
+            self._synthesize(t, self._cache_path(t))
+        print("   ✅ TTS önbelleği hazır.", flush=True)
+
     def _tts(self, text: str):
-        """OpenAI tts-1 ile seslendir, macOS'ta afplay ile oynat. Asla akışı kilitlemez."""
+        """Doğal sesle seslendir. Sabit istemler diskten ANINDA oynar; yenileri
+        bir kez sentezlenip önbelleğe alınır. macOS'ta afplay ile çalınır."""
         if not OPENAI_API_KEY or OPENAI_API_KEY.startswith("sk-your"):
             return
         try:
-            out = PROCESSED_DATA_DIR / "tts_tmp.mp3"
-            with self._client().audio.speech.with_streaming_response.create(
-                model="tts-1", voice="alloy", input=text
-            ) as resp:
-                resp.stream_to_file(str(out))
-            subprocess.run(["afplay", str(out)], check=False, timeout=60)
+            cached = self._cache_path(text)
+            if not cached.exists():
+                if not self._synthesize(text, cached):
+                    return
+            subprocess.run(["afplay", str(cached)], check=False, timeout=120)
         except Exception as e:
             print(f"   ⚠️  TTS atlandı (akış sürüyor): {e}", flush=True)
 
     def _record_and_transcribe(self, stt_hint: str = "") -> str:
         from stt.whisper_stt import transcribe_audio
-        audio = self._record_until_enter()
+        audio = self._record()
         if not audio:
             return input("   🗣️  (ses alınamadı, yazınız) > ").strip()
         try:
@@ -92,15 +132,22 @@ class Channel:
             print(f"   ⚠️  STT hatası: {e}")
             return ""
 
-    def _record_until_enter(self, max_seconds: int = 60) -> str:
+    def _record(self, max_seconds: int = 60) -> str:
         """
-        Soru sorulur sorulmaz kaydı OTOMATİK başlatır; kullanıcı ENTER'a basınca durdurur.
-        (Eski akış: ENTER ile başlat + Ctrl+C ile durdur — değiştirildi.)
-        sox 'rec' arka planda başlatılır, ENTER'da SIGINT ile temiz kapatılır.
+        Mikrofondan kaydeder. İKİ mod:
+          • Varsayılan (güvenilir): baştan SONUNA kadar TAM kaydeder, ses HİÇ kırpılmaz;
+            kullanıcı ENTER'a basınca durur. Mikrofon açılış gecikmesi için kısa ısınma
+            payı bırakılır, böylece "Konuşabilirsiniz" yazısı çıkınca kayıt gerçekten açıktır.
+          • Otomatik durma (PRAEVIDIO_REC_AUTOSTOP=1): konuşma bitince sessizlikte kendi durur.
+            (Baş kırpmasını önlemek için hassas eşik kullanılır; gürültülü ortamda Whisper'ı
+            zorlayabilir, o yüzden varsayılan KAPALI.)
         """
         import os
+        import time
         import shutil
         import signal
+        import sys
+        import select
         import subprocess
         from datetime import datetime
         from config import PROCESSED_DATA_DIR
@@ -113,24 +160,41 @@ class Channel:
         rec_dir.mkdir(parents=True, exist_ok=True)
         out = str(rec_dir / f"rec_{datetime.now():%Y%m%d_%H%M%S}.wav")
 
-        print("   🔴 Kaydediliyor… bitirince ENTER'a basın.")
-        proc = subprocess.Popen(
-            ["rec", "-q", out, "rate", "16000", "channels", "1",
-             "trim", "0", str(max_seconds)],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-        )
-        try:
-            input()  # ENTER → kaydı durdur
-        except (EOFError, KeyboardInterrupt):
-            pass
-        proc.send_signal(signal.SIGINT)   # sox dosyayı temiz sonlandırır
+        cmd = ["rec", "-q", out, "rate", "16000", "channels", "1", "trim", "0", str(max_seconds)]
+        if REC_AUTOSTOP:
+            # baştan TAM kaydet; yalnızca SONDA uzun sessizlikte dur (baş KIRPILMAZ)
+            cmd = ["rec", "-q", out, "rate", "16000", "channels", "1",
+                   "silence", "1", "0.1", "0%",
+                   "1", str(REC_SILENCE_SECONDS), REC_SILENCE_THRESHOLD,
+                   "trim", "0", str(max_seconds)]
+
+        proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        # Mikrofon gerçekten açılana kadar kısa bekle (sync sorununu önler)
+        time.sleep(REC_WARMUP_SEC)
+        if REC_AUTOSTOP:
+            print("   🔴 Konuşabilirsiniz… bitince kendi duracak (ya da ENTER).", flush=True)
+        else:
+            print("   🔴 Konuşabilirsiniz… bitince ENTER'a basın.", flush=True)
+
+        stdin_ok = sys.stdin is not None and sys.stdin.isatty()
+        while proc.poll() is None:
+            if stdin_ok and select.select([sys.stdin], [], [], 0.2)[0]:
+                sys.stdin.readline()                 # ENTER → durdur/erken bitir
+                proc.send_signal(signal.SIGINT)
+                break
+            elif not stdin_ok:
+                try:
+                    proc.wait(timeout=0.2)
+                except subprocess.TimeoutExpired:
+                    pass
         try:
             proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
             proc.kill()
 
         if os.path.exists(out) and os.path.getsize(out) > 1000:
-            print("   ⏹️  Kayıt alındı.")
+            print("   ⏹️  Kayıt alındı.", flush=True)
             return out
         print("   ⚠️  Kayıt çok kısa/boş.")
         return ""
@@ -172,6 +236,30 @@ SYMPTOM_QUESTIONS = [
     ("WEIGHT_LOSS", "Son dönemde istemsiz kilo kaybınız oldu mu?"),
 ]
 
+# Demo'da değişmeyen istemler — başlangıçta önceden seslendirilip önbelleğe alınır
+# (string'ler say() çağrılarıyla birebir aynı olmalı ki önbelleğe düşsünler).
+STATIC_TTS_PROMPTS = [q for _, q in SYMPTOM_QUESTIONS] + [
+    "Merhaba. Sağlıklı bir risk analizi yapabilmem için öncelikle "
+    "yaşınızı ve cinsiyetinizi belirtir misiniz?",
+    "Sigara kullanıyor musunuz? Kullanıyorsanız ya da bıraktıysanız, "
+    "günde kaç adet ve kaç yıl içtiğinizi de söyler misiniz?",
+    "Yaklaşık kaç yıl boyunca sigara içtiniz?",
+    "Teşekkürler. Şimdi size bazı belirtileri sırayla soracağım. "
+    "Lütfen 'evet' ya da 'hayır' şeklinde yanıtlayın.",
+    "Sizi tam anlayamadım; lütfen 'evet' ya da 'hayır' deyin.",
+    "Birinci derece akrabalarınızda (anne, baba, kardeş) "
+    "akciğer kanseri öyküsü var mı?",
+    "Şu meslek gruplarından birinde uzun süre çalıştınız mı: "
+    "inşaat, yıkım, tersane, maden, yalıtım, oto tamir, "
+    "çimento veya eternit fabrikası?",
+    "Hangi ilde yaşıyorsunuz?",
+    "İlinizi tam alamadım; yaşadığınız ili tekrar söyler misiniz?",
+    "Sigarayı kaç yıl önce bıraktınız?",
+    "Sigara kullanım durumunuzu tam alamadım. İçiyor musunuz, "
+    "bıraktınız mı, yoksa hiç içmediniz mi?",
+    "Kaç yıl önce bıraktığınızı tam alamadım; tekrar söyler misiniz?",
+]
+
 
 # ──────────────────────────────────────────────
 # Ajan
@@ -191,6 +279,9 @@ class ConversationAgent:
         print("📦 Model yükleniyor...")
         self.engine = HybridLungCancerEngine(build_hybrid_model())
         print("   ✅ Hazır\n")
+        # Sabit istemleri önceden seslendirip önbelleğe al → demo'da anında oynar,
+        # Zoom/yavaş internet gecikmesi ve takılmalar ortadan kalkar.
+        self.ch.prewarm(STATIC_TTS_PROMPTS)
 
     # Çıkarımdan taşınacak tüm anahtarlar (model + meta)
     _CARRY = ("AGE", "GENDER", "SMOKING", "FAMILY_HISTORY", "ASBESTOS", "AIR_POLLUTION",
@@ -368,13 +459,8 @@ class ConversationAgent:
         level = result["risk_level_tr"]
 
         # Açıklanabilir özet (yumuşak dil — korkutmadan taramaya yönlendir)
-        prov = self.evidence.get("_province")
-        loc = f" {prov} ilinde yaşıyor olmanız" if prov else ""
         summary = (f"Değerlendirmeniz tamamlandı. Risk düzeyiniz: {level}, "
                    f"tahmini risk skoru yüzde {score:.0f}. ")
-        if result.get("or_contributions"):
-            etk = ", ".join(result["or_contributions"].keys())
-            summary += f"Riskinizi artıran etkenler: {etk}.{(' ' + loc.strip() + ' bunlardan biri.') if loc else ''} "
         if result.get("smoking_adjustment"):
             summary += " " + result["smoking_adjustment"]
         summary += " " + result["recommendation_tr"]

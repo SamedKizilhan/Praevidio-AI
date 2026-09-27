@@ -70,10 +70,8 @@ def assess_screening_eligibility(ev: dict) -> dict:
     if pack_years is None:
         # Yaş uygun + içici/yakın-eski içici ama paket-yıl bilinmiyor → OLASI
         return _result(None,
-                       "Yaş ve sigara profiliniz tarama için uygun aralıkta; kesin değerlendirme "
-                       "için paket-yıl (günlük adet × yıl) bilgisi gerekir. ≥20 paket-yıl ise adaysınız.",
-                       "Your age and smoking profile fall in the screening range; pack-year detail "
-                       "is needed to confirm. If ≥20 pack-years, you are a candidate.")
+                       "Yaş ve sigara profiliniz tarama için uygun aralıkta.",
+                       "Your age and smoking profile fall in the screening range.")
     if pack_years < 20:
         return _result(False,
                        f"Sigara öyküsü ({pack_years:.0f} paket-yıl) 20 paket-yıl eşiğinin altında.",

@@ -320,10 +320,19 @@ def score_analysis_markdown(engine, evidence: dict, risk_result: dict) -> str:
     demo = {k: v for k, v in evidence.items() if k in DEMO_KEYS}
     # Gözlenen (demografi-dışı) bulgular: önce risk faktörleri, sonra semptomlar
     rf_order = ["FAMILY_HISTORY", "ASBESTOS", "AIR_POLLUTION"]
-    findings = [k for k in rf_order if k in evidence] + \
-               [k for k in SYMPTOMS_7 if k in evidence]
+    risk_factors = [k for k in rf_order if k in evidence]
+    symptoms = [k for k in SYMPTOMS_7 if k in evidence]
+    findings = risk_factors + symptoms
 
-    base_ev = {**demo, **meta}     # semptom/faktör gözlenmemiş; sigara düzeltmesi geçerli
+    # REFERANS SEÇİMİ
+    #   Risk faktörleri: "temiz / maruziyet-yok" (level 0) seviyesine göre. OR'ler de
+    #     bu referansa göre tanımlı; böylece "orta hava kirliliği (×1.15)" KÜÇÜK POZİTİF
+    #     katkı verir (nüfus ortalamasına göre ölçersek 1.15<1.165 olduğu için yanıltıcı
+    #     biçimde negatif çıkıyordu).
+    #   Semptomlar: gözlenmemiş (marjinal) duruma göre — böylece "yok" yanıtı riski
+    #     gerçekten DÜŞÜRÜR (negatif katkı), istenen davranış budur.
+    REF = 0
+    base_ev = {**demo, **meta, **{k: REF for k in risk_factors}}   # temiz referans + semptom gözlenmemiş
     base = risk(base_ev)
     final = risk({**evidence})
 
@@ -337,10 +346,14 @@ def score_analysis_markdown(engine, evidence: dict, risk_result: dict) -> str:
         steps.append((_label_val(k, evidence[k]), now, now - prev))
 
     # Leave-one-out — her bulgunun NİHAİ skora katkısı (sıra-bağımsız okuma)
+    #   risk faktörü → temiz referansa (0) göre;  semptom → "bilinmiyor"a (marjinal) göre
     loo = []
     for k in findings:
         ev2 = dict(evidence)
-        ev2.pop(k, None)
+        if k in risk_factors:
+            ev2[k] = REF
+        else:
+            ev2.pop(k, None)
         loo.append((_label_val(k, evidence[k]), final - risk(ev2)))
 
     L = [
@@ -371,6 +384,10 @@ def score_analysis_markdown(engine, evidence: dict, risk_result: dict) -> str:
     ]
     for lbl, c in sorted(loo, key=lambda x: -x[1]):
         L.append(f"| {lbl} | {c:+.1f} |")
+    L += ["",
+          "*Katkı referansı: risk faktörleri **temiz/maruziyet-yok** seviyesine göre "
+          "(bu yüzden ‘orta hava kirliliği’ küçük pozitif katkı verir), semptomlar ise "
+          "**bilinmiyor** durumuna göre (bu yüzden ‘yok’ yanıt riski düşürür).*"]
 
     if risk_result.get("or_contributions"):
         L += ["", "## 3. Risk faktörü çarpanları (literatür OR)", "",
