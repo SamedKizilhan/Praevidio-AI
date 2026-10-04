@@ -18,8 +18,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import (
-    WHISPER_MODEL, OPENAI_API_KEY, KNOWLEDGE_BASE_DIR
+    STT_MODEL, STT_CONTEXT_TERMS, OPENAI_API_KEY, KNOWLEDGE_BASE_DIR
 )
+WHISPER_MODEL = STT_MODEL   # geriye dönük uyumluluk
 
 
 # ──────────────────────────────────────────────
@@ -163,13 +164,17 @@ def transcribe_audio(audio_path: str, language: str = "tr", prompt: str = "") ->
         raise ValueError(f"Unsupported format: {audio_file.suffix}. Supported: {supported}")
 
     print(f"🎤 Transcribing: {audio_file.name}")
-    print(f"   Model: {WHISPER_MODEL}, Language: {language}")
+    print(f"   Model: {STT_MODEL}, Language: {language}")
 
+    # whisper-1 "verbose_json" (süre bilgisi) destekler; gpt-4o-*-transcribe yalnızca json/text.
+    fmt = "verbose_json" if STT_MODEL.startswith("whisper") else "json"
+    # Bağlam ipucu: sabit tıbbi terim listesi + soruya özel ipucu (ör. "il adı söylüyor")
+    full_prompt = " ".join(x for x in (STT_CONTEXT_TERMS, prompt) if x).strip()
     with open(audio_file, "rb") as f:
-        kwargs = dict(model=WHISPER_MODEL, file=f, language=language,
-                      response_format="verbose_json", temperature=0)
-        if prompt:
-            kwargs["prompt"] = prompt
+        kwargs = dict(model=STT_MODEL, file=f, language=language,
+                      response_format=fmt, temperature=0)
+        if full_prompt:
+            kwargs["prompt"] = full_prompt
         response = client.audio.transcriptions.create(**kwargs)
 
     raw_text = response.text

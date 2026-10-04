@@ -13,9 +13,10 @@
 VENV    ?= .venv
 PY      := $(if $(wildcard $(VENV)/bin/python),$(VENV)/bin/python,python3)
 NLP     ?= llm        # konuşmada slot çıkarımı: llm | keyword
+MODEL   ?= v3         # risk modeli: v3 (latent semptomatik + KOAH) | v2 (bahar dönemi)
 
 .DEFAULT_GOAL := help
-.PHONY: help chat voice pipeline demo scenarios eval calibrate explain model rag install clean
+.PHONY: help chat voice pipeline demo scenarios compare model-v3 tts-test eval calibrate explain model rag install clean
 
 help:  ## Komut listesini göster
 	@echo "Praevidio AI — komutlar:"
@@ -23,7 +24,10 @@ help:  ## Komut listesini göster
 	@echo "  make voice      Konuşmalı ajan (ses, mic+TTS) [NLP=$(NLP)]"
 	@echo "  make pipeline   Uçtan uca pipeline (etkileşimli)"
 	@echo "  make demo       Hazır senaryolarla demo (pipeline)"
-	@echo "  make scenarios  Temiz test senaryoları (golden + çiftler)"
+	@echo "  make scenarios  Temiz test senaryoları (golden + çiftler, v2)"
+	@echo "  make compare    v2 ile v3 modelini yan yana karşılaştır → docs/v2_vs_v3_karsilastirma.md"
+	@echo "  make model-v3   v3 BBN'i kur/doğrula + demo senaryolar"
+	@echo "  make tts-test   TTS kör dinleme testi dosyalarını üret (OpenAI + Edge sesleri)"
 	@echo "  make expert     Uzman doğrulama seti (10 vaka + sonuç tablosu)"
 	@echo "  make eval       Performans metrikleri (AUC / kalibrasyon / DCA)"
 	@echo "  make calibrate  Yeni faktör OR kalibrasyonu + duyarlılık"
@@ -31,13 +35,22 @@ help:  ## Komut listesini göster
 	@echo "  make model      Hibrit BBN kur/doğrula/kaydet"
 	@echo "  make rag        ChromaDB ICD-10 indeksini kur"
 	@echo "  make install    Bağımlılıkları kur"
-	@echo "  (NLP modunu değiştir: make chat NLP=keyword)"
+	@echo "  (NLP modunu değiştir: make chat NLP=keyword;  eski model: make chat MODEL=v2)"
 
 chat:  ## Konuşmalı ajan — metin kanalı
-	$(PY) src/conversation/voice_agent.py --channel text --nlp-mode $(NLP)
+	$(PY) src/conversation/voice_agent.py --channel text --nlp-mode $(NLP) --model $(MODEL)
 
-voice:  ## Konuşmalı ajan — ses kanalı (mikrofon + OpenAI TTS, sox gerekir)
-	$(PY) src/conversation/voice_agent.py --channel voice --nlp-mode $(NLP)
+voice:  ## Konuşmalı ajan — ses kanalı (mikrofon + TTS, sox gerekir)
+	$(PY) src/conversation/voice_agent.py --channel voice --nlp-mode $(NLP) --model $(MODEL)
+
+compare:  ## v2 ile v3 risk modelini tüm senaryolarda karşılaştır
+	$(PY) tests/test_scenarios/compare_v2_v3.py
+
+model-v3:  ## v3 BBN'i kur, doğrula, demo senaryoları çalıştır
+	$(PY) src/model/hybrid_bayesian_network_v3.py
+
+tts-test:  ## TTS kör dinleme testi (data/processed/tts_test/)
+	$(PY) tools/tts_listening_test.py
 
 pipeline:  ## Uçtan uca pipeline (etkileşimli metin)
 	$(PY) src/pipeline.py --interactive --nlp-mode $(NLP)

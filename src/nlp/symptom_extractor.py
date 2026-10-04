@@ -155,7 +155,9 @@ def extract_province(text: str) -> str:
 # Smoking status detection keywords
 CURRENT_SMOKER_KEYWORDS = [
     "sigara içiyorum", "sigara kullanıyorum", "içici",
-    "günde bir paket", "yıllardır içerim", "hala içiyorum",
+    "günde bir paket", "günde 1 paket", "yıllardır içerim", "hala içiyorum",
+    # tek kelimelik aktif ifadeler ("içmiyorum"/"kullanmıyorum" bunlarla ÇAKIŞMAZ)
+    "içiyorum", "kullanıyorum", "içerim", "içmekteyim", "içiyom", "paket", "yıldır",
 ]
 FORMER_SMOKER_KEYWORDS = [
     "sigarayı bıraktım", "bırakalı", "eski içici",

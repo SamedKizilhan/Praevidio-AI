@@ -19,6 +19,11 @@ daha kontrollü, loglanabilir, ucuz ve demo'da tekrarlanabilir
 Kullanım:
   python src/conversation/voice_agent.py --channel text
   python src/conversation/voice_agent.py --channel voice --nlp-mode llm
+  python src/conversation/voice_agent.py --channel text --model v2   # eski model
+
+v3 akışı (Güz 2026): açık uçlu şikâyet sorusu → yalnız eksik belirtiler tek tek,
+"bilmiyorum" ile atlama, demografi onayı/düzeltme, KOAH sorusu, iki katmanlı
+sesli özet (6 yıllık tarama riski + belirti alarmı). Model: hybrid_bayesian_network_v3.
 """
 
 import sys
@@ -30,13 +35,34 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import (
     OPENAI_API_KEY, NLP_MODE, PROCESSED_DATA_DIR,
-    TTS_MODEL, TTS_VOICE, TTS_SPEED,
+    TTS_MODEL, TTS_VOICE, TTS_SPEED, TTS_PROVIDER, EDGE_TTS_VOICE,
     REC_AUTOSTOP, REC_SILENCE_THRESHOLD, REC_SILENCE_SECONDS, REC_WARMUP_SEC,
 )
 from nlp.symptom_extractor import (
     extract_symptoms, resolve_air_pollution, extract_province
 )
 from stt.whisper_stt import post_process_medical_terms
+
+
+# ──────────────────────────────────────────────
+# Ücretsiz Türkçe nöral TTS (Microsoft Edge sesleri) — opsiyonel sağlayıcı
+# ──────────────────────────────────────────────
+
+def synthesize_edge(text: str, out: Path, voice: str = "tr-TR-EmelNeural") -> bool:
+    """edge-tts ile sentez (pip install edge-tts). Anahtar gerektirmez, ana dili Türkçe sesler.
+    Not: resmî olmayan bir istemcidir; demo/dinleme testi için uygundur, üretimde Azure Speech."""
+    try:
+        import asyncio
+        import edge_tts
+    except ImportError:
+        print("   ⚠️  edge-tts kurulu değil: pip install edge-tts  (ya da PRAEVIDIO_TTS_PROVIDER=openai)")
+        return False
+    try:
+        asyncio.run(edge_tts.Communicate(text, voice).save(str(out)))
+        return out.exists() and out.stat().st_size > 0
+    except Exception as e:
+        print(f"   ⚠️  Edge TTS sentez atlandı: {e}", flush=True)
+        return False
 
 
 # ──────────────────────────────────────────────
@@ -73,15 +99,19 @@ class Channel:
     # --- Voice yardımcıları ---
     def _cache_path(self, text: str) -> Path:
         import hashlib
+        voice_id = EDGE_TTS_VOICE if TTS_PROVIDER == "edge" else f"{TTS_MODEL}|{TTS_VOICE}|{TTS_SPEED}"
         key = hashlib.sha1(
-            f"{TTS_MODEL}|{TTS_VOICE}|{TTS_SPEED}|{text}".encode("utf-8")
+            f"{TTS_PROVIDER}|{voice_id}|{text}".encode("utf-8")
         ).hexdigest()[:16]
         d = PROCESSED_DATA_DIR / "tts_cache"
         d.mkdir(parents=True, exist_ok=True)
         return d / f"{key}.mp3"
 
     def _synthesize(self, text: str, out: Path) -> bool:
-        """Metni OpenAI TTS ile sentezleyip `out` dosyasına yazar. Başarı: True."""
+        """Metni seçili TTS sağlayıcısıyla sentezleyip `out` dosyasına yazar. Başarı: True.
+        Sağlayıcı config.TTS_PROVIDER: "openai" | "edge" (ücretsiz Türkçe nöral ses)."""
+        if TTS_PROVIDER == "edge":
+            return synthesize_edge(text, out, EDGE_TTS_VOICE)
         try:
             kwargs = dict(model=TTS_MODEL, voice=TTS_VOICE, input=text,
                           response_format="mp3")
@@ -97,7 +127,9 @@ class Channel:
     def prewarm(self, texts):
         """Sabit istemleri önceden sentezleyip diske önbellekler (demo'da anında oynar).
         Zoom/yavaş internet gecikmesini ve takılmaları büyük ölçüde ortadan kaldırır."""
-        if self.mode != "voice" or not OPENAI_API_KEY or OPENAI_API_KEY.startswith("sk-your"):
+        if self.mode != "voice":
+            return
+        if TTS_PROVIDER == "openai" and (not OPENAI_API_KEY or OPENAI_API_KEY.startswith("sk-your")):
             return
         missing = [t for t in dict.fromkeys(texts) if t and not self._cache_path(t).exists()]
         if not missing:
@@ -110,7 +142,7 @@ class Channel:
     def _tts(self, text: str):
         """Doğal sesle seslendir. Sabit istemler diskten ANINDA oynar; yenileri
         bir kez sentezlenip önbelleğe alınır. macOS'ta afplay ile çalınır."""
-        if not OPENAI_API_KEY or OPENAI_API_KEY.startswith("sk-your"):
+        if TTS_PROVIDER == "openai" and (not OPENAI_API_KEY or OPENAI_API_KEY.startswith("sk-your")):
             return
         try:
             cached = self._cache_path(text)
@@ -222,6 +254,16 @@ def parse_yes_no(text: str):
     return None
 
 
+# "Bilmiyorum / emin değilim / geç" → alan GÖZLENMEMİŞ bırakılır, tekrar sorulmaz
+_SKIP = ["bilmiyorum", "bilemiyorum", "emin değilim", "hatırlamıyorum", "geç", "atla",
+         "cevap vermek istemiyorum", "söylemek istemiyorum", "fikrim yok"]
+
+
+def is_skip(text: str) -> bool:
+    t = text.lower().replace("̇", "")
+    return any(w in t for w in _SKIP)
+
+
 # ──────────────────────────────────────────────
 # Sıralı semptom soruları
 # ──────────────────────────────────────────────
@@ -235,6 +277,11 @@ SYMPTOM_QUESTIONS = [
     ("HEMOPTYSIS", "Hiç kan tükürdüğünüz oldu mu?"),
     ("WEIGHT_LOSS", "Son dönemde istemsiz kilo kaybınız oldu mu?"),
 ]
+_SYMPTOM_LABELS = {
+    "COUGHING": "öksürük", "SHORTNESS_OF_BREATH": "nefes darlığı", "CHEST_PAIN": "göğüs ağrısı",
+    "WHEEZING": "hırıltı", "FATIGUE": "halsizlik", "HEMOPTYSIS": "kan tükürme",
+    "WEIGHT_LOSS": "kilo kaybı",
+}
 
 # Demo'da değişmeyen istemler — başlangıçta önceden seslendirilip önbelleğe alınır
 # (string'ler say() çağrılarıyla birebir aynı olmalı ki önbelleğe düşsünler).
@@ -258,6 +305,18 @@ STATIC_TTS_PROMPTS = [q for _, q in SYMPTOM_QUESTIONS] + [
     "Sigara kullanım durumunuzu tam alamadım. İçiyor musunuz, "
     "bıraktınız mı, yoksa hiç içmediniz mi?",
     "Kaç yıl önce bıraktığınızı tam alamadım; tekrar söyler misiniz?",
+    # v3 akışı
+    "Teşekkürler. Son haftalarda sizi rahatsız eden şikâyetleriniz neler? "
+    "Örneğin öksürük, nefes darlığı, göğüs ağrısı, halsizlik gibi; "
+    "yoksa 'şikâyetim yok' diyebilirsiniz.",
+    "Şimdi birkaç belirtiyi tek tek soracağım. Lütfen 'evet', 'hayır' ya da "
+    "'bilmiyorum' şeklinde yanıtlayın.",
+    "Doktorunuz size KOAH, amfizem veya kronik bronşit tanısı koydu mu?",
+    "Peki, hangisi yanlıştı? Doğrusunu söyler misiniz?",
+    "Anladım, düzelttim.",
+    "Peki daha önce hiç sigara içtiniz mi?",
+    "Sizi tam anlayamadım; daha önce içtiniz mi, hiç içmediniz mi?",
+    "Günde ortalama kaç adet sigara içiyorsunuz ya da içiyordunuz?",
 ]
 
 
@@ -266,18 +325,17 @@ STATIC_TTS_PROMPTS = [q for _, q in SYMPTOM_QUESTIONS] + [
 # ──────────────────────────────────────────────
 
 class ConversationAgent:
-    def __init__(self, channel: Channel, nlp_mode: str = "keyword"):
+    def __init__(self, channel: Channel, nlp_mode: str = "keyword", model_version: str = "v3"):
         self.ch = channel
         self.nlp_mode = nlp_mode
+        self.model_version = model_version
         self.evidence = {}
         self._load_engine()
 
     def _load_engine(self):
-        from model.hybrid_bayesian_network import (
-            build_hybrid_model, HybridLungCancerEngine
-        )
-        print("📦 Model yükleniyor...")
-        self.engine = HybridLungCancerEngine(build_hybrid_model())
+        from model.hybrid_bayesian_network_v3 import load_engine
+        print(f"📦 Model yükleniyor ({self.model_version})...")
+        self.engine = load_engine(self.model_version)
         print("   ✅ Hazır\n")
         # Sabit istemleri önceden seslendirip önbelleğe al → demo'da anında oynar,
         # Zoom/yavaş internet gecikmesi ve takılmalar ortadan kalkar.
@@ -337,7 +395,10 @@ class ConversationAgent:
         """
         self.ch.say(question)
         for i in range(attempts):
-            val = parse(self._heard(stt_hint))
+            heard = self._heard(stt_hint)
+            if is_skip(heard):          # "bilmiyorum" → gözlenmemiş bırak, bezdirme
+                return None
+            val = parse(heard)
             if val is not None:
                 return val
             if i < attempts - 1:
@@ -372,6 +433,18 @@ class ConversationAgent:
             self._absorb(smoke_ans)
             if "SMOKING" in self.evidence:
                 break
+            yn = parse_yes_no(smoke_ans)         # yalın "evet" → aktif içici
+            if yn is True:
+                self.evidence["SMOKING"] = 1
+                break
+            if yn is False:                      # yalın "hayır" → eski mi, hiç mi?
+                before = self._ask("Peki daha önce hiç sigara içtiniz mi?", self._yn,
+                                   "Sizi tam anlayamadım; daha önce içtiniz mi, hiç içmediniz mi?",
+                                   "Kullanıcı evet veya hayır diyor.")
+                self.evidence["SMOKING"] = 0
+                if before == 0:
+                    self.evidence["_pack_years"] = 0
+                break
             if attempt < 2:
                 self.ch.say("Sigara kullanım durumunuzu tam alamadım. İçiyor musunuz, "
                             "bıraktınız mı, yoksa hiç içmediniz mi?")
@@ -380,6 +453,17 @@ class ConversationAgent:
         if self._is_never_smoker(smoke_ans):
             self.evidence["SMOKING"] = 0
             self.evidence["_pack_years"] = 0
+
+        # Günlük adet eksikse sor (paket-yıl = adet/20 × yıl; tarama uygunluğu için gerekli)
+        if (self.evidence.get("SMOKING") is not None
+                and self.evidence.get("_pack_years") is None
+                and self.evidence.get("_cigs_per_day") is None):
+            from model.screening import parse_pack_years
+            got = parse_pack_years(self._heard_after(
+                "Günde ortalama kaç adet sigara içiyorsunuz ya da içiyordunuz?",
+                "Kullanıcı günde kaç sigara içtiğini söylüyor, örneğin günde bir paket, on tane."))
+            if got.get("_cigs_per_day") is not None:
+                self.evidence["_cigs_per_day"] = got["_cigs_per_day"]
 
         # Paket-yıl için "kaç yıl içtiniz" eksikse bir kez daha sor (içici/eski içici ise)
         if (self.evidence.get("SMOKING") is not None
@@ -403,13 +487,87 @@ class ConversationAgent:
             if ans is not None:
                 self.evidence["_years_quit"] = ans
 
-    # --- Stage 2: Semptomlar (sırayla; belirsizse tekrar sor) ---
+        # Onay: yanlış anlaşılan yaş/cinsiyet/sigara bilgisi tüm skoru bozar → kısa teyit
+        self.confirm_demographics()
+
+    # --- Stage 1b: Demografi onayı (düzeltme imkânı) ---
+    _AGE_LBL = {0: "55 yaş altı", 1: "55-59 yaş", 2: "60-64 yaş", 3: "65-69 yaş", 4: "70 yaş ve üzeri"}
+
+    def _demographics_sentence(self) -> str:
+        e = self.evidence
+        parts = []
+        if "_age_exact" in e:
+            parts.append(f"{e['_age_exact']} yaşında")
+        elif "AGE" in e:
+            parts.append(self._AGE_LBL[e["AGE"]])
+        if "GENDER" in e:
+            parts.append("erkek" if e["GENDER"] == 1 else "kadın")
+        if e.get("SMOKING") == 1:
+            parts.append("aktif sigara içiyor")
+        elif e.get("SMOKING") == 0:
+            parts.append("hiç içmemiş" if e.get("_pack_years") == 0 else "sigarayı bırakmış")
+        if e.get("_pack_years"):
+            parts.append(f"yaklaşık {e['_pack_years']:.0f} paket-yıl")
+        if e.get("_years_quit") is not None:
+            parts.append(f"{e['_years_quit']} yıl önce bırakmış")
+        return ", ".join(parts)
+
+    def confirm_demographics(self):
+        sent = self._demographics_sentence()
+        if not sent:
+            return
+        ans = self._heard_after(f"Şunları not ettim: {sent}. Doğru mu?",
+                                "Kullanıcı evet veya hayır diyor.")
+        if parse_yes_no(ans) is False:
+            self.ch.say("Peki, hangisi yanlıştı? Doğrusunu söyler misiniz?")
+            fix = self._heard("Kullanıcı yaşını, cinsiyetini veya sigara kullanımını düzeltiyor.")
+            # Düzeltme cümlesinde ne geçiyorsa yalnız onu güncelle (diğer alanlar korunur)
+            ext = extract_symptoms(fix, mode=self.nlp_mode)
+            for k in self._CARRY:
+                if k in ext:
+                    self.evidence[k] = ext[k]
+            if self._is_never_smoker(fix):
+                self.evidence["SMOKING"] = 0
+                self.evidence["_pack_years"] = 0
+            if "_cigs_per_day" in ext or "_years_smoked" in ext:
+                c = self.evidence.get("_cigs_per_day"); y = self.evidence.get("_years_smoked")
+                if c is not None and y is not None:
+                    self.evidence["_pack_years"] = round(c / 20.0 * y, 1)
+            self.ch.say("Anladım, düzelttim.")
+
+    def _heard_after(self, question: str, hint: str = "") -> str:
+        self.ch.say(question)
+        return self._heard(hint)
+
+    # --- Stage 2: Semptomlar — önce AÇIK soru, sonra yalnız eksikler tek tek ---
     def collect_symptoms(self):
-        self.ch.say("Teşekkürler. Şimdi size bazı belirtileri sırayla soracağım. "
-                    "Lütfen 'evet' ya da 'hayır' şeklinde yanıtlayın.")
-        hint = "Kullanıcı evet veya hayır diyor."
+        # 2a) Açık uçlu: kullanıcı kendi kelimeleriyle anlatır; LLM/keyword çıkarımı
+        ans = self._heard_after(
+            "Teşekkürler. Son haftalarda sizi rahatsız eden şikâyetleriniz neler? "
+            "Örneğin öksürük, nefes darlığı, göğüs ağrısı, halsizlik gibi; "
+            "yoksa 'şikâyetim yok' diyebilirsiniz.",
+            "Kullanıcı şikâyetlerini anlatıyor: öksürük, balgam, kan tükürme, nefes darlığı, "
+            "hırıltı, göğüs ağrısı, halsizlik, kilo kaybı; ya da şikâyeti yok diyor.")
+        if ans and not is_skip(ans):
+            ext = extract_symptoms(post_process_medical_terms(ans), mode=self.nlp_mode)
+            for var, _ in SYMPTOM_QUESTIONS:
+                v = ext.get(var)
+                # keyword modu bahsedilmeyeni 0 döndürür → yalnız 1'leri al;
+                # llm modu açık inkârı 0, bahsedilmeyeni null döndürür → 0'ı da al
+                if v == 1 or (v == 0 and self.nlp_mode == "llm"):
+                    self.evidence[var] = v
+            found = [q for v, q in _SYMPTOM_LABELS.items() if self.evidence.get(v) == 1]
+            if found:
+                self.ch.say("Şunları not ettim: " + ", ".join(found) + ".")
+
+        # 2b) Söylenmeyenleri tek tek sor ("bilmiyorum" → atlanır, gözlenmemiş kalır)
+        remaining = [(v, q) for v, q in SYMPTOM_QUESTIONS if v not in self.evidence]
+        if remaining:
+            self.ch.say("Şimdi birkaç belirtiyi tek tek soracağım. Lütfen 'evet', 'hayır' ya da "
+                        "'bilmiyorum' şeklinde yanıtlayın.")
+        hint = "Kullanıcı evet, hayır veya bilmiyorum diyor."
         reask = "Sizi tam anlayamadım; lütfen 'evet' ya da 'hayır' deyin."
-        for var, question in SYMPTOM_QUESTIONS:
+        for var, question in remaining:
             def parse(text, _var=var):
                 v = self._yn(text)
                 if v is not None:
@@ -437,6 +595,13 @@ class ConversationAgent:
         if asb is not None:
             self.evidence["ASBESTOS"] = asb
 
+        # KOAH / kronik bronşit tanısı (yalnız v3 modelinde düğüm var)
+        if self.model_version != "v2":
+            copd = self._ask("Doktorunuz size KOAH, amfizem veya kronik bronşit tanısı koydu mu?",
+                             self._yn, yn_reask, yn_hint)
+            if copd is not None:
+                self.evidence["COPD"] = copd
+
         # Hava kirliliği — il bazlı (tanınan bir il gelene kadar tekrar sor)
         if "AIR_POLLUTION" not in self.evidence:
             prov = self._ask(
@@ -459,8 +624,17 @@ class ConversationAgent:
         level = result["risk_level_tr"]
 
         # Açıklanabilir özet (yumuşak dil — korkutmadan taramaya yönlendir)
-        summary = (f"Değerlendirmeniz tamamlandı. Risk düzeyiniz: {level}, "
-                   f"tahmini risk skoru yüzde {score:.0f}. ")
+        if result.get("model_version") == "v3":
+            p6 = result["risk_6y_factors"]
+            summary = (f"Değerlendirmeniz tamamlandı. Risk faktörlerinize göre önümüzdeki altı yıl "
+                       f"için tahmini riskiniz yüzde {p6:.1f}; bu, {result['risk_level_factors_tr'].lower()} "
+                       f"grubuna giriyor. ")
+            if abs(score - p6) >= 0.5:
+                summary += f"Belirtilerinizle birlikte skor yüzde {score:.1f} ({level.lower()}). "
+            # (alarm varsa recommendation_tr zaten acil sevk dilinde — tekrar edilmez)
+        else:
+            summary = (f"Değerlendirmeniz tamamlandı. Risk düzeyiniz: {level}, "
+                       f"tahmini risk skoru yüzde {score:.0f}. ")
         if result.get("smoking_adjustment"):
             summary += " " + result["smoking_adjustment"]
         summary += " " + result["recommendation_tr"]
@@ -513,9 +687,12 @@ def main():
     p = argparse.ArgumentParser(description="Praevidio AI Konuşmalı Ajan")
     p.add_argument("--channel", choices=["text", "voice"], default="text")
     p.add_argument("--nlp-mode", choices=["keyword", "llm"], default=NLP_MODE)
+    p.add_argument("--model", choices=["v2", "v3"], default="v3",
+                   help="risk modeli: v3 (latent semptomatik + KOAH) | v2 (geçen dönem)")
     args = p.parse_args()
 
-    agent = ConversationAgent(Channel(args.channel), nlp_mode=args.nlp_mode)
+    agent = ConversationAgent(Channel(args.channel), nlp_mode=args.nlp_mode,
+                              model_version=args.model)
     agent.run()
 
 
