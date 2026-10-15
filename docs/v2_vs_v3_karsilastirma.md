@@ -7,20 +7,20 @@ v2 bantları: Düşük <%5, Orta %5–15, Yüksek ≥%15. v3 bantları (6 yıll�
 | ID | Senaryo | v2 % | v2 bant | v3 % | v3 bant | v3 6y-faktör % | PLCOm2012 6y % | alarm |
 | --- | --- | ---: | --- | ---: | --- | ---: | ---: | --- |
 | D1 | Düşük risk — genç, hiç içmemiş, semptomsuz | 0.01 | Düşük Risk | 0.10 | Düşük Risk | 0.15 | 0.35 | — |
-| D2 | Orta risk — yaşlı eski içici, hafif semptom | 12.18 | Orta Risk | 5.51 | Yüksek Risk | 3.99 | 1.31 | ACİL |
-| D3 | Yüksek risk — örnek rapor vakası (PRA-3C1DEB10) | 56.12 | Yüksek Risk | 25.82 | Yüksek Risk | 6.22 | 1.90 | ACİL |
-| D4 | Alarm — hemoptizi (genç ama kan tükürme) | 19.23 | Yüksek Risk | 5.66 | Yüksek Risk | 1.14 | 0.61 | ACİL |
+| D2 | Orta risk — yaşlı eski içici, hafif semptom | 12.18 | Orta Risk | 5.63 | Yüksek Risk | 3.99 | 1.31 | ACİL |
+| D3 | Yüksek risk — örnek rapor vakası (PRA-3C1DEB10) | 56.12 | Yüksek Risk | 24.26 | Yüksek Risk | 6.22 | 1.90 | ACİL |
+| D4 | Alarm — hemoptizi (genç ama kan tükürme) | 19.23 | Yüksek Risk | 5.91 | Yüksek Risk | 1.14 | 0.61 | ACİL |
 | D5 | Risk faktörleri var, semptom bilgisi YOK (gözlenmemiş) | 28.90 | Yüksek Risk | 24.07 | Yüksek Risk | 24.07 | 5.86 | — |
-| P1a | Hava ORTA (İzmir) — diğer her şey sabit | 28.00 | Yüksek Risk | 12.69 | Yüksek Risk | 7.46 | 2.29 | ACİL |
-| P1b | Hava YÜKSEK (Iğdır) — diğer her şey sabit | 30.53 | Yüksek Risk | 14.12 | Yüksek Risk | 8.35 | 2.29 | ACİL |
-| P2a | Ailede öykü YOK | 3.66 | Düşük Risk | 5.82 | Yüksek Risk | 7.46 | 2.29 | ACİL |
-| P2b | Ailede öykü VAR | 6.07 | Orta Risk | 9.49 | Yüksek Risk | 12.04 | 4.05 | ACİL |
-| P3a | ESKİ içici + nefes darlığı/göğüs/hırıltı | 61.83 | Yüksek Risk | 13.32 | Yüksek Risk | 3.99 | 1.31 | ACİL |
-| P3b | AKTİF içici + nefes darlığı/göğüs/hırıltı | 69.33 | Yüksek Risk | 17.21 | Yüksek Risk | 7.46 | 2.29 | ACİL |
+| P1a | Hava ORTA (İzmir) — diğer her şey sabit | 28.00 | Yüksek Risk | 11.97 | Yüksek Risk | 7.46 | 2.29 | ACİL |
+| P1b | Hava YÜKSEK (Iğdır) — diğer her şey sabit | 30.53 | Yüksek Risk | 13.33 | Yüksek Risk | 8.35 | 2.29 | ACİL |
+| P2a | Ailede öykü YOK | 3.66 | Düşük Risk | 5.64 | Yüksek Risk | 7.46 | 2.29 | ACİL |
+| P2b | Ailede öykü VAR | 6.07 | Orta Risk | 9.22 | Yüksek Risk | 12.04 | 4.05 | ACİL |
+| P3a | ESKİ içici + nefes darlığı/göğüs/hırıltı | 61.83 | Yüksek Risk | 11.31 | Yüksek Risk | 3.99 | 1.31 | ACİL |
+| P3b | AKTİF içici + nefes darlığı/göğüs/hırıltı | 69.33 | Yüksek Risk | 14.92 | Yüksek Risk | 7.46 | 2.29 | ACİL |
 | P4a | Hırıltı — DÜŞÜK taban (50y kadın, hiç içmemiş) | 0.05 | Düşük Risk | 0.11 | Düşük Risk | 0.15 | 0.35 | — |
-| P4b | Hırıltı — YÜKSEK taban (70+ erkek, aktif içici) | 1.91 | Düşük Risk | 6.40 | Yüksek Risk | 8.76 | 3.35 | — |
+| P4b | Hırıltı — YÜKSEK taban (70+ erkek, aktif içici) | 1.91 | Düşük Risk | 6.04 | Yüksek Risk | 8.76 | 3.35 | — |
 | P5a | Semptomlar CEVAPSIZ (gözlenmemiş) | 28.90 | Yüksek Risk | 24.07 | Yüksek Risk | 24.07 | 5.86 | — |
-| P5b | Aynı kişi, tüm semptomlar AÇIKÇA YOK (=0) | 1.12 | Düşük Risk | 16.54 | Yüksek Risk | 24.07 | 5.86 | — |
+| P5b | Aynı kişi, tüm semptomlar AÇIKÇA YOK (=0) | 1.12 | Düşük Risk | 16.49 | Yüksek Risk | 24.07 | 5.86 | — |
 | S1 | Hiç içmemiş (0 paket-yıl) | 0.56 | Düşük Risk | 0.43 | Düşük Risk | 0.43 | n/a | — |
 | S2 | Hafif eski içici (10 paket-yıl) | 3.64 | Düşük Risk | 2.79 | Orta Risk | 2.79 | 0.52 | — |
 | S3 | Ağır eski içici, yakın bırakmış (30 py, 3 yıl önce) | 6.30 | Orta Risk | 5.00 | Yüksek Risk | 5.00 | 1.72 | — |
@@ -28,12 +28,12 @@ v2 bantları: Düşük <%5, Orta %5–15, Yüksek ≥%15. v3 bantları (6 yıll�
 | S5 | Aktif içici (30 paket-yıl) | 6.30 | Orta Risk | 5.00 | Yüksek Risk | 5.00 | 1.72 | — |
 | S6 | Eski içici, paket-yıl bilinmiyor (eski davranış) | 3.64 | Düşük Risk | 2.79 | Orta Risk | 2.79 | 0.89 | — |
 | B1a | Bulgu 1 — 70+ erkek aktif içici, semptomlar sorulmamış | 10.92 | Orta Risk | 8.76 | Yüksek Risk | 8.76 | 3.35 | — |
-| B1b | Bulgu 1 — aynı kişi, 7 semptoma da 'hayır' | 0.34 | Düşük Risk | 5.64 | Yüksek Risk | 8.76 | 3.35 | — |
-| B1c | Bulgu 1 — aynı kişi, sadece hemoptizi 'evet', 6 'hayır' | 7.81 | Orta Risk | 8.65 | Yüksek Risk | 8.76 | 3.35 | ACİL |
-| B2a | Bulgu 2 — öksürük+nefes darlığı+hırıltı, KOAH bilinmiyor | 93.64 | Yüksek Risk | 19.20 | Yüksek Risk | 8.76 | 3.35 | ACİL |
-| B2b | Bulgu 2 — aynı semptomlar, KOAH tanısı VAR | 93.64 | Yüksek Risk | 15.24 | Yüksek Risk | 11.24 | 4.71 | ACİL |
-| B2c | Bulgu 2 — aynı semptomlar, KOAH tanısı YOK | 93.64 | Yüksek Risk | 60.49 | Yüksek Risk | 8.14 | 3.35 | ACİL |
-| B2d | Bulgu 2 — 7 semptoma da 'evet' | 99.99 | Yüksek Risk | 99.74 | Yüksek Risk | 8.76 | 3.35 | ACİL |
+| B1b | Bulgu 1 — aynı kişi, 7 semptoma da 'hayır' | 0.34 | Düşük Risk | 5.62 | Yüksek Risk | 8.76 | 3.35 | — |
+| B1c | Bulgu 1 — aynı kişi, sadece hemoptizi 'evet', 6 'hayır' | 7.81 | Orta Risk | 8.72 | Yüksek Risk | 8.76 | 3.35 | ACİL |
+| B2a | Bulgu 2 — öksürük+nefes darlığı+hırıltı, KOAH bilinmiyor | 93.64 | Yüksek Risk | 17.15 | Yüksek Risk | 8.76 | 3.35 | ACİL |
+| B2b | Bulgu 2 — aynı semptomlar, KOAH tanısı VAR | 93.64 | Yüksek Risk | 14.14 | Yüksek Risk | 11.24 | 4.71 | ACİL |
+| B2c | Bulgu 2 — aynı semptomlar, KOAH tanısı YOK | 93.64 | Yüksek Risk | 43.03 | Yüksek Risk | 8.14 | 3.35 | ACİL |
+| B2d | Bulgu 2 — 7 semptoma da 'evet' | 99.99 | Yüksek Risk | 99.68 | Yüksek Risk | 8.76 | 3.35 | ACİL |
 | B3a | Bulgu 3 — 60-64 erkek aktif içici, yeni faktörler sorulmamış | 6.30 | Orta Risk | 5.00 | Yüksek Risk | 5.00 | 1.56 | — |
 | B3b | Bulgu 3 — aynı kişi, yeni faktörlerin hepsi 'yok' (temiz) | 4.94 | Düşük Risk | 3.62 | Orta Risk | 3.62 | 1.56 | — |
 | B3c | Bulgu 3 — aynı kişi, ortalama maruziyet (orta hava, diğerleri yok) | 5.64 | Orta Risk | 4.48 | Orta Risk | 4.48 | 1.56 | — |

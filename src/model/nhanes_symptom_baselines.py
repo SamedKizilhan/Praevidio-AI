@@ -133,8 +133,12 @@ def main():
                      f"{pct(r['55-64']['rate'])} | {pct(r['65+']['rate'])} | {v3v} |")
     L += ["", "## Yorum", "",
           "- NHANES 'kronik öksürük' (çoğu gün, ≥3 ay) tanımı ajanın 'geçmeyen öksürük' sorusundan daha dardır; "
-          "bu yüzden NHANES oranlarının v3 değerlerinin biraz altında kalması beklenir. Belirgin sapma (>2×) "
-          "varsa `NOISY_OR[...]['leak'|'smoke']` güncellenmelidir.",
+          "bu yüzden NHANES oranlarının model değerlerinin biraz altında kalması beklenir. **Kalibrasyon (16 Ekim 2026):** "
+          "hırıltı tabanları ilk v3'te ~1,8× düşüktü, `leak/smoke/copd` NHANES'e göre güncellendi (hiç %8, eski %14, aktif %26); "
+          "öksürükte hiç/eski tabanlar korundu, aktif içici katkısı NHANES oranı doğrultusunda artırıldı (→ ~%30).",
+          "- Yaş etkisi: 65+ grubunda kronik öksürük/balgam belirgin yüksek (aktif içicide %35); modelde semptomlar yaşa "
+          "bağlı değil — ileride AGE → solunum semptomu kenarı değerlendirilebilir.",
+          "- Öz-bildirim akciğer kanseri (40+) yalnız 37 kişi (sağ kalanlar); kanser sütunu için kullanılamaz.",
           "- Hırıltı için NHANES 12 aylık pencere kullanır; v3 'solunumda hırıltı oluyor mu' sorusuyla yakın.",
           "- Nefes darlığı NHANES RDQ'da bu döngülerde yoktur; literatür değeri korunur.",
           "- Sigara etkisi (current/never oranı) v3'teki KOAH-aracılı mekanizmanın büyüklüğünü sınar: NHANES'te "

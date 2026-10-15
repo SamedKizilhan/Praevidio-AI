@@ -69,6 +69,10 @@ karar uzman görüşü + tam NLST verisiyle. Duyarlılık tablosu: `make sensiti
 `make nhanes-download && make nhanes` (Mac'te): NHANES 2007–12 RDQ'dan P(kronik öksürük | sigara, yaş),
 P(hırıltı | …) kansersiz kişilerde hesaplanır ve v3 noisy-OR parametrelerinin ima ettiği değerlerle
 karşılaştırılır (`docs/nhanes_semptom_tabanlari.md`). Kanser sütunu için NHANES yetersizdir (döngü başına ~6 vaka).
+**Sonuç (16 Ekim 2026, n=10.203 kansersiz 40+):** hırıltı tabanları ilk v3'te ~1,8× düşüktü → `WHEEZING` leak 0,05→0,08,
+smoke 0,03→0,10, copd 0,40→0,55 (model: hiç %8 / eski %14 / aktif %26 vs NHANES %8,4 / %14,4 / %27,2). Kronik öksürük:
+NHANES %5,7 / %9,2 / %25,1; modelin daha geniş "geçmeyen öksürük" tanımı için hiç/eski tabanlar korundu, aktif içici
+katkısı artırıldı (→ %30). Nefes darlığı NHANES'te yok. Kanser dalı hedefleri (0,60 / 0,50 / 0,22) değişmedi.
 
 ## 3. Bilinen sınırlar / sonraki adımlar
 - Çoklu pozitif kanıt hâlâ ~%99 verir (7 "evet"); klinik karar zaten "Yüksek + ACİL". İleride

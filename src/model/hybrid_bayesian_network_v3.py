@@ -85,10 +85,16 @@ NORMALIZE_ORS = os.getenv("PRAEVIDIO_NORMALIZE_ORS", "1") not in ("0", "false", 
 #   leak   : kansersiz, içmeyen, KOAH'sız taban (v2 LC=0,SM=0 sütunu)
 #   cancer : v2'nin P(s|LC=1,SM=0) değerini aynen üreten katkı
 #   smoke  : KOAH DIŞI sigara katkısı (küçük); copd: KOAH katkısı (büyük)
+# NHANES 2007-12 kalibrasyonu (16 Ekim 2026, docs/nhanes_semptom_tabanlari.md; 40+ yaş, kansersiz):
+#   kronik öksürük  hiç %5,7 / eski %9,2 / aktif %25,1   → model (daha geniş "geçmeyen öksürük" tanımı):
+#                   %10 / %16,5 / %30  (leak korundu, aktif içici katkısı NHANES oranına göre artırıldı)
+#   hırıltı (12 ay) hiç %8,4 / eski %14,4 / aktif %27,2  → model %8 / %14 / %26  (leak 0.05→0.08; v3.0 ~1,8× düşüktü)
+#   nefes darlığı   NHANES'te yok → literatür değeri korundu
+# "cancer" katkısı, v2'nin belgelenmiş P(s | kanser, içmiyor) hedefini (0.60 / 0.50 / 0.22) aynen üretir.
 NOISY_OR = {
-    "COUGHING":            {"leak": 0.10, "smoke": 0.08, "copd": 0.55, "cancer": 0.556},
+    "COUGHING":            {"leak": 0.10, "smoke": 0.12, "copd": 0.60, "cancer": 0.556},
     "SHORTNESS_OF_BREATH": {"leak": 0.08, "smoke": 0.05, "copd": 0.50, "cancer": 0.457},
-    "WHEEZING":            {"leak": 0.05, "smoke": 0.03, "copd": 0.40, "cancer": 0.179},
+    "WHEEZING":            {"leak": 0.08, "smoke": 0.10, "copd": 0.55, "cancer": 0.152},
 }
 # Diğer semptomlar: (P(s|semptomatik kanser değil), P(s|semptomatik kanser)) — v2 ile aynı
 SIMPLE_SYMPTOMS = {
