@@ -16,7 +16,7 @@ NLP     ?= llm        # konuşmada slot çıkarımı: llm | keyword
 MODEL   ?= v3         # risk modeli: v3 (latent semptomatik + KOAH) | v2 (bahar dönemi)
 
 .DEFAULT_GOAL := help
-.PHONY: help chat voice pipeline demo scenarios compare model-v3 tts-test eval calibrate explain model rag install clean
+.PHONY: help chat voice pipeline demo scenarios compare model-v3 sensitivity nhanes nhanes-download tts-test eval calibrate explain model rag install clean
 
 help:  ## Komut listesini göster
 	@echo "Praevidio AI — komutlar:"
@@ -27,6 +27,9 @@ help:  ## Komut listesini göster
 	@echo "  make scenarios  Temiz test senaryoları (golden + çiftler, v2)"
 	@echo "  make compare    v2 ile v3 modelini yan yana karşılaştır → docs/v2_vs_v3_karsilastirma.md"
 	@echo "  make model-v3   v3 BBN'i kur/doğrula + demo senaryolar"
+	@echo "  make sensitivity v3 duyarlılık analizi (q, normalizasyon, PLCOm2012 tabanı) → docs/v3_duyarlilik.md"
+	@echo "  make nhanes-download  NHANES 2007-12 dosyalarını indir (Mac'te çalıştır)"
+	@echo "  make nhanes     NHANES ile kansersiz semptom tabanları → docs/nhanes_semptom_tabanlari.md"
 	@echo "  make tts-test   TTS kör dinleme testi dosyalarını üret (OpenAI + Edge sesleri)"
 	@echo "  make expert     Uzman doğrulama seti (10 vaka + sonuç tablosu)"
 	@echo "  make eval       Performans metrikleri (AUC / kalibrasyon / DCA)"
@@ -48,6 +51,15 @@ compare:  ## v2 ile v3 risk modelini tüm senaryolarda karşılaştır
 
 model-v3:  ## v3 BBN'i kur, doğrula, demo senaryoları çalıştır
 	$(PY) src/model/hybrid_bayesian_network_v3.py
+
+sensitivity:  ## v3 duyarlılık analizi
+	$(PY) src/model/sensitivity_v3.py
+
+nhanes-download:  ## NHANES RDQ/SMQ/MCQ/DEMO 2007-2012 (≈15 MB) → data/raw/nhanes/
+	bash tools/download_nhanes.sh
+
+nhanes:  ## NHANES ile kansersiz semptom tabanları (v3 leak/smoke doğrulaması)
+	$(PY) src/model/nhanes_symptom_baselines.py
 
 tts-test:  ## TTS kör dinleme testi (data/processed/tts_test/)
 	$(PY) tools/tts_listening_test.py

@@ -56,17 +56,24 @@ def main():
          "v2 bantları: Düşük <%5, Orta %5–15, Yüksek ≥%15. v3 bantları (6 yıllık ufuk): Düşük <%1,5, "
          "Orta %1,5–5 (tarama adayı), Yüksek ≥%5. **6y-faktör** = yalnız risk faktörlerinden hesaplanan "
          "tarama katmanı; **alarm** = NICE NG12 acil sevk kuralı (skordan bağımsız).", "",
-         "| ID | Senaryo | v2 % | v2 bant | v3 % | v3 bant | v3 6y-faktör % | alarm |",
-         "| --- | --- | ---: | --- | ---: | --- | ---: | --- |"]
-    print(f"{'ID':5s} {'v2 %':>7s} {'v2 bant':10s} {'v3 %':>7s} {'v3 bant':10s} {'6y %':>6s} alarm   senaryo")
+         "| ID | Senaryo | v2 % | v2 bant | v3 % | v3 bant | v3 6y-faktör % | PLCOm2012 6y % | alarm |",
+         "| --- | --- | ---: | --- | ---: | --- | ---: | ---: | --- |"]
+    print(f"{'ID':5s} {'v2 %':>7s} {'v2 bant':10s} {'v3 %':>7s} {'v3 bant':10s} {'6y %':>6s} {'PLCO %':>7s} alarm   senaryo")
     for sid, name, ev in rows:
         r2, r3 = e2.predict_risk(ev), e3.predict_risk(ev)
         p2, l2 = fmt(r2); p3, l3 = fmt(r3)
         al = "ACİL" if r3["alarm"]["level"] == "urgent" else "—"
-        L.append(f"| {sid} | {name} | {p2} | {l2} | {p3} | {l3} | {r3['risk_6y_factors']:.2f} | {al} |")
-        print(f"{sid:5s} {p2:>7s} {l2:10s} {p3:>7s} {l3:10s} {r3['risk_6y_factors']:6.2f} {al:7s} {name[:60]}")
+        bm = r3["benchmark_plcom2012"]
+        plco = f"{bm['risk_6y']:.2f}" if bm["applicable"] else "n/a"
+        L.append(f"| {sid} | {name} | {p2} | {l2} | {p3} | {l3} | {r3['risk_6y_factors']:.2f} | {plco} | {al} |")
+        print(f"{sid:5s} {p2:>7s} {l2:10s} {p3:>7s} {l3:10s} {r3['risk_6y_factors']:6.2f} {plco:>7s} {al:7s} {name[:60]}")
 
     L += ["", "## Okuma notları", "",
+          "- **PLCOm2012 sütunu:** dış benchmark (Tammemägi 2013), yalnız ever-smoker; adet/gün, içilen yıl ve "
+          "bırakalı yıl verilmeyen senaryolarda model merkez değerleri varsayılır (20/gün, paket-yıl/1, 10 yıl), "
+          "bu yüzden yalnız S-serisi ve _age_exact içeren vakalarda birebir karşılaştırılabilir. NLST tabanı "
+          "(tüm NLST ≥30 paket-yıl ağır içici) hafif içicilerde PLCOm2012'den sistematik yüksek çıkar — tam NLST "
+          "verisiyle giderilecek fark budur.",
           "- **B1b vs B1a:** v2'de 7 'hayır' tabanı 36 kat düşürüp 'Düşük'e çekiyordu; v3'te 6 yıllık taban "
           "korunur (latent semptomatik düğüm), yalnızca 'şu an semptomatik' olasılığı düşer.",
           "- **B2a–c:** KOAH düğümü açıklama-giderme (explaining away) davranışını klinik yönde çalıştırır: "

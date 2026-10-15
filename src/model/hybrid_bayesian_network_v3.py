@@ -112,6 +112,11 @@ RISK_BANDS = {
 }
 BANDS_CHOICE = os.getenv("PRAEVIDIO_BANDS", "v3")
 
+# Taban risk kaynağı: "nlst" (varsayılan; BBN'in NLST hücresi) | "plco" (PLCOm2012 uygulanabiliyorsa
+# risk-faktörü katmanı PLCOm2012'den alınır, semptom kanıtı BBN'den türetilen olasılık oranı
+# (LR = odds(tam sonsal)/odds(faktör-sonsalı)) olarak PLCO odds'una uygulanır; uygulanamıyorsa NLST).
+BASE_RISK_SOURCE = os.getenv("PRAEVIDIO_BASE_RISK", "nlst")
+
 
 # ==============================================================
 # 2. YAPI
@@ -139,13 +144,14 @@ def _mean_or(factor: str) -> float:
     return sum(w * RISK_FACTOR_ORS[factor][i] for i, w in enumerate(pri))
 
 
-def effective_or(factor: str, level: int) -> float:
+def effective_or(factor: str, level: int, normalize: bool = None) -> float:
     """Kullanılan çarpan: OR / E[OR] (normalize) ya da ham OR."""
+    normalize = NORMALIZE_ORS if normalize is None else normalize
     orv = RISK_FACTOR_ORS[factor][level]
-    return orv / _mean_or(factor) if NORMALIZE_ORS else orv
+    return orv / _mean_or(factor) if normalize else orv
 
 
-def build_cancer_cpd_v3(nlst_cpts: dict) -> TabularCPD:
+def build_cancer_cpd_v3(nlst_cpts: dict, normalize: bool = None) -> TabularCPD:
     cards = {"AGE": 5, "GENDER": 2, "SMOKING": 2, "FAMILY_HISTORY": 2,
              "ASBESTOS": 2, "AIR_POLLUTION": 3, "COPD": 2}
     p1, p0 = [], []
@@ -157,10 +163,10 @@ def build_cancer_cpd_v3(nlst_cpts: dict) -> TabularCPD:
                     for asb in range(2):
                         for air in range(3):
                             for copd in range(2):
-                                mult = (effective_or("FAMILY_HISTORY", fh) *
-                                        effective_or("ASBESTOS", asb) *
-                                        effective_or("AIR_POLLUTION", air) *
-                                        effective_or("COPD", copd))
+                                mult = (effective_or("FAMILY_HISTORY", fh, normalize) *
+                                        effective_or("ASBESTOS", asb, normalize) *
+                                        effective_or("AIR_POLLUTION", air, normalize) *
+                                        effective_or("COPD", copd, normalize))
                                 p = min(0.999, max(0.001, _apply_odds_ratio(base, mult)))
                                 p1.append(p); p0.append(1 - p)
     return TabularCPD("LUNG_CANCER", 2, [p0, p1],
@@ -174,8 +180,9 @@ def build_copd_cpd() -> TabularCPD:
                       evidence=["SMOKING"], evidence_card=[2])
 
 
-def build_symptomatic_cpd(q: float = SYMPTOMATIC_FRACTION) -> TabularCPD:
+def build_symptomatic_cpd(q: float = None) -> TabularCPD:
     # Sütunlar: LC=0, LC=1.  Kanser yoksa "kanser-semptomatik" olamaz.
+    q = SYMPTOMATIC_FRACTION if q is None else q
     return TabularCPD("SYMPTOMATIC", 2, [[1.0, 1 - q], [0.0, q]],
                       evidence=["LUNG_CANCER"], evidence_card=[2])
 
@@ -203,7 +210,9 @@ def build_symptom_cpds_v3() -> list:
 
 
 def build_hybrid_model_v3(nlst_data_path: Path = NLST_CLEANED_PATH,
-                          verbose: bool = True) -> DiscreteBayesianNetwork:
+                          verbose: bool = True, q: float = None,
+                          normalize: bool = None) -> DiscreteBayesianNetwork:
+    """q / normalize: duyarlılık analizi için parametre geçersiz kılma (None → config)."""
     if verbose:
         print("\n🧠 BUILDING HYBRID BBN v3 (latent semptomatik + KOAH + OR normalizasyonu)")
         print("=" * 72)
@@ -212,8 +221,8 @@ def build_hybrid_model_v3(nlst_data_path: Path = NLST_CLEANED_PATH,
     nlst_cpts = compute_nlst_cancer_cpt(df) if verbose else _quiet(compute_nlst_cancer_cpt, df)
     # v2 priorları: AGE, GENDER, SMOKING, FAMILY_HISTORY, ASBESTOS, AIR_POLLUTION
     priors = build_prior_cpds()
-    model.add_cpds(build_cancer_cpd_v3(nlst_cpts), *priors, build_copd_cpd(),
-                   build_symptomatic_cpd(), *build_symptom_cpds_v3())
+    model.add_cpds(build_cancer_cpd_v3(nlst_cpts, normalize), *priors, build_copd_cpd(),
+                   build_symptomatic_cpd(q), *build_symptom_cpds_v3())
     assert model.check_model(), "v3 model validation FAILED"
     if verbose:
         print(f"   ✅ v3 doğrulandı — {len(model.nodes())} düğüm, {len(model.edges())} kenar, "
@@ -277,8 +286,10 @@ class HybridLungCancerEngineV3(HybridLungCancerEngine):
 
     ICD10_MAP = {**HybridLungCancerEngine.ICD10_MAP, "COPD": "J44.9"}
 
-    def __init__(self, model: DiscreteBayesianNetwork, bands: str = BANDS_CHOICE):
+    def __init__(self, model: DiscreteBayesianNetwork, bands: str = BANDS_CHOICE,
+                 base_risk: str = BASE_RISK_SOURCE):
         self.bands = bands
+        self.base_risk = base_risk
         b = RISK_BANDS[bands]
         self.RISK_LEVELS = {k: {**v, "range": b[k]}
                             for k, v in HybridLungCancerEngine.RISK_LEVELS.items()}
@@ -318,7 +329,31 @@ class HybridLungCancerEngineV3(HybridLungCancerEngine):
             res["risk_factors_tr"].append("KOAH / kronik bronşit tanısı")
             res["or_contributions"]["KOAH tanısı"] = RISK_FACTOR_ORS["COPD"][1]
 
+        from model.plcom2012 import plcom2012_from_evidence
+        bm = plcom2012_from_evidence(ev)
+        nlst_p6, nlst_full = p6, res["risk_probability"]
+        base_used = "nlst"
+        if self.base_risk == "plco" and bm["applicable"]:
+            # Semptom kanıtının BBN'deki etkisi = odds oranı; PLCOm2012 tabanına taşınır
+            o6, ofull = nlst_p6 / (1 - nlst_p6), nlst_full / (1 - nlst_full)
+            lr = ofull / o6
+            pb = bm["risk_6y"] / 100.0
+            ob = pb / (1 - pb)
+            p6 = pb
+            pfull = (ob * lr) / (1 + ob * lr)
+            lvl6 = self._level(p6)
+            res["risk_probability"] = round(pfull, 6)
+            res["risk_score"] = round(pfull * 100, 2)
+            res["no_cancer_probability"] = round(1 - pfull, 6)
+            res["risk_level"] = self._level(pfull)
+            res["risk_level_tr"] = self.RISK_LEVELS[res["risk_level"]]["label_tr"]
+            res["risk_level_en"] = self.RISK_LEVELS[res["risk_level"]]["label_en"]
+            res["risk_color"] = self.RISK_LEVELS[res["risk_level"]]["color"]
+            base_used = "plco"
         res.update({
+            "benchmark_plcom2012": bm,
+            "base_risk_source": base_used,
+            "nlst_6y_factors": round(nlst_p6 * 100, 2),
             "model_version": MODEL_VERSION,
             "bands": self.bands,
             "q_symptomatic": SYMPTOMATIC_FRACTION,

@@ -55,6 +55,21 @@ faktörler için gereksizleşecek. Kapatmak için `PRAEVIDIO_NORMALIZE_ORS=0`.
   Yüksek ≥%5 (NLST taban oranının ~1,3 katı; Kovalchik 2013'te en yüksek risk beşte-birliğine denk).
   Eski bantlar: `PRAEVIDIO_BANDS=v2`. Nihai bantlar uzman validasyonu + DCA ile kesinleşecek.
 
+### 2.5 PLCOm2012 benchmark ve alternatif taban
+`src/model/plcom2012.py` Tammemägi 2013 katsayılarıyla 6 yıllık riski hesaplar (yalnız ever-smoker;
+eğitim/BKİ/ırk sorulmadığı için merkez değerler). Her v3 sonucu `benchmark_plcom2012` alanını taşır.
+**Bulgu:** aynı profilde NLST hücresi PLCOm2012'nin ~2–3 katını verir (62y, 1 paket/gün, 30 yıl, aktif:
+%5,0 vs %1,7). Nedenler: NLST taban oranı yalnız ≥30 paket-yıl ağır içicilerin gözlenen 6,5 yıllık oranı
+ve BT ile saptanan (kısmen aşırı-tanı) kanserleri içerir; PLCOm2012 doz/süre/bırakma ile düzeltir.
+`PRAEVIDIO_BASE_RISK=plco` ile risk-faktörü katmanı PLCOm2012'den alınır; semptom kanıtı BBN'den
+türetilen olasılık oranı (odds(tam)/odds(faktör)) olarak PLCO odds'una uygulanır. Varsayılan NLST;
+karar uzman görüşü + tam NLST verisiyle. Duyarlılık tablosu: `make sensitivity` → `docs/v3_duyarlilik.md`.
+
+### 2.6 NHANES ile kansersiz semptom tabanları
+`make nhanes-download && make nhanes` (Mac'te): NHANES 2007–12 RDQ'dan P(kronik öksürük | sigara, yaş),
+P(hırıltı | …) kansersiz kişilerde hesaplanır ve v3 noisy-OR parametrelerinin ima ettiği değerlerle
+karşılaştırılır (`docs/nhanes_semptom_tabanlari.md`). Kanser sütunu için NHANES yetersizdir (döngü başına ~6 vaka).
+
 ## 3. Bilinen sınırlar / sonraki adımlar
 - Çoklu pozitif kanıt hâlâ ~%99 verir (7 "evet"); klinik karar zaten "Yüksek + ACİL". İleride
   semptom LR'lerini meta-analiz DOR'larına (hemoptizi 6,4; nefes darlığı 2,7; öksürük 2,6; göğüs
