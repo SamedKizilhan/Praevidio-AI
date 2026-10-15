@@ -230,3 +230,8 @@ tools/federated
 
 # mp3
 *.mp3
+
+# NHANES ham dosyaları (make nhanes-download ile indirilir, ~15 MB)
+data/raw/nhanes/
+data/processed/tts_test/
+docs/veri_kaynaklari_semptom.md
