@@ -4,7 +4,7 @@
 
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat&logo=python&logoColor=white)
 ![pgmpy](https://img.shields.io/badge/pgmpy-1.0-orange?style=flat)
-![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
+![License](https://img.shields.io/badge/License-AGPL_v3-blue.svg)
 
 ---
 
@@ -329,9 +329,15 @@ Late diagnosis is the leading cause of cancer mortality. In Turkey, barriers lik
 
 ## 📄 License
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
-This project is licensed under the **Apache License 2.0**. See the [LICENSE](LICENSE) file for the full text.
+Copyright (C) 2026 Samed KIZILHAN.
+
+From the Fall 2026 term onward this project is licensed under the **GNU Affero General Public License v3.0 or later** (AGPL-3.0-or-later). You may use, study, modify and share the code, but any modified version that is distributed **or offered to users over a network** (e.g. as a web service, API or mobile-app backend) must make its complete source code available under the same license. See the [LICENSE](LICENSE) file for the full text.
+
+> **License history:** versions published up to and including commit `4d7199f` (Spring 2026, CMPE 491, and its final corrections) were released under the Apache License 2.0 and remain available under those terms. All later work — including risk model v3, the PLCOm2012 benchmark, the NHANES calibration and conversation flow v3 — is AGPL-3.0-or-later only.
+
+"Praevidio" and "Praevidio AI" are names of this project; the license does not grant rights to use them for derived products.
 
 ---
 

@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 Samed KIZILHAN — Praevidio AI (https://github.com/SamedKizilhan/Praevidio-AI)
 # NHANES 2007–2012 (RDQ solunum anketi + SMQ sigara + MCQ tıbbi durum + DEMO) indirir.
 # Kullanım: bash tools/download_nhanes.sh      → data/raw/nhanes/*.xpt   (toplam ~15 MB)
 # macOS'un bash 3.2'siyle uyumludur (ilişkisel dizi kullanılmaz).
