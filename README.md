@@ -4,7 +4,7 @@
 
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat&logo=python&logoColor=white)
 ![pgmpy](https://img.shields.io/badge/pgmpy-1.0-orange?style=flat)
-![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
+![License](https://img.shields.io/badge/License-AGPL_v3-blue.svg)
 
 ---
 
@@ -113,7 +113,8 @@ Praevidio-AI/
 │   ├── nlst_data_preprocessing.py         # NLST clinical data merge & normalization
 │   ├── model/
 │   │   ├── bayesian_network.py            # Original BBN (Kaggle data, 15 nodes)
-│   │   ├── hybrid_bayesian_network.py     # Hybrid BBN (NLST + literature + 3 new factors, 14 nodes)
+│   │   ├── hybrid_bayesian_network.py     # Hybrid BBN v2 (NLST + literature + 3 new factors, 14 nodes)
+│   │   ├── hybrid_bayesian_network_v3.py  # v3: latent symptomatic + COPD + OR normalisation + NICE alarm (Fall 2026)
 │   │   ├── calibrate_risk_factors.py      # New-factor OR calibration & sensitivity analysis
 │   │   ├── explainability.py              # Shapley contributions + context-dependence + waterfall
 │   │   ├── screening.py                   # LDCT screening eligibility (USPSTF/NLST) — symptom-independent
@@ -203,6 +204,20 @@ Praevidio-AI/
 > **Note on evaluation metric (v2 revision):** F1-Score / accuracy are **no longer primary metrics**. Praevidio is a probabilistic *risk-stratification* tool, not a binary diagnostic classifier — it never declares "cancer / not cancer," it outputs a calibrated risk probability. With a ~3.85% base rate, F1 is threshold-sensitive and misleading (a trivial "always-positive" model scored F1≈0.67). The model is now evaluated on **discrimination (AUC-ROC/AUPRC)**, **calibration (Brier, ECE, reliability)**, and **clinical utility (Decision Curve Analysis)** — directly answering "when we say 15% risk, is it really ~15%?" and "does using this score beat screen-all / screen-none?"
 
 ---
+
+## 🆕 Fall 2026 — Model v3 and conversation flow v3
+
+The spring model is kept intact as **v2**; `src/model/hybrid_bayesian_network_v3.py` adds, as a separate
+module, (1) a latent *symptomatic* node that separates the NLST "6-year diagnosis" outcome from
+"symptomatic now" symptom evidence, (2) a COPD common-cause node (noisy-OR) for the three respiratory
+symptoms, (3) odds-ratio normalisation against the population mean, and (4) a two-layer output —
+`risk_6y_factors` (screening layer, bands tied to the PLCOm2012 1.51 % threshold) plus a score-independent
+**NICE NG12 alarm** flag. Design note: `docs/v3_tasarim.md`; side-by-side results: `make compare` →
+`docs/v2_vs_v3_karsilastirma.md`. The conversational agent now asks an open-ended complaint question first,
+accepts "bilmiyorum", confirms demographics, asks about COPD and speaks a two-layer summary
+(`make chat` / `make voice`, old model with `MODEL=v2`). STT default is `gpt-4o-mini-transcribe` with a
+medical-term context hint; a free native-Turkish TTS option (`PRAEVIDIO_TTS_PROVIDER=edge`) and a blind
+listening test (`make tts-test`) were added.
 
 ## 🚀 Quick Start
 
@@ -314,9 +329,15 @@ Late diagnosis is the leading cause of cancer mortality. In Turkey, barriers lik
 
 ## 📄 License
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
-This project is licensed under the **Apache License 2.0**. See the [LICENSE](LICENSE) file for the full text.
+Copyright (C) 2026 Samed KIZILHAN.
+
+From the Fall 2026 term onward this project is licensed under the **GNU Affero General Public License v3.0 or later** (AGPL-3.0-or-later). You may use, study, modify and share the code, but any modified version that is distributed **or offered to users over a network** (e.g. as a web service, API or mobile-app backend) must make its complete source code available under the same license. See the [LICENSE](LICENSE) file for the full text.
+
+> **License history:** versions published up to and including commit `4d7199f` (Spring 2026, CMPE 491, and its final corrections) were released under the Apache License 2.0 and remain available under those terms. All later work — including risk model v3, the PLCOm2012 benchmark, the NHANES calibration and conversation flow v3 — is AGPL-3.0-or-later only.
+
+"Praevidio" and "Praevidio AI" are names of this project; the license does not grant rights to use them for derived products.
 
 ---
 

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 Samed KIZILHAN — Praevidio AI (https://github.com/SamedKizilhan/Praevidio-AI)
 """
 Praevidio AI - Configuration Module
 Loads environment variables and provides centralized config.
@@ -29,8 +31,37 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 # --- Model Settings ---
 LLM_MODEL = "gpt-4o-mini"           # Cost-efficient for symptom extraction
-WHISPER_MODEL = "whisper-1"
+# --- STT (konuşma → metin) ---
+# "gpt-4o-mini-transcribe" ($0.003/dk, whisper-1'in yarısı) varsayılan;
+# "gpt-4o-transcribe" ($0.006/dk) daha doğru; "whisper-1" eski (legacy) model.
+STT_MODEL = os.getenv("PRAEVIDIO_STT_MODEL", "gpt-4o-mini-transcribe")
+WHISPER_MODEL = STT_MODEL      # geriye dönük uyumluluk
+# Transkripsiyona verilen bağlam ipucu: tıbbi terimler + sık karışan kelimeler.
+# Modelin "hemoptizi", "balgam", "hırıltı" gibi kelimeleri doğru yazmasını sağlar.
+STT_CONTEXT_TERMS = ("Akciğer kanseri risk anketi. Terimler: öksürük, balgam, kan tükürme, "
+                     "hemoptizi, nefes darlığı, hırıltı, göğüs ağrısı, halsizlik, kilo kaybı, "
+                     "sigara, paket, bıraktım, KOAH, amfizem, kronik bronşit, evet, hayır, bilmiyorum.")
 EMBEDDING_MODEL = "text-embedding-3-small"
+
+# --- TTS (sesli yanıt) ---
+# Model: "tts-1" = en düşük gecikme (demo için önerilir),
+#        "tts-1-hd" = daha yüksek kalite ama daha yavaş,
+#        "gpt-4o-mini-tts" = en yeni/doğal, gecikme tts-1'e yakın.
+TTS_MODEL = os.getenv("PRAEVIDIO_TTS_MODEL", "tts-1")
+# Ses: alloy, echo, fable, onyx, nova, shimmer, ash, ballad, coral, sage, verse.
+# "nova"/"shimmer"/"coral"/"sage" daha doğal/sıcak tonludur.
+TTS_VOICE = os.getenv("PRAEVIDIO_TTS_VOICE", "nova")
+TTS_SPEED = float(os.getenv("PRAEVIDIO_TTS_SPEED", "1.0"))   # 0.25–4.0
+# Sağlayıcı: "openai" (yukarıdaki model/ses) | "edge" (Microsoft Edge nöral Türkçe sesleri,
+# ücretsiz, anahtar gerektirmez; pip install edge-tts). Edge sesleri: tr-TR-EmelNeural, tr-TR-AhmetNeural
+TTS_PROVIDER = os.getenv("PRAEVIDIO_TTS_PROVIDER", "openai")
+EDGE_TTS_VOICE = os.getenv("PRAEVIDIO_EDGE_VOICE", "tr-TR-EmelNeural")
+# Kayıt bitişi: varsayılan = ENTER (en güvenilir, baş kısmı KIRPILMAZ).
+# Otomatik durma (sessizlik/VAD) istersen: PRAEVIDIO_REC_AUTOSTOP=1
+REC_AUTOSTOP = os.getenv("PRAEVIDIO_REC_AUTOSTOP", "0") not in ("0", "", "false", "False")
+REC_SILENCE_THRESHOLD = os.getenv("PRAEVIDIO_REC_SILENCE", "1.5%")  # düşük = daha hassas başlangıç
+REC_SILENCE_SECONDS = os.getenv("PRAEVIDIO_REC_SILENCE_SEC", "2.5")  # bu kadar sessizlikte dur
+REC_WARMUP_SEC = float(os.getenv("PRAEVIDIO_REC_WARMUP", "0.4"))     # mikrofon açılış gecikmesi
 
 # --- ChromaDB (Local Vector Store) ---
 CHROMA_PERSIST_DIR = str(DATA_DIR / "chroma_db")
