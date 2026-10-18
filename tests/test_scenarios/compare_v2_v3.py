@@ -74,8 +74,8 @@ def main():
           "- **PLCOm2012 sütunu:** dış benchmark (Tammemägi 2013), yalnız ever-smoker; adet/gün, içilen yıl ve "
           "bırakalı yıl verilmeyen senaryolarda model merkez değerleri varsayılır (20/gün, paket-yıl/1, 10 yıl), "
           "bu yüzden yalnız S-serisi ve _age_exact içeren vakalarda birebir karşılaştırılabilir. NLST tabanı "
-          "(tüm NLST ≥30 paket-yıl ağır içici) hafif içicilerde PLCOm2012'den sistematik yüksek çıkar — tam NLST "
-          "verisiyle giderilecek fark budur.",
+          "(tüm NLST ≥30 paket-yıl ağır içici) hafif içicilerde PLCOm2012'den sistematik yüksek çıkar; "
+          "iki taban raporda yan yana verilir.",
           "- **B1b vs B1a:** v2'de 7 'hayır' tabanı 36 kat düşürüp 'Düşük'e çekiyordu; v3'te 6 yıllık taban "
           "korunur (latent semptomatik düğüm), yalnızca 'şu an semptomatik' olasılığı düşer.",
           "- **B2a–c:** KOAH düğümü açıklama-giderme (explaining away) davranışını klinik yönde çalıştırır: "

@@ -327,6 +327,34 @@ Late diagnosis is the leading cause of cancer mortality. In Turkey, barriers lik
 
 ---
 
+## 📚 Data Sources & Attribution
+
+The source code is licensed under AGPL-3.0-or-later (see below). **Data files are not covered by the AGPL; they keep their original licences and terms.**
+
+| Source | Used for | Licence / terms | Files in this repository |
+| --- | --- | --- | --- |
+| NLST public clinical subset (TCIA / NCI Imaging Data Commons, release 2021-05-27) | Base CPTs P(cancer \| age, sex, smoking); evaluation (AUC, calibration, DCA) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) + [TCIA Data Usage Policy](https://www.cancerimagingarchive.net/data-usage-policies-and-restrictions/) | `data/raw/nlst_780_*`, `data/raw/dictionary_idc_*`, `data/processed/nlst_cleaned.csv`, `data/processed/nlst_summary.json` |
+| NHANES 2007–2012, RDQ/SMQ/MCQ/DEMO (CDC / NCHS) | No-cancer chronic cough and wheeze baselines (v3 calibration) | U.S. public domain; citation requested | `data/processed/nhanes_symptom_baselines.json` (raw files are downloaded by `make nhanes-download`, not redistributed) |
+| PLCOm2012 model (Tammemägi et al., 2013) | External 6-year risk benchmark | Published coefficients; cite the paper | `src/model/plcom2012.py` |
+| Peer-reviewed literature (Hamilton 2005, Beckles 2003, Kvale 2006, Hopwood & Stephens 2000, ILCCO, PLCOm2012, LLP …) | Symptom CPTs and risk-factor odds ratios | Cited facts | see `docs/appendix_cpt_derivation.md`, `docs/v3_tasarim.md` |
+| NICE guideline NG12 — *Suspected cancer: recognition and referral* | Score-independent alarm rule | NICE guidance; cite | `src/model/hybrid_bayesian_network_v3.py` |
+| IQAir *World Air Quality Report* (2023–2025 figures) | Provincial PM2.5 tiers | Figures compiled from the public report; see IQAir terms of use | `data/knowledge_base/tr_il_pm25.json` |
+| SUS-TR (Demirkol & Şeneler, 2018) | Usability questionnaire | Published instrument; cite | `tests/usability/` |
+| Kaggle "Lung Cancer" survey dataset (3,000 rows) | Legacy spring prototype only (`src/model/bayesian_network.py`) — **not used by v2/v3** | Provenance and licence not verified | `data/raw/lung_cancer_kaggle.csv`, `data/processed/lung_cancer_cleaned.csv` |
+
+**Required citations**
+
+- National Lung Screening Trial Research Team. (2013). *Data from the National Lung Screening Trial (NLST)* [Data set]. The Cancer Imaging Archive. https://doi.org/10.7937/TCIA.HMQ8-J677
+- National Lung Screening Trial Research Team. Reduced lung-cancer mortality with low-dose computed tomographic screening. *N Engl J Med* 2011;365:395–409. https://doi.org/10.1056/NEJMoa1102873
+- Centers for Disease Control and Prevention (CDC), National Center for Health Statistics (NCHS). *National Health and Nutrition Examination Survey Data*, 2007–2012. Hyattsville, MD: U.S. Department of Health and Human Services, CDC.
+- Tammemägi MC, Katki HA, Hocking WG, et al. Selection criteria for lung-cancer screening. *N Engl J Med* 2013;368:728–736. https://doi.org/10.1056/NEJMoa1211776
+- National Institute for Health and Care Excellence. *Suspected cancer: recognition and referral* (NICE guideline NG12). https://www.nice.org.uk/guidance/ng12
+- Demirkol D, Şeneler Ç. A Turkish translation of the System Usability Scale: the SUS-TR. *Uşak Üniversitesi Sosyal Bilimler Dergisi* 2018;11(3):237–253.
+
+**Conditions for the NLST files.** Anyone using or redistributing the NLST files in this repository must cite the dataset as above, follow the [TCIA Data Usage Policy](https://www.cancerimagingarchive.net/data-usage-policies-and-restrictions/) — in particular, must not use the data, alone or combined with other information, to identify or contact trial participants — and must pass these conditions on to downstream users.
+
+---
+
 ## 📄 License
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)

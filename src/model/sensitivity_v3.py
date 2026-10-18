@@ -59,8 +59,8 @@ def main():
           "sorulmamış KOAH prior üzerinden ×1,07 şişirir (%11,7). Sorulmamış faktör sayısı arttıkça fark ~1,3×'e çıkar.",
           "- PLCOm2012 tabanı aynı profilde NLST hücresinin ~1/3'ünü verir: NLST taban oranı (%3,85/≈6,5 yıl) "
           "yalnız ≥30 paket-yıl ağır içicilerin gözlenen oranıdır ve tarama ile saptanan kanserleri içerir; "
-          "PLCOm2012 ise doz/süre/bırakma ile düzeltir. Hangi tabanın kullanılacağı uzman görüşü ve tam NLST "
-          "verisiyle kararlaştırılacak; iki taban da raporlanır (`nlst_6y_factors`, `benchmark_plcom2012`)."]
+          "PLCOm2012 ise doz/süre/bırakma ile düzeltir. Hangi tabanın kullanılacağı uzman görüşüyle "
+          "kararlaştırılacak; iki taban da raporlanır (`nlst_6y_factors`, `benchmark_plcom2012`)."]
     OUT.write_text("\n".join(L) + "\n", encoding="utf-8")
     print(f"\n📄 {OUT}")
 

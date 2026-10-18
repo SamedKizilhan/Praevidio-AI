@@ -42,8 +42,7 @@ kısmı KOAH'a yazılır ama KOAH'ın kendi OR'si tabanı yükseltir; bilinmiyor
 ### 2.3 OR normalizasyonu
 Kullanılan çarpan `OR / E[OR]`, `E[OR] = Σ prior_i · OR_i` (aile öyküsü 1,07; asbest 1,04;
 hava 1,165; KOAH 1,068). Ortalama/sorulmamış kişi NLST hücresine düşer, "temiz" kişi altına iner.
-Tam NLST (CDAS) gelince aile öyküsü/asbest/KOAH doğrudan veriden öğrenilecek ve bu düzeltme o
-faktörler için gereksizleşecek. Kapatmak için `PRAEVIDIO_NORMALIZE_ORS=0`.
+Kapatmak için `PRAEVIDIO_NORMALIZE_ORS=0`.
 
 ### 2.4 İki katmanlı çıktı ve klinik uyarı kuralı
 - `risk_6y_factors`: yalnız risk faktörlerinden (semptomlar marjinalize) 6 yıllık risk — **tarama katmanı**.
@@ -63,7 +62,7 @@ eğitim/BKİ/ırk sorulmadığı için merkez değerler). Her v3 sonucu `benchma
 ve BT ile saptanan (kısmen aşırı-tanı) kanserleri içerir; PLCOm2012 doz/süre/bırakma ile düzeltir.
 `PRAEVIDIO_BASE_RISK=plco` ile risk-faktörü katmanı PLCOm2012'den alınır; semptom kanıtı BBN'den
 türetilen olasılık oranı (odds(tam)/odds(faktör)) olarak PLCO odds'una uygulanır. Varsayılan NLST;
-karar uzman görüşü + tam NLST verisiyle. Duyarlılık tablosu: `make sensitivity` → `docs/v3_duyarlilik.md`.
+karar uzman görüşüyle (uzman formu Bölüm 2, soru 3). Duyarlılık tablosu: `make sensitivity` → `docs/v3_duyarlilik.md`.
 
 ### 2.6 NHANES ile kansersiz semptom tabanları
 `make nhanes-download && make nhanes` (Mac'te): NHANES 2007–12 RDQ'dan P(kronik öksürük | sigara, yaş),
@@ -78,9 +77,9 @@ katkısı artırıldı (→ %30). Nefes darlığı NHANES'te yok. Kanser dalı h
 - Çoklu pozitif kanıt hâlâ ~%99 verir (7 "evet"); klinik karar zaten "Yüksek + ACİL". İleride
   semptom LR'lerini meta-analiz DOR'larına (hemoptizi 6,4; nefes darlığı 2,7; öksürük 2,6; göğüs
   ağrısı 2,0 — PLOS One 2018) çeken alternatif CPT seti `SYMPTOM_LR_SOURCE` ile eklenebilir.
-- q, KOAH priorları ve bantlar uzman görüşü gerektirir (tests/expert_validation setine v3 sütunu eklenecek).
-- Tam NLST/PLCO verisi gelince: paket-yıl dozu, aile öyküsü, asbest, KOAH için CPT'ler veriden;
-  PLCOm2012 benchmark (`src/model/plcom2012.py`, planlı).
+- q, KOAH priorları ve bantlar uzman görüşüyle doğrulanacak (uzman formu Bölüm 2; `make expert-analyze`).
+- Aile öyküsü, asbest ve KOAH etkileri NLST açık alt kümesinde olmadığı için literatür OR'leriyle
+  modellenir (PLCOm2012, LLP); sigara dozu etkisi PLCOm2012 benchmark'ıyla karşılaştırılır.
 
 ## 4. Konuşma akışı v3 (`voice_agent.py`)
 Açık uçlu şikâyet sorusu → söylenenler not edilir → yalnız eksik belirtiler tek tek;
