@@ -11,7 +11,7 @@ This document is the Fall 2026 continuation of the [Spring 2026 plan](ProjectPla
 * **Conversation flow v3 (done):** open-ended complaint question first, only missing symptoms asked one by one, "I don't know" accepted, demographics confirmation and correction, COPD question, two-layer spoken summary; STT moved to `gpt-4o-mini-transcribe` with a medical-term hint; TTS selected by a blind listening test (OpenAI tts-1 *nova*).
 * **Mobile MVP:** FastAPI backend exposing the conversation state machine and the risk engine; Flutter app with voice recording + VAD, chat screen, report view and a KETEM map (nearest centres). App-store publication is out of scope.
 * **Validation:** blind expert validation with a pulmonologist (10 vignettes, v2 vs v3), a small usability test (5–8 users, SUS), and a documented v2/v3 comparison.
-* **Final report and presentation** on 11 December 2026.
+* **Deliverables:** midterm report on **17 November 2026**; final report, demo video, poster, Git repository and presentation on **21 December 2026**.
 
 ---
 
@@ -21,31 +21,36 @@ This document is the Fall 2026 continuation of the [Spring 2026 plan](ProjectPla
 | :--- | :--- | :--- |
 | Term kickoff | 28 September 2026 | Code analysis, roadmap, uncommitted spring changes merged. |
 | Model v3 + conversation v3 | 5 October 2026 | New risk model, flow, STT/TTS — delivered. |
-| PLCOm2012 benchmark, sensitivity, NHANES pipeline | 16 October 2026 | Delivered (NHANES run pending download on the development machine). |
+| PLCOm2012 benchmark, sensitivity, NHANES calibration, AGPL-3.0 | 19 October 2026 | Delivered and merged to `main`. |
 | Backend (FastAPI) | 1 November 2026 | `/session`, `/turn`, `/report` wrapping the agent and engine. |
-| Flutter MVP end-to-end | 15 November 2026 | Voice/text conversation on the phone through the backend. |
-| **Feature freeze** | **22 November 2026** | KETEM map and report screen in; only fixes afterwards. |
-| Expert + usability validation | 29 November 2026 | Pulmonologist blind scoring; SUS test. |
-| **Final presentation** | **11 December 2026** | Report, poster, demo video, live demo. |
+| Flutter MVP end-to-end | 12 November 2026 | Voice/text conversation on the phone through the backend. |
+| **Midterm report** | **17 November 2026** | Methodology review, model v3, v2/v3 comparison, PLCOm2012, NHANES calibration, conversation v3, backend + mobile architecture, remaining plan. |
+| Expert + usability validation | 4 December 2026 | Pulmonologist blind scoring (10 vignettes, v2 vs v3); 5–8-person SUS test. |
+| **Feature freeze** | **6 December 2026** | KETEM map, report screen and summary screens in; only fixes afterwards. |
+| Release `v1.0.0` | 13 December 2026 | Final parameters frozen; model fingerprint test set; Zenodo DOI. |
+| **Final submission** | **21 December 2026** | Final report, demo video, poster, Git repository, presentation. |
 
 ---
 
 ## 3. Development Schedule
 
-### Phase 1 — Analysis and model correction (28 Sep – 18 Oct) ✅
-Full code/report review; four methodological findings on the v2 score (meaning mismatch between NLST outcome and symptom CPTs, naive-Bayes over-confidence, reference-category bias, undefined time horizon). Implementation of v3 and of the v2/v3 comparison harness (`make compare`), PLCOm2012 benchmark, sensitivity analysis (`make sensitivity`), NHANES baseline pipeline (`make nhanes`), expert-validation answer key with v2/v3 side by side. Conversation flow v3, STT/TTS upgrades, blind TTS listening test.
+### Phase 1 — Analysis and model correction (28 Sep – 19 Oct) ✅
+Full code/report review; four methodological findings on the v2 score (meaning mismatch between NLST outcome and symptom CPTs, naive-Bayes over-confidence, reference-category bias, undefined time horizon). Implementation of v3 and of the v2/v3 comparison harness (`make compare`), PLCOm2012 benchmark, sensitivity analysis (`make sensitivity`), NHANES 2007–12 calibration of the no-cancer respiratory baselines (`make nhanes`), expert-validation answer key with v2/v3 side by side. Conversation flow v3, STT/TTS upgrades, blind TTS listening test. Relicensed to AGPL-3.0-or-later.
 
 ### Phase 2 — Backend and data access (19 Oct – 1 Nov)
-FastAPI service: channel-independent conversation state machine, session store, STT/TTS behind the API, PDF report endpoint; Docker image. CDAS application for full NLST + PLCO (requires an ID.me-verified NIH account for the student and the advisor as PI, plus the university signing official). Author requests for symptom-level cohorts via a physician collaborator. NHANES run and parameter check.
+FastAPI service: channel-independent conversation state machine, session store, STT/TTS behind the API, PDF report endpoint; Docker image. CDAS application for full NLST + PLCO (requires an ID.me-verified NIH account for the student and the advisor as PI, plus the university signing official). Author requests for symptom-level cohorts via a physician collaborator.
 
-### Phase 3 — Flutter MVP (19 Oct – 15 Nov, overlapping)
-Recording with Silero VAD (`sherpa_onnx`), playback, chat UI, backend integration; demographics → symptoms → risk factors → summary screens; report view/share.
+### Phase 3 — Flutter MVP core (2 – 12 Nov)
+Recording with Silero VAD (`sherpa_onnx`), playback, chat UI, backend integration; demographics → symptoms → risk factors → summary flow running end to end on a phone.
 
-### Phase 4 — KETEM map, validation, freeze (9 – 29 Nov)
-KETEM list compiled into the knowledge base and shown on a map with the nearest centres; pulmonologist blind-prediction session (10 vignettes, v2 and v3); 5–8-person usability test; if CDAS data arrive, re-learn the risk-factor CPTs and re-run AUC/calibration/DCA with PLCOm2012 as benchmark. Feature freeze 22 Nov.
+### Phase 4 — Midterm report (9 – 17 Nov)
+LaTeX report on the spring template: methodology review and the four findings, model v3 design, v2/v3 comparison and sensitivity results, PLCOm2012 benchmark, NHANES calibration, conversation v3, backend/mobile architecture with screenshots, updated plan. Submitted **17 Nov**.
 
-### Phase 5 — Report and presentation (23 Nov – 11 Dec)
-Final report (data v2, model v3, mobile, validation), poster, 3-minute demo video as a fallback for the live demo, rehearsal.
+### Phase 5 — Mobile completion and validation (18 Nov – 6 Dec)
+Report view/share and summary screens; KETEM list compiled into the knowledge base and shown on a map with the nearest centres; pulmonologist blind-prediction session (10 vignettes, v2 and v3); 5–8-person usability test (SUS); if CDAS data arrive, re-learn the risk-factor CPTs and re-run AUC/calibration/DCA with PLCOm2012 as benchmark. Feature freeze **6 Dec**.
+
+### Phase 6 — Release and final deliverables (7 – 21 Dec)
+Bug fixes; parameter freeze and `v1.0.0` release with model fingerprint test set and Zenodo DOI (13 Dec); final report, poster, demo video (also the fallback for the live demo), presentation and repository clean-up. Submitted **21 Dec**.
 
 ---
 
@@ -63,7 +68,8 @@ Final report (data v2, model v3, mobile, validation), poster, 3-minute demo vide
 | Risk | Mitigation |
 | :--- | :--- |
 | CDAS data arrive late or not at all (identity verification, signing official) | v3 already runs on literature parameters and the PLCOm2012 benchmark; data only refresh parameters. |
-| No pulmonologist session before 29 Nov | Two candidate physicians contacted early; the form can be completed remotely. |
+| No pulmonologist session before 4 Dec | Two candidate physicians contacted early; the form can be completed remotely. |
+| Midterm report and Flutter work overlap (9–17 Nov) | Flutter core targeted for 12 Nov; the report reuses the auto-generated comparison, sensitivity and NHANES tables. |
 | One developer across model, backend and mobile | Priority order: backend > Flutter MVP > KETEM map > polish; the map degrades to a list if needed. |
 | v3 bands change spring demo results | v2 and v3 reported side by side with the reasons (a contribution in itself). |
 | Live voice demo fails on presentation day | TTS cache, demo video, text channel fallback. |
