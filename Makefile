@@ -16,7 +16,7 @@ NLP     ?= llm        # konuşmada slot çıkarımı: llm | keyword
 MODEL   ?= v3         # risk modeli: v3 (latent semptomatik + KOAH) | v2 (bahar dönemi)
 
 .DEFAULT_GOAL := help
-.PHONY: help chat voice pipeline demo scenarios compare model-v3 sensitivity nhanes nhanes-download tts-test eval calibrate explain model rag install clean
+.PHONY: help chat voice pipeline demo scenarios compare model-v3 sensitivity nhanes nhanes-download tts-test expert expert-analyze sus eval calibrate explain model rag install clean
 
 help:  ## Komut listesini göster
 	@echo "Praevidio AI — komutlar:"
@@ -31,7 +31,9 @@ help:  ## Komut listesini göster
 	@echo "  make nhanes-download  NHANES 2007-12 dosyalarını indir (Mac'te çalıştır)"
 	@echo "  make nhanes     NHANES ile kansersiz semptom tabanları → docs/nhanes_semptom_tabanlari.md"
 	@echo "  make tts-test   TTS kör dinleme testi dosyalarını üret (OpenAI + Edge sesleri)"
-	@echo "  make expert     Uzman doğrulama seti (10 vaka + sonuç tablosu)"
+	@echo "  make expert     Uzman formu (10 vaka: 6y risk % + A/B/C eylem) + v2/v3 cevap anahtarı"
+	@echo "  make expert-analyze  Uzman cevapları ↔ v2/v3 (eylem kappa, Spearman) → uzman_karsilastirma.md"
+	@echo "  make sus        SUS-TR kullanılabilirlik puanları → tests/usability/sus_sonuclari.md"
 	@echo "  make eval       Performans metrikleri (AUC / kalibrasyon / DCA)"
 	@echo "  make calibrate  Yeni faktör OR kalibrasyonu + duyarlılık"
 	@echo "  make explain    Risk skoru açıklanabilirliği (Shapley + bağlam)"
@@ -75,6 +77,12 @@ scenarios:  ## Temiz test senaryoları (golden doğrulama + kontrollü çiftler 
 
 expert:  ## Uzman doğrulama: 10 vaka → tahmin formu + model sonuç tablosu
 	$(PY) tests/expert_validation/run_expert_validation.py
+
+expert-analyze:  ## Uzman cevapları (uzman_cevaplari.csv) ile v2/v3 karşılaştırması
+	$(PY) tests/expert_validation/analyze_expert_validation.py
+
+sus:  ## SUS-TR kullanılabilirlik anketi puanlama (tests/usability/sus_cevaplari.csv)
+	$(PY) tests/usability/score_sus.py
 
 eval:  ## Risk-uygun performans metrikleri (AUC, Brier, ECE, DCA)
 	$(PY) src/model/evaluation.py
