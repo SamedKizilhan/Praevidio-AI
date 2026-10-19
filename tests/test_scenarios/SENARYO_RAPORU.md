@@ -57,7 +57,7 @@ Her grupta **yalnızca belirtilen faktör** değişir; gerisi sabittir. Böylece
 
 | ID | Senaryo | Risk | Seviye | Not |
 |---|---|---|---|---|
-| P4a | Hırıltı — DÜŞÜK taban (50y kadın, hiç içmemiş) | %0.1 | Düşük Risk | — |
+| P4a | Hırıltı — DÜŞÜK taban (50y kadın, hiç içmemiş) | %0.0 | Düşük Risk | Sigara öyküsü yok/çok az: taban risk hiç-içmeyen seviyesine düşürüldü. |
 | P4b | Hırıltı — YÜKSEK taban (70+ erkek, aktif içici) | %1.9 | Düşük Risk | — |
 
 **Δ (P4b − P4a) = +1.9 yüzde-puan**

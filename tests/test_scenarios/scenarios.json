@@ -25,7 +25,7 @@
       "name": "Düşük risk — genç, hiç içmemiş, semptomsuz",
       "purpose": "Asemptomatik düşük-risk taban davranışı",
       "expected_level": "low",
-      "evidence": {"AGE":0,"GENDER":0,"SMOKING":0,"FAMILY_HISTORY":0,"ASBESTOS":0,"AIR_POLLUTION":0,
+      "evidence": {"AGE":0,"GENDER":0,"SMOKING":0,"_pack_years":0,"FAMILY_HISTORY":0,"ASBESTOS":0,"AIR_POLLUTION":0,
         "COUGHING":0,"SHORTNESS_OF_BREATH":0,"CHEST_PAIN":0,"WHEEZING":0,"FATIGUE":0,"HEMOPTYSIS":0,"WEIGHT_LOSS":0}
     },
     {
@@ -109,7 +109,7 @@
       "id": "P4a", "group": "pair", "pair": "Bağlam-bağımlılığı (hırıltı)",
       "name": "Hırıltı — DÜŞÜK taban (50y kadın, hiç içmemiş)",
       "varies": "AGE/GENDER/SMOKING (bağlam)",
-      "evidence": {"AGE":0,"GENDER":0,"SMOKING":0,"FAMILY_HISTORY":0,"ASBESTOS":0,"AIR_POLLUTION":0,
+      "evidence": {"AGE":0,"GENDER":0,"SMOKING":0,"_pack_years":0,"_age_exact":50,"FAMILY_HISTORY":0,"ASBESTOS":0,"AIR_POLLUTION":0,
         "COUGHING":0,"SHORTNESS_OF_BREATH":0,"CHEST_PAIN":0,"WHEEZING":1,"FATIGUE":0,"HEMOPTYSIS":0,"WEIGHT_LOSS":0}
     },
     {
