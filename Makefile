@@ -13,15 +13,19 @@
 VENV    ?= .venv
 PY      := $(if $(wildcard $(VENV)/bin/python),$(VENV)/bin/python,python3)
 NLP     ?= llm        # konuşmada slot çıkarımı: llm | keyword
+HOST    ?= 0.0.0.0    # make api: dinlenecek adres (yalnız bu makine için 127.0.0.1)
+PORT    ?= 8000
 MODEL   ?= v3         # risk modeli: v3 (latent semptomatik + KOAH) | v2 (bahar dönemi)
 
 .DEFAULT_GOAL := help
-.PHONY: help chat voice pipeline demo scenarios compare model-v3 sensitivity nhanes nhanes-download tts-test expert expert-analyze sus eval calibrate explain model rag install clean
+.PHONY: help chat voice api api-test pipeline demo scenarios compare model-v3 sensitivity nhanes nhanes-download tts-test expert expert-analyze sus eval calibrate explain model rag install clean
 
 help:  ## Komut listesini göster
 	@echo "Praevidio AI — komutlar:"
 	@echo "  make chat       Konuşmalı ajan (metin)        [NLP=$(NLP)]"
 	@echo "  make voice      Konuşmalı ajan (ses, mic+TTS) [NLP=$(NLP)]"
+	@echo "  make api        Backend API (FastAPI) → http://localhost:$(PORT)/docs"
+	@echo "  make api-test   API uçtan uca testleri (OpenAI çağrısı yapmaz)"
 	@echo "  make pipeline   Uçtan uca pipeline (etkileşimli)"
 	@echo "  make demo       Hazır senaryolarla demo (pipeline)"
 	@echo "  make scenarios  Temiz test senaryoları (golden + çiftler, v2)"
@@ -65,6 +69,12 @@ nhanes:  ## NHANES ile kansersiz semptom tabanları (v3 leak/smoke doğrulaması
 
 tts-test:  ## TTS kör dinleme testi (data/processed/tts_test/)
 	$(PY) tools/tts_listening_test.py
+
+api:  ## Backend API (FastAPI) — mobil/web istemci için
+	$(PY) -m uvicorn api.server:app --app-dir src --host $(HOST) --port $(PORT)
+
+api-test:  ## API uçtan uca testleri (keyword modu, STT taklit; ücretsiz)
+	$(PY) -m pytest tests/api -q
 
 pipeline:  ## Uçtan uca pipeline (etkileşimli metin)
 	$(PY) src/pipeline.py --interactive --nlp-mode $(NLP)

@@ -24,3 +24,12 @@ weasyprint>=62.0         # HTML → PDF
 # --- Utilities ---
 python-dotenv>=1.0.0
 pydantic>=2.5.0          # Data validation
+
+# --- Backend API (Fall 2026) ---
+fastapi>=0.110           # HTTP API for the mobile/web client (src/api/server.py)
+uvicorn>=0.29            # ASGI server:  make api
+python-multipart>=0.0.9  # audio uploads (/sessions/{id}/turn-audio)
+
+# --- Tests ---
+httpx>=0.27              # FastAPI TestClient
+pytest>=8.0              # make api-test

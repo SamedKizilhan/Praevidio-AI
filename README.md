@@ -121,6 +121,9 @@ Praevidio-AI/
 │   │   └── evaluation.py                  # Risk-appropriate metrics (AUC, calibration, DCA) — not F1
 │   ├── conversation/
 │   │   └── voice_agent.py                 # Cascade conversational agent (STT→LLM→TTS state machine)
+│   ├── api/
+│   │   ├── server.py                      # FastAPI backend (sessions, turns, audio, report, TTS)
+│   │   └── sessions.py                    # Thread-per-session runner around ConversationAgent
 │   ├── stt/
 │   │   └── whisper_stt.py                 # Whisper STT + Turkish medical term correction
 │   ├── nlp/
@@ -218,6 +221,32 @@ accepts "bilmiyorum", confirms demographics, asks about COPD and speaks a two-la
 (`make chat` / `make voice`, old model with `MODEL=v2`). STT default is `gpt-4o-mini-transcribe` with a
 medical-term context hint; a free native-Turkish TTS option (`PRAEVIDIO_TTS_PROVIDER=edge`) and a blind
 listening test (`make tts-test`) were added.
+
+## 🌐 Backend API (Fall 2026)
+
+`src/api/server.py` exposes the same conversation as the CLI over HTTP for the mobile/web client. The agent's logic is **not duplicated**: each session runs the existing `ConversationAgent` in its own thread behind a queue-backed channel (`src/api/sessions.py`); a request returns as soon as the agent asks its next question. Models are loaded once and shared.
+
+```bash
+make api                 # http://localhost:8000/docs  (interactive Swagger UI)
+make api-test            # end-to-end tests, no OpenAI calls
+```
+
+| Method & path | Purpose |
+| --- | --- |
+| `GET /health` | Version, models, STT/TTS settings, active sessions |
+| `POST /sessions` | Start a conversation → greeting + first question (`{"model": "v3", "nlp_mode": "llm", "tts": true}`) |
+| `POST /sessions/{id}/turn` | Send a text answer → next messages, or the result when finished |
+| `POST /sessions/{id}/turn-audio` | Send a recorded answer (m4a/wav/webm); transcribed with the agent's context hint |
+| `GET /sessions/{id}` | Status, transcript, collected evidence, result |
+| `GET /sessions/{id}/report` | Doctor-ready PDF (HTML if WeasyPrint is unavailable) |
+| `GET /tts/{key}.mp3` | Spoken version of a message (`audio_url`, cached) |
+
+Each turn returns `status` (`awaiting_input` / `finished` / …), the agent's `messages` (with `audio_url` when `tts=true`), the STT `hint` for the next answer and, at the end, a `result` with the full score, the 6-year screening layer, the NICE NG12 alarm, USPSTF eligibility, the PLCOm2012 benchmark and a `report_url`. Set `PRAEVIDIO_API_TOKEN` to require `Authorization: Bearer <token>`.
+
+```bash
+curl -s -X POST localhost:8000/sessions -H 'Content-Type: application/json' -d '{"nlp_mode":"keyword"}'
+curl -s -X POST localhost:8000/sessions/<id>/turn -H 'Content-Type: application/json' -d '{"text":"62 yaşındayım erkeğim"}'
+```
 
 ## 🚀 Quick Start
 

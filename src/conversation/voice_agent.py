@@ -327,12 +327,20 @@ STATIC_TTS_PROMPTS = [q for _, q in SYMPTOM_QUESTIONS] + [
 # ──────────────────────────────────────────────
 
 class ConversationAgent:
-    def __init__(self, channel: Channel, nlp_mode: str = "keyword", model_version: str = "v3"):
+    def __init__(self, channel: Channel, nlp_mode: str = "keyword", model_version: str = "v3",
+                 engine=None):
+        """engine: önceden yüklenmiş risk motoru (API sunucusu modeli bir kez yükleyip
+        tüm oturumlarla paylaşır). Verilmezse model burada yüklenir (CLI davranışı)."""
         self.ch = channel
         self.nlp_mode = nlp_mode
         self.model_version = model_version
         self.evidence = {}
-        self._load_engine()
+        self.result = None        # run() sonunda: predict_risk çıktısı (+ screening)
+        self.report_path = None   # run() sonunda: üretilen PDF/HTML rapor yolu
+        if engine is not None:
+            self.engine = engine
+        else:
+            self._load_engine()
 
     def _load_engine(self):
         from model.hybrid_bayesian_network_v3 import load_engine
@@ -679,8 +687,9 @@ class ConversationAgent:
         self.collect_symptoms()
         self.collect_risk_factors()
         result, clean = self.assess_and_summarize()
+        self.result = result
         # Rapora il adını da geçir (etiket için); model girişi 'clean' kalır
-        self._generate_report(result, self.evidence)
+        self.report_path = self._generate_report(result, self.evidence)
         print(f"\n   📋 Toplanan kanıtlar: {clean}")
         return result
 

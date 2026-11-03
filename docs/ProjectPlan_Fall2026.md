@@ -22,7 +22,7 @@ This document is the Fall 2026 continuation of the [Spring 2026 plan](ProjectPla
 | Term kickoff | 28 September 2026 | Code analysis, roadmap, uncommitted spring changes merged. |
 | Model v3 + conversation v3 | 5 October 2026 | New risk model, flow, STT/TTS — delivered. |
 | PLCOm2012 benchmark, sensitivity, NHANES calibration, AGPL-3.0 | 19 October 2026 | Delivered and merged to `main`. |
-| Backend (FastAPI) | 1 November 2026 | `/session`, `/turn`, `/report` wrapping the agent and engine. |
+| Backend (FastAPI) | 3 November 2026 | Delivered: sessions, text/audio turns, report, TTS; end-to-end tests. |
 | Flutter MVP end-to-end | 12 November 2026 | Voice/text conversation on the phone through the backend. |
 | **Midterm report** | **17 November 2026** | Methodology review, model v3, v2/v3 comparison, PLCOm2012, NHANES calibration, conversation v3, backend + mobile architecture, remaining plan. |
 | Expert + usability validation | 4 December 2026 | Pulmonologist blind scoring (10 vignettes, v2 vs v3); 5–8-person SUS test. |
@@ -37,8 +37,8 @@ This document is the Fall 2026 continuation of the [Spring 2026 plan](ProjectPla
 ### Phase 1 — Analysis and model correction (28 Sep – 19 Oct) ✅
 Full code/report review; four methodological findings on the v2 score (meaning mismatch between NLST outcome and symptom CPTs, naive-Bayes over-confidence, reference-category bias, undefined time horizon). Implementation of v3 and of the v2/v3 comparison harness (`make compare`), PLCOm2012 benchmark, sensitivity analysis (`make sensitivity`), NHANES 2007–12 calibration of the no-cancer respiratory baselines (`make nhanes`), expert-validation answer key with v2/v3 side by side. Conversation flow v3, STT/TTS upgrades, blind TTS listening test. Relicensed to AGPL-3.0-or-later.
 
-### Phase 2 — Backend and data access (19 Oct – 1 Nov)
-FastAPI service: channel-independent conversation state machine, session store, STT/TTS behind the API, PDF report endpoint; Docker image. Expert-validation session scheduled with a pulmonologist.
+### Phase 2 — Backend (19 Oct – 3 Nov) ✅
+FastAPI service (`src/api/`): the CLI conversation agent runs unchanged, one thread per session behind a queue-backed channel, so CLI and API share a single state machine; shared, lock-protected risk engines (v2 and v3); text and audio turns (STT with the agent's context hint), PDF/HTML report download, cached TTS audio per message, optional bearer token; seven end-to-end tests (`make api-test`). Docker image deferred to deployment.
 
 ### Phase 3 — Flutter MVP core (2 – 12 Nov)
 Recording with Silero VAD (`sherpa_onnx`), playback, chat UI, backend integration; demographics → symptoms → risk factors → summary flow running end to end on a phone.
