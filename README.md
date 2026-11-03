@@ -122,8 +122,9 @@ Praevidio-AI/
 │   ├── conversation/
 │   │   └── voice_agent.py                 # Cascade conversational agent (STT→LLM→TTS state machine)
 │   ├── api/
-│   │   ├── server.py                      # FastAPI backend (sessions, turns, audio, report, TTS)
+│   │   ├── server.py                      # FastAPI backend (sessions, turns, audio, report, TTS, serves /app)
 │   │   └── sessions.py                    # Thread-per-session runner around ConversationAgent
+│   ├── web/                               # PWA client (index.html, app.js, styles.css, manifest, service worker, icons)
 │   ├── stt/
 │   │   └── whisper_stt.py                 # Whisper STT + Turkish medical term correction
 │   ├── nlp/
@@ -202,7 +203,7 @@ Praevidio-AI/
 | Component | Status | Details |
 |-----------|--------|---------|
 | Performance Benchmarks | ✅ Done (v2) | **Risk/screening-appropriate metrics** — AUC-ROC, AUPRC, calibration (Brier, ECE, reliability curve, slope/intercept), Decision Curve Analysis, sensitivity/specificity at thresholds. See `src/model/evaluation.py`. |
-| Mobile App (Flutter) | 📋 Fall 2026 | Voice UI + KETEM map integration + OpenAI Realtime |
+| Mobile client (PWA) | ✅ Core done (Nov 2026) | Voice/text chat on the phone via the backend, result screen, report download; KETEM map next (a native Flutter app stays optional) |
 
 > **Note on evaluation metric (v2 revision):** F1-Score / accuracy are **no longer primary metrics**. Praevidio is a probabilistic *risk-stratification* tool, not a binary diagnostic classifier — it never declares "cancer / not cancer," it outputs a calibrated risk probability. With a ~3.85% base rate, F1 is threshold-sensitive and misleading (a trivial "always-positive" model scored F1≈0.67). The model is now evaluated on **discrimination (AUC-ROC/AUPRC)**, **calibration (Brier, ECE, reliability)**, and **clinical utility (Decision Curve Analysis)** — directly answering "when we say 15% risk, is it really ~15%?" and "does using this score beat screen-all / screen-none?"
 
@@ -221,6 +222,8 @@ accepts "bilmiyorum", confirms demographics, asks about COPD and speaks a two-la
 (`make chat` / `make voice`, old model with `MODEL=v2`). STT default is `gpt-4o-mini-transcribe` with a
 medical-term context hint; a free native-Turkish TTS option (`PRAEVIDIO_TTS_PROVIDER=edge`) and a blind
 listening test (`make tts-test`) were added.
+
+**Side questions (clarification loop).** `src/conversation/clarify.py` lets the user ask instead of answer at any step. The state machine is unchanged: the single listening point (`_heard`) detects a side question, answers it, re-asks the current prompt word for word (TTS cache hit) and listens again (≤3 times per prompt). Answers come from a fixed Turkish glossary (paket-yıl — personalised with the user's own numbers —, KOAH, amfizem, hırıltı, kan tükürme, KETEM, düşük doz BT, 6-year risk, PM2.5 …) and per-question "why we ask" texts, so they work in keyword mode for free and are reproducible; only unmatched questions in `llm` mode go to a constrained GPT prompt (no diagnosis, no risk numbers, no treatment advice, urgent symptoms → doctor/112).
 
 ## 🌐 Backend API (Fall 2026)
 
@@ -247,6 +250,22 @@ Each turn returns `status` (`awaiting_input` / `finished` / …), the agent's `m
 curl -s -X POST localhost:8000/sessions -H 'Content-Type: application/json' -d '{"nlp_mode":"keyword"}'
 curl -s -X POST localhost:8000/sessions/<id>/turn -H 'Content-Type: application/json' -d '{"text":"62 yaşındayım erkeğim"}'
 ```
+
+## 📱 Mobile client — PWA (Fall 2026)
+
+`src/web/` is an installable Progressive Web App served by the backend at **`/app/`** (`/` redirects there), so the phone client needs no app store and no Flutter/Android SDK. It talks only to the API above.
+
+* **Two modes, chosen at the start (switchable from the top bar):** *voice* — every question is played with the cached TTS voice and the microphone opens by itself afterwards (hands-free; recording stops after ~1.6 s of silence, simple energy-based VAD, sent to `/turn-audio`); *text* — no autoplay, the user types. Both modes show quick-reply chips built from the agent's STT hint (Evet / Hayır / Bilmiyorum / Bu ne demek?).
+* **Side questions:** the user can ask instead of answering ("5 paket-yıl ne demek?", "neden soruyorsunuz?", "tekrar eder misiniz?"); the agent explains and then repeats its question — see below.
+* **Result screen:** NICE NG12 alarm box, 6-year screening risk with its band, full score, USPSTF screening note, recommendation and the doctor-ready report download. KETEM map: next.
+* **PWA:** manifest + icons ("Add to Home Screen"), service worker caching only the app shell (API responses are never cached), light/dark theme, large fonts.
+
+```bash
+make api                                   # then open http://localhost:8000/app/
+# URL options: ?nlp=llm (GPT slot filling) · ?model=v2 · ?token=<PRAEVIDIO_API_TOKEN>
+```
+
+The microphone works only in a secure context: `localhost` on the computer, or HTTPS on a phone — e.g. `cloudflared tunnel --url http://localhost:8000` and open the printed `https://…/app/` link (set `PRAEVIDIO_API_TOKEN` when exposing the server). Text mode also works over plain HTTP on the local network.
 
 ## 🚀 Quick Start
 

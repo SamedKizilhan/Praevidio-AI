@@ -235,3 +235,6 @@ tools/federated
 data/raw/nhanes/
 data/processed/tts_test/
 docs/veri_kaynaklari_semptom.md
+
+# PWA test fixture (local only)
+.pwa_fixture.json

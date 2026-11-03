@@ -44,6 +44,7 @@ from nlp.symptom_extractor import (
     extract_symptoms, resolve_air_pollution, extract_province
 )
 from stt.whisper_stt import post_process_medical_terms
+from conversation.clarify import is_side_question, answer_side_question, MAX_SIDE_QUESTIONS
 
 
 # ──────────────────────────────────────────────
@@ -336,6 +337,10 @@ class ConversationAgent:
         self.model_version = model_version
         self.evidence = {}
         self.result = None        # run() sonunda: predict_risk çıktısı (+ screening)
+        self._pending_side = []   # mevcut soru üzerindeki art arda ara sorular
+        self._last_said = ""      # dinlemeden önce söylenen son cümle
+        self._last_q = ""         # en son sorulan soru (ara sorudan sonra tekrar sorulur)
+        self.side_questions = []  # (soru, kullanıcının ara sorusu, ajanın yanıtı) — kayıt/analiz
         self.report_path = None   # run() sonunda: üretilen PDF/HTML rapor yolu
         if engine is not None:
             self.engine = engine
@@ -403,7 +408,7 @@ class ConversationAgent:
         cevap yok / sessizlik / halüsinasyon) en fazla `attempts` kez tekrar sorar.
         Hâlâ alınamazsa None döner (ilgili alan gözlenmemiş bırakılır).
         """
-        self.ch.say(question)
+        self._say(question)
         for i in range(attempts):
             heard = self._heard(stt_hint)
             if is_skip(heard):          # "bilmiyorum" → gözlenmemiş bırak, bezdirme
@@ -412,7 +417,7 @@ class ConversationAgent:
             if val is not None:
                 return val
             if i < attempts - 1:
-                self.ch.say(reask)
+                self._say(reask)
         return None
 
     # --- Stage 1: Karşılama + demografi (İKİ soru) ---
@@ -422,7 +427,7 @@ class ConversationAgent:
                       "yirmi yıl, on yıl önce bıraktım, hiç içmedim.")
 
         # Soru 1: yaş + cinsiyet (eksikse tekrar sor)
-        self.ch.say("Merhaba. Sağlıklı bir risk analizi yapabilmem için öncelikle "
+        self._say("Merhaba. Sağlıklı bir risk analizi yapabilmem için öncelikle "
                     "yaşınızı ve cinsiyetinizi belirtir misiniz?")
         for attempt in range(3):
             self._absorb(self._heard(demo_hint))
@@ -431,11 +436,11 @@ class ConversationAgent:
                 break
             labels = {"AGE": "yaşınızı", "GENDER": "cinsiyetinizi"}
             if attempt < 2:
-                self.ch.say("Şunu tam alamadım: " + ", ".join(labels[m] for m in missing)
+                self._say("Şunu tam alamadım: " + ", ".join(labels[m] for m in missing)
                             + ". Tekrar belirtir misiniz?")
 
         # Soru 2: sigara durumu + sıklık/süre (paket-yıl)
-        self.ch.say("Sigara kullanıyor musunuz? Kullanıyorsanız ya da bıraktıysanız, "
+        self._say("Sigara kullanıyor musunuz? Kullanıyorsanız ya da bıraktıysanız, "
                     "günde kaç adet ve kaç yıl içtiğinizi de söyler misiniz?")
         smoke_ans = ""
         for attempt in range(3):
@@ -456,7 +461,7 @@ class ConversationAgent:
                     self.evidence["_pack_years"] = 0
                 break
             if attempt < 2:
-                self.ch.say("Sigara kullanım durumunuzu tam alamadım. İçiyor musunuz, "
+                self._say("Sigara kullanım durumunuzu tam alamadım. İçiyor musunuz, "
                             "bıraktınız mı, yoksa hiç içmediniz mi?")
 
         # Hiç içmemiş → paket-yıl 0; "kaç yıl içtiniz / kaç yıl önce bıraktınız" SORULMAZ
@@ -479,7 +484,7 @@ class ConversationAgent:
         if (self.evidence.get("SMOKING") is not None
                 and self.evidence.get("_pack_years") is None
                 and self.evidence.get("_years_smoked") is None):
-            self.ch.say("Yaklaşık kaç yıl boyunca sigara içtiniz?")
+            self._say("Yaklaşık kaç yıl boyunca sigara içtiniz?")
             self._absorb(self._heard("Kullanıcı kaç yıl sigara içtiğini söylüyor, örneğin yirmi yıl."))
         # Günlük adet + içilen yıl varsa paket-yılı hesapla
         if (self.evidence.get("_pack_years") is None
@@ -529,7 +534,7 @@ class ConversationAgent:
         ans = self._heard_after(f"Şunları not ettim: {sent}. Doğru mu?",
                                 "Kullanıcı evet veya hayır diyor.")
         if parse_yes_no(ans) is False:
-            self.ch.say("Peki, hangisi yanlıştı? Doğrusunu söyler misiniz?")
+            self._say("Peki, hangisi yanlıştı? Doğrusunu söyler misiniz?")
             fix = self._heard("Kullanıcı yaşını, cinsiyetini veya sigara kullanımını düzeltiyor.")
             # Düzeltme cümlesinde ne geçiyorsa yalnız onu güncelle (diğer alanlar korunur)
             ext = extract_symptoms(fix, mode=self.nlp_mode)
@@ -543,10 +548,10 @@ class ConversationAgent:
                 c = self.evidence.get("_cigs_per_day"); y = self.evidence.get("_years_smoked")
                 if c is not None and y is not None:
                     self.evidence["_pack_years"] = round(c / 20.0 * y, 1)
-            self.ch.say("Anladım, düzelttim.")
+            self._say("Anladım, düzelttim.")
 
     def _heard_after(self, question: str, hint: str = "") -> str:
-        self.ch.say(question)
+        self._say(question)
         return self._heard(hint)
 
     # --- Stage 2: Semptomlar — önce AÇIK soru, sonra yalnız eksikler tek tek ---
@@ -568,12 +573,12 @@ class ConversationAgent:
                     self.evidence[var] = v
             found = [q for v, q in _SYMPTOM_LABELS.items() if self.evidence.get(v) == 1]
             if found:
-                self.ch.say("Şunları not ettim: " + ", ".join(found) + ".")
+                self._say("Şunları not ettim: " + ", ".join(found) + ".")
 
         # 2b) Söylenmeyenleri tek tek sor ("bilmiyorum" → atlanır, gözlenmemiş kalır)
         remaining = [(v, q) for v, q in SYMPTOM_QUESTIONS if v not in self.evidence]
         if remaining:
-            self.ch.say("Şimdi birkaç belirtiyi tek tek soracağım. Lütfen 'evet', 'hayır' ya da "
+            self._say("Şimdi birkaç belirtiyi tek tek soracağım. Lütfen 'evet', 'hayır' ya da "
                         "'bilmiyorum' şeklinde yanıtlayın.")
         hint = "Kullanıcı evet, hayır veya bilmiyorum diyor."
         reask = "Sizi tam anlayamadım; lütfen 'evet' ya da 'hayır' deyin."
@@ -659,7 +664,7 @@ class ConversationAgent:
         summary += (" Unutmayın, bu bir tarama ve farkındalık aracıdır, kesin tanı koymaz. "
                     "Ne kadar erken tarama, o kadar erken teşhis. "
                     "Detaylı raporunuzu indirmek için rapor butonuna basabilirsiniz.")
-        self.ch.say(summary)
+        self._say(summary)
         return result, clean
 
     def _generate_report(self, result, evidence):
@@ -672,11 +677,45 @@ class ConversationAgent:
             print(f"   ⚠️  Rapor oluşturulamadı: {e}")
             return None
 
+    def _say(self, text: str):
+        """Kanala konuşur; soru cümlesiyse ara sorudan sonra tekrar sorulmak üzere saklar."""
+        self.ch.say(text)
+        self._last_said = text
+        if text.rstrip().endswith("?"):
+            self._last_q = text
+
+    def _current_prompt(self) -> str:
+        """Kullanıcının şu an cevapladığı istem: dinlemeden önce söylenen son cümle;
+        o bir 'anlayamadım, evet/hayır deyin' tekrarıysa asıl soru."""
+        last = self._last_said
+        if last and (last.rstrip().endswith("?") or "anlayamadım" not in last):
+            return last
+        return self._last_q
+
     def _heard(self, stt_hint: str = "") -> str:
-        ans = self.ch.listen(stt_hint)
-        if ans:
-            print(f"   📝 Algılanan: \"{ans}\"")
-        return ans or ""
+        """
+        Kullanıcı cevabını alır. Cevap yerine ara soru sorulursa ("paket-yıl ne demek?",
+        "neden soruyorsunuz?", "tekrar eder misiniz?") önce yanıtlar, sonra son soruyu
+        aynen tekrar sorar ve yeniden dinler (en fazla MAX_SIDE_QUESTIONS kez).
+        Tüm cevap bekleme noktaları buradan geçtiği için akışın her adımında çalışır.
+        """
+        ans = ""
+        prompt = self._current_prompt()
+        for _ in range(MAX_SIDE_QUESTIONS + 1):
+            ans = self.ch.listen(stt_hint) or ""
+            if ans:
+                print(f"   📝 Algılanan: \"{ans}\"")
+            if not (ans and is_side_question(ans)) or len(self._pending_side) >= MAX_SIDE_QUESTIONS:
+                break
+            reply = answer_side_question(ans, prompt, self.evidence, self.nlp_mode)
+            self.side_questions.append({"question": prompt, "user": ans, "answer": reply})
+            self._pending_side.append(ans)
+            if reply:
+                self.ch.say(reply)
+            if prompt:
+                self.ch.say(prompt)            # aynı metin → TTS önbelleğinden anında
+        self._pending_side = []
+        return ans
 
     # --- Tüm akış ---
     def run(self):

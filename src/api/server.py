@@ -14,6 +14,7 @@ Uç noktalar
   GET  /sessions/{id}                durum, transkript, toplanan kanıt, sonuç
   GET  /sessions/{id}/report         PDF (WeasyPrint yoksa HTML) rapor
   GET  /tts/{key}.mp3                mesajın sesli hâli (önbellekli; tts=true ile istenir)
+  GET  /app/                         PWA istemcisi (src/web/) — telefonda tarayıcıdan açılır
 
 Çalıştırma
   make api            (veya)  uvicorn api.server:app --app-dir src --host 0.0.0.0 --port 8000
@@ -25,6 +26,7 @@ Ortam değişkenleri
   PRAEVIDIO_TTS_*, PRAEVIDIO_STT_MODEL  ses ayarları (config.py)
 """
 import hashlib
+import mimetypes
 import os
 import sys
 import tempfile
@@ -34,14 +36,17 @@ from typing import List, Literal, Optional
 
 from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from config import NLP_MODE, STT_MODEL, TTS_MODEL, TTS_PROVIDER, TTS_VOICE, EDGE_TTS_VOICE  # noqa: E402
 from api.sessions import SessionManager, Session  # noqa: E402
 
-API_VERSION = "0.1.0"
+API_VERSION = "0.2.0"
+WEB_DIR = Path(__file__).resolve().parents[1] / "web"
+mimetypes.add_type("application/manifest+json", ".webmanifest")
 API_TOKEN = os.getenv("PRAEVIDIO_API_TOKEN", "")
 STATE: dict = {}
 
@@ -63,6 +68,13 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Praevidio AI API", version=API_VERSION, lifespan=lifespan,
               description="Sesli/yazılı akciğer kanseri risk farkındalığı görüşmesi. Tanı aracı değildir.")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+if WEB_DIR.exists():
+    app.mount("/app", StaticFiles(directory=str(WEB_DIR), html=True), name="web")
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse(url="/app/")
 
 
 def require_token(authorization: Optional[str] = Header(default=None)):
@@ -106,6 +118,7 @@ class Result(BaseModel):
     risk_level: str
     risk_level_tr: str
     risk_6y_factors: Optional[float] = Field(None, description="Yalnız risk faktörlerinden 6 yıllık risk, % (v3)")
+    risk_level_factors: Optional[str] = Field(None, description="low | moderate | high (6y katmanı, v3)")
     risk_level_factors_tr: Optional[str] = None
     plcom2012_6y: Optional[float] = None
     alarm: Optional[Alarm] = None
@@ -154,6 +167,7 @@ def _result(sess: Session) -> Optional[Result]:
         model_version=r.get("model_version", "v2"),
         risk_score=float(r["risk_score"]), risk_level=r["risk_level"], risk_level_tr=r["risk_level_tr"],
         risk_6y_factors=(float(r["risk_6y_factors"]) if "risk_6y_factors" in r else None),
+        risk_level_factors=r.get("risk_level_factors"),
         risk_level_factors_tr=r.get("risk_level_factors_tr"),
         plcom2012_6y=(float(bm["risk_6y"]) if bm.get("applicable") else None),
         alarm=(Alarm(level=alarm["level"], reasons_tr=alarm.get("reasons_tr", []),

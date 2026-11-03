@@ -1,0 +1,103 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later · Copyright (C) 2026 Samed KIZILHAN — Praevidio AI -->
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Praevidio AI</title>
+  <meta name="description" content="Sesli akciğer kanseri risk farkındalığı değerlendirmesi">
+  <meta name="theme-color" content="#0f6e6e">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Praevidio">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <img src="icons/icon-192.png" alt="" class="logo">
+    <span class="brand">Praevidio AI</span>
+    <button id="btn-mode" class="mode-btn" hidden></button>
+  </header>
+
+  <!-- 1) Karşılama -->
+  <main id="view-welcome" class="view">
+    <section class="card welcome">
+      <h1>Akciğer sağlığınız için kısa bir sohbet</h1>
+      <p>Size yaşınızı, sigara kullanımınızı, risk etkenlerinizi ve belirtilerinizi soracağım.
+         Yaklaşık 4–5 dakika sürer. Anlamadığınız bir şey olursa istediğiniz an sorabilirsiniz.</p>
+      <ul class="facts">
+        <li>Sonunda risk düzeyinizi ve size uygun öneriyi göreceksiniz.</li>
+        <li>Doktorunuza götürebileceğiniz bir rapor oluşturulur.</li>
+      </ul>
+      <p class="disclaimer">Bu uygulama bir <strong>farkındalık ve tarama aracıdır, tanı koymaz.</strong>
+         Acil bir sağlık sorununuz varsa 112'yi arayın.</p>
+      <h2 class="choose">Nasıl görüşmek istersiniz?</h2>
+      <div class="mode-choice">
+        <button id="btn-start-voice" class="primary big mode-card">
+          <span class="mode-icon" aria-hidden="true">🎤</span>
+          <span><strong>Sesli görüşme</strong><br>
+            <span class="mode-sub">Soruları dinleyin, konuşarak ya da seçeneklere dokunarak cevaplayın.</span></span>
+        </button>
+        <button id="btn-start-text" class="secondary big mode-card">
+          <span class="mode-icon" aria-hidden="true">⌨️</span>
+          <span><strong>Yazılı görüşme</strong><br>
+            <span class="mode-sub">Soruları okuyun, yazarak ya da seçeneklere dokunarak cevaplayın.</span></span>
+        </button>
+      </div>
+      <p class="muted small">Görüşme sırasında üstteki düğmeyle diğer moda geçebilirsiniz.</p>
+      <p id="server-status" class="muted small" role="status"></p>
+    </section>
+  </main>
+
+  <!-- 2) Sohbet -->
+  <main id="view-chat" class="view" hidden>
+    <div id="messages" class="messages" aria-live="polite"></div>
+    <div id="typing" class="typing" hidden><span></span><span></span><span></span></div>
+  </main>
+  <footer id="composer" class="composer" hidden>
+    <div id="chips" class="chips"></div>
+    <div class="input-row">
+      <button id="btn-mic" class="mic" aria-label="Konuşarak cevap ver">🎤</button>
+      <form id="form-text" class="text-form">
+        <input id="input-text" type="text" autocomplete="off" enterkeyhint="send"
+               placeholder="Cevabınızı ya da sorunuzu yazın…" aria-label="Cevabınız">
+        <button type="submit" class="send" aria-label="Gönder">➤</button>
+      </form>
+    </div>
+    <p id="mic-status" class="muted small" role="status"></p>
+  </footer>
+
+  <!-- 3) Sonuç -->
+  <main id="view-result" class="view" hidden>
+    <section class="card result">
+      <h1>Değerlendirme sonucu</h1>
+      <div id="alarm" class="alarm" hidden>
+        <strong>Kısa sürede bir hekime başvurmanızı öneriyoruz.</strong>
+        <ul id="alarm-reasons"></ul>
+      </div>
+      <div class="score">
+        <div id="risk6y" class="score-number">–</div>
+        <div>
+          <div class="score-label">6 yıllık tahmini risk<br><span class="muted small">risk etkenlerinize göre</span></div>
+          <span id="band" class="band">–</span>
+        </div>
+      </div>
+      <p id="full-score" class="muted"></p>
+      <p id="screening" class="screening" hidden></p>
+      <p id="recommendation"></p>
+      <p class="disclaimer">Bu sonuç bir tarama ve farkındalık değerlendirmesidir; kesin tanı yerine geçmez.</p>
+      <div class="actions">
+        <button id="btn-report" class="primary">Doktor raporunu aç</button>
+        <button id="btn-ketem" class="secondary" disabled title="Yakında">En yakın KETEM (yakında)</button>
+        <button id="btn-restart" class="secondary">Yeni değerlendirme</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="alert" hidden></div>
+  <audio id="player" preload="none"></audio>
+  <script src="app.js"></script>
+</body>
+</html>

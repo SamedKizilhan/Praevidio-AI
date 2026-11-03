@@ -35,8 +35,10 @@ ANSWERS = [
 
 @pytest.fixture(scope="module")
 def client():
+    saved, server.API_TOKEN = server.API_TOKEN, ""   # .env'deki PRAEVIDIO_API_TOKEN testleri etkilemesin
     with TestClient(server.app) as c:
         yield c
+    server.API_TOKEN = saved
 
 
 def _run_conversation(client, answers, model="v3"):
@@ -72,6 +74,7 @@ def test_full_conversation_v3(client):
     assert res["model_version"] == "v3"
     assert res["alarm"]["level"] == "urgent"            # ≥40 yaş + öksürük + nefes darlığı
     assert res["risk_6y_factors"] > 1.5                  # 62y, 30 py aktif içici → tarama adayı
+    assert res["risk_level_factors"] in ("moderate", "high")
     assert res["screening"]["eligible"] is True          # USPSTF: 50–80 yaş, ≥20 py
     assert "Değerlendirmeniz tamamlandı" in out["messages"][-1]["text"]
     # durum ve kanıt
@@ -128,8 +131,48 @@ def test_audio_turn_uses_hint(client, monkeypatch):
     assert "Sigara" in j["messages"][0]["text"]                 # sonraki soru
 
 
+def test_pwa_is_served(client):
+    r = client.get("/", follow_redirects=False)
+    assert r.status_code in (301, 302, 307) and r.headers["location"].endswith("/app/")
+    r = client.get("/app/")
+    assert r.status_code == 200 and "Praevidio" in r.text and "app.js" in r.text
+    for f in ("app.js", "styles.css", "sw.js", "icons/icon-192.png"):
+        assert client.get(f"/app/{f}").status_code == 200, f
+    m = client.get("/app/manifest.webmanifest")
+    assert m.status_code == 200 and m.json()["start_url"] == "/app/"
+
+
 def test_token_required_when_configured(client, monkeypatch):
     monkeypatch.setattr(server, "API_TOKEN", "gizli")
     assert client.post("/sessions", json={}).status_code == 401
     r = client.post("/sessions", json={"nlp_mode": "keyword"}, headers={"Authorization": "Bearer gizli"})
     assert r.status_code == 200
+
+
+def test_side_question_is_answered_then_question_repeated(client):
+    """Kullanıcının bildirdiği durum: onay sorusunda '5 paket-yıl ne demek?' → açıkla, sonra tekrar sor."""
+    r = client.post("/sessions", json={"nlp_mode": "keyword"})
+    sid = r.json()["session_id"]
+    client.post(f"/sessions/{sid}/turn", json={"text": "45 yaşındayım erkeğim"})
+    out = client.post(f"/sessions/{sid}/turn", json={"text": "günde 10 tane, yaklaşık 10 yıldır içiyorum"}).json()
+    confirm = out["messages"][-1]["text"]
+    assert "paket-yıl" in confirm and confirm.endswith("Doğru mu?")
+    out = client.post(f"/sessions/{sid}/turn", json={"text": "5 paket-yıl ne demek ki?"}).json()
+    texts = [m["text"] for m in out["messages"]]
+    assert out["status"] == "awaiting_input"
+    assert "20 sigara" in texts[0] and "0,5 paket" in texts[0] and "yaklaşık 5 paket-yıl hesapladım" in texts[0]   # kişiselleştirilmiş
+    assert texts[-1] == confirm                                                         # aynı soru tekrar
+    out = client.post(f"/sessions/{sid}/turn", json={"text": "neden soruyorsunuz?"}).json()
+    assert "teyit" in out["messages"][0]["text"] and out["messages"][-1]["text"] == confirm
+    out = client.post(f"/sessions/{sid}/turn", json={"text": "evet"}).json()           # akış devam eder
+    complaint = out["messages"][-1]["text"]
+    assert "şikâyet" in complaint and not complaint.endswith("?")
+    out = client.post(f"/sessions/{sid}/turn", json={"text": "KOAH ne demek?"}).json()
+    assert "solunum fonksiyon" in out["messages"][0]["text"]
+    assert out["messages"][-1]["text"] == complaint          # soru işaretsiz istem de doğru tekrarlanır
+    out = client.post(f"/sessions/{sid}/turn", json={"text": "şikâyetim yok"}).json()
+    assert "tek tek" in out["messages"][0]["text"]
+    out = client.post(f"/sessions/{sid}/turn", json={"text": "o ne demek?"}).json()      # "geçmeyen öksürük"
+    assert "üç hafta" in out["messages"][0]["text"]
+    s = client.get(f"/sessions/{sid}").json()
+    assert s["evidence"]["_pack_years"] == 5
