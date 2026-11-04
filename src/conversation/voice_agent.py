@@ -661,8 +661,13 @@ class ConversationAgent:
                 summary += "Bu, " + result["relative_message_tr"][0].lower() + result["relative_message_tr"][1:] + " "
             if result.get("projection"):
                 summary += result["projection"]["message_tr"].replace("%", "yüzde ") + " "
-            if abs(score - p6) >= 0.5 or result["risk_level"] != result.get("risk_level_factors"):
-                summary += f"Belirtilerinizle birlikte skor yüzde {_tr_pct(score)} ({level.lower()}). "
+            sa = result.get("symptom_assessment") or {}
+            if result.get("urgent_assessment"):
+                spoken = [r.replace("≥40 yaş", "40 yaş ve üstü").replace(" (NICE NG12)", "").replace(" (model tahmini)", "")
+                          for r in (result.get("urgent_reasons_tr") or [])]
+                summary += "Belirtileriniz için önemli bir not: " + "; ".join(spoken) + ". "
+            elif sa.get("level") == "low" and sa.get("message_tr"):
+                summary += sa["message_tr"] + " "
             # (alarm varsa recommendation_tr zaten acil sevk dilinde — tekrar edilmez)
         else:
             summary = (f"Değerlendirmeniz tamamlandı. Risk düzeyiniz: {level}, "

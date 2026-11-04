@@ -135,7 +135,9 @@ def main():
          "| Sütun | Anlamı |", "| --- | --- |",
          "| v2 % / v2 bant | Bahar modeli; bantlar bir zaman ufkuna bağlı değil (<%5 / %5–15 / ≥%15). |",
          "| v3.0 % / v3.0 6y | Ekim 2026 sürümü (NLST tabanı, ortak neden yok) — tam skor ve 6 yıllık katman. |",
-         "| v3 % / v3 bant | v3.1 tam skoru (risk faktörleri + belirtiler) ve bu skorun 6 yıllık banda göre yeri. |",
+         "| v3 % | v3.1 tam skoru (risk faktörleri + belirtiler; karma ufuk, **bantlanmaz** — ek bilgi). |",
+         "| v3 belirti katmanı % | Bugünkü belirtilerin akciğer kanserine bağlı olma olasılığı; ≥ %3 (NICE NG12 PPV eşiği) → "
+         "kısa sürede hekim (⚠). Belirti bildirilmemişse —. |",
          "| v3 6y-faktör % | Yalnız yaş, cinsiyet, sigara, aile öyküsü, meslek, hava kirliliği ve KOAH'tan 6 yıllık risk: "
          "\"taranmalı mı?\" sorusunun cevabı. Belirtiler cevaplanmamışsa v3 % ile aynıdır (D5). |",
          "| PLCOm2012 6y % | Dış karşılaştırma (Tammemägi 2013); yalnız sigara içmiş kişiler için. Günlük adet / içilen yıl "
@@ -153,17 +155,19 @@ def main():
          "oranının (%3,85) belirgin üstüdür ve v2'nin \"Orta\" alt sınırıyla aynıdır. Sınırlar uzman validasyonu ve "
          "karar eğrisi analiziyle kesinleşecektir.", "",
          "## Sonuçlar", "",
-         "| ID | Senaryo | v2 % | v2 bant | v3.0 % | v3.0 6y | v3 % | v3 bant | v3 6y-faktör % | PLCOm2012 6y % | alarm |",
+         "| ID | Senaryo | v2 % | v2 bant | v3.0 % | v3.0 6y | v3 % | v3 belirti katmanı % | v3 6y-faktör % | PLCOm2012 6y % | alarm |",
          "| --- | --- | ---: | --- | ---: | ---: | ---: | --- | ---: | ---: | --- |"]
     print(f"{'ID':5s} {'v2 %':>7s} {'v2 bant':10s} {'v3 %':>7s} {'v3 bant':10s} {'6y %':>6s} {'PLCO %':>7s} alarm   senaryo")
     for sid, name, ev in rows:
         r2, r30, r3 = e2.predict_risk(ev), e30.predict_risk(ev), e3.predict_risk(ev)
         p2, l2 = fmt(r2); p3, l3 = fmt(r3)
-        al = "ACİL" if r3["alarm"]["level"] == "urgent" else "—"
+        al = "ACİL" if r3.get("urgent_assessment") else "—"
         bm = r3["benchmark_plcom2012"]
         plco = f"{bm['risk_6y']:.2f}" if bm["applicable"] else "n/a"
+        sa = r3.get("symptom_assessment") or {}
+        sl = "—" if sa.get("level") in (None, "none") else f"{sa['percent']:.2f}" + (" ⚠" if sa["level"] == "elevated" else "")
         L.append(f"| {sid} | **{name}**<br><sub>{profile(ev)}</sub> | {p2} | {l2} | {r30['risk_score']:.2f} | "
-                 f"{r30['risk_6y_factors']:.2f} | {p3} | {l3} | "
+                 f"{r30['risk_6y_factors']:.2f} | {p3} | {sl} | "
                  f"{r3['risk_6y_factors']:.2f} | {plco} | {al} |")
         print(f"{sid:5s} {p2:>7s} {l2:10s} {p3:>7s} {l3:10s} {r3['risk_6y_factors']:6.2f} {plco:>7s} {al:7s} {name[:60]}")
 

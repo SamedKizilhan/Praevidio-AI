@@ -99,6 +99,10 @@ class TranscriptWriter:
                             f" · alarm: {(result.get('alarm') or {}).get('level')}")
             else:
                 self._write(f"# skor: %{pct(result['risk_score'])} ({result.get('risk_level_tr')})")
+        sa = (result or {}).get("symptom_assessment")
+        if sa:
+            self._write(f"# belirti katmanı: %{pct(sa['percent'])} ({sa['level']}, eşik %{sa['threshold'] * 100:g})"
+                        f" · kısa sürede hekim: {result.get('urgent_assessment')}")
         if result and result.get("relative_risk_peers") is not None:
             self._write(f"# göreli risk: ×{result['relative_risk_peers']}"
                         + (f" · projeksiyon: {result['projection']['message_tr']}" if result.get("projection") else ""))

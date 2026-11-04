@@ -260,15 +260,14 @@ function renderResult(r) {
   for (const [id, txt] of [["relative", r.relative_message_tr], ["projection", r.projection_message_tr]]) {
     $(id).textContent = txt || ""; $(id).hidden = !txt;
   }
+  // Belirti katmanı: tam skor artık bantlanmaz. Acilse gerekçeler alarm kutusunda, değilse belirti notu ayrı satırda.
   const fs = $("full-score");
-  const has6y = r.risk_6y_factors !== null && r.risk_6y_factors !== undefined;
-  // Bant farklıysa (ör. %1,4 Düşük ↔ %1,8 Orta) fark küçük olsa da göster — rapordaki skorla tutarlılık
-  fs.textContent = (has6y && (Math.abs(r.risk_score - r.risk_6y_factors) >= 0.5 || r.risk_level !== r.risk_level_factors))
-    ? `Belirtilerinizle birlikte değerlendirme: ${pct(r.risk_score)} (${r.risk_level_tr})` : "";
-  const al = r.alarm && r.alarm.level === "urgent";
-  $("alarm").hidden = !al;
+  const urgent = r.urgent_assessment ?? (r.alarm && r.alarm.level === "urgent");
+  const reasons = (r.urgent_reasons_tr && r.urgent_reasons_tr.length) ? r.urgent_reasons_tr : ((r.alarm && r.alarm.reasons_tr) || []);
+  fs.textContent = (!urgent && r.symptom_level === "low" && r.symptom_message_tr) ? r.symptom_message_tr : "";
+  $("alarm").hidden = !urgent;
   $("alarm-reasons").innerHTML = "";
-  if (al) for (const x of r.alarm.reasons_tr || []) { const li = document.createElement("li"); li.textContent = x; $("alarm-reasons").appendChild(li); }
+  if (urgent) for (const x of reasons) { const li = document.createElement("li"); li.textContent = x; $("alarm-reasons").appendChild(li); }
   const sc = $("screening");
   if (r.screening && r.screening.eligible === true) { sc.hidden = false; sc.textContent = "✓ " + (r.screening.message_tr || "Düşük doz BT taraması için uygun görünüyorsunuz."); }
   else sc.hidden = true;

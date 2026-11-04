@@ -18,11 +18,12 @@ agent: Doktorunuz size KOAH, amfizem veya kronik bronşit tanısı koydu mu?
 user: hayır
 agent: Hangi ilde yaşıyorsunuz?
 user: Iğdır
->> AÇIK KONU: 40 yaş altında kan tükürme + kilo kaybı için NICE alarmı yok; öneri 'birkaç haftadır sürüyorsa' diyor ve 'riskiniz düşük görünüyor' cümlesi belirtili skorla çelişiyor (düzeltilince bu kayıt ve beklentisi güncellenecek)
-agent: Değerlendirmeniz tamamlandı. Risk faktörlerinize göre önümüzdeki altı yıl için tahmini riskiniz yüzde 0,42; bu, tarama eşiğinin altında. Bu, aynı yaşta ve cinsiyette, sigara içmeyen ve risk etkeni olmayan birine göre yaklaşık 34 kat. Sigaraya bu şekilde devam ederseniz 50 yaşında 6 yıllık riskiniz yaklaşık yüzde 2,14 olur ve tarama aralığına girersiniz; bugün bırakırsanız aynı yaşta yaklaşık yüzde 0,65. Belirtilerinizle birlikte skor yüzde 14,4 (yüksek risk). 6 yıllık riskiniz şu an tarama eşiğinin altında. Bu, risk faktörlerinizin önemsiz olduğu anlamına gelmez; sigara, yaş veya mesleki maruziyet varsa önemini korur. Yeni bir belirti olursa hekiminize başvurun. Bu bir tarama aracıdır, tanı koymaz. Bildirdiğiniz şikâyetler çoğu zaman akciğer kanseri dışındaki nedenlerden kaynaklanır; yine de birkaç haftadır sürüyor ya da artıyorsa aile hekiminize görünün. Unutmayın, bu bir tarama ve farkındalık aracıdır, kesin tanı koymaz. Ne kadar erken tarama, o kadar erken teşhis. Detaylı raporunuzu indirmek için rapor butonuna basabilirsiniz.
+>> ÇÖZÜLDÜ (4 Kas 2026): 40 yaş altında NICE alarmı yoktu ve 'birkaç haftadır sürüyorsa' deniyordu; belirti katmanı (bugünkü belirtilerin kansere bağlı olma olasılığı, eşik %3) ve her yaşta hemoptizi kuralı ile artık 'kısa sürede hekim' öneriliyor; tam skor ('%14,4 yüksek risk') bantlanmıyor
+agent: Değerlendirmeniz tamamlandı. Risk faktörlerinize göre önümüzdeki altı yıl için tahmini riskiniz yüzde 0,42; bu, tarama eşiğinin altında. Bu, aynı yaşta ve cinsiyette, sigara içmeyen ve risk etkeni olmayan birine göre yaklaşık 34 kat. Sigaraya bu şekilde devam ederseniz 50 yaşında 6 yıllık riskiniz yaklaşık yüzde 2,14 olur ve tarama aralığına girersiniz; bugün bırakırsanız aynı yaşta yaklaşık yüzde 0,65. Belirtileriniz için önemli bir not: Belirti tablonuz, hekimlerin kısa sürede değerlendirme önerdiği düzeyin üzerinde; Kan tükürme her yaşta kısa sürede hekim değerlendirmesi gerektirir; enfeksiyon gibi kanser dışı nedenleri de olabilir. Belirtileriniz, risk skorunuzdan bağımsız olarak kısa sürede bir hekim değerlendirmesi gerektiriyor. Lütfen en kısa sürede bir göğüs hastalıkları uzmanına veya aile hekiminize başvurun; göğüs röntgeni ve gerekirse düşük doz BT istenebilir. Bu bir tarama aracıdır, tanı koymaz. Unutmayın, bu bir tarama ve farkındalık aracıdır, kesin tanı koymaz. Ne kadar erken tarama, o kadar erken teşhis. Detaylı raporunuzu indirmek için rapor butonuna basabilirsiniz.
 # --- sonuç ---
 # model sürümü: 3.1
 # 6 yıllık: %0,42 (Tarama eşiğinin altında) · tam: %14,4 (Yüksek Risk) · alarm: none
+# belirti katmanı: %14,2 (elevated, eşik %3) · kısa sürede hekim: True
 # göreli risk: ×33.79 · projeksiyon: Sigaraya bu şekilde devam ederseniz 50 yaşında 6 yıllık riskiniz yaklaşık %2,14 olur ve tarama aralığına girersiniz; bugün bırakırsanız aynı yaşta yaklaşık %0,65.
 # kanıt: {"AGE": 0, "AIR_POLLUTION": 2, "ASBESTOS": 1, "CHEST_PAIN": 1, "COPD": 0, "COUGHING": 1, "FAMILY_HISTORY": 1, "FATIGUE": 1, "GENDER": 0, "HEMOPTYSIS": 1, "SHORTNESS_OF_BREATH": 1, "SMOKING": 1, "WEIGHT_LOSS": 1, "WHEEZING": 1, "_age_exact": 35, "_cigs_per_day": 20, "_pack_years": 18.0, "_province": "Iğdır", "_years_smoked": 18}
 # beklenen: _pack_years=18
@@ -37,5 +38,10 @@ agent: Değerlendirmeniz tamamlandı. Risk faktörlerinize göre önümüzdeki a
 # beklenen: ajan_der="34 kat"
 # beklenen: ajan_der="tarama aralığına girersiniz"
 # beklenen: ajan_demez="düşük risk grubuna"
+# beklenen: ajan_demez="yüksek risk"
+# beklenen: ajan_demez="birkaç haftadır"
+# beklenen: ajan_der="kısa sürede"
 # beklenen: alarm="none"
+# beklenen: belirti="elevated"
+# beklenen: acil=true
 # beklenen: bitti=true

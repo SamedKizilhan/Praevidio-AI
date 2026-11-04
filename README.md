@@ -232,6 +232,13 @@ calibrated to the NHANES cough–wheeze co-occurrence while keeping each symptom
 PLCOm2012, Wakelee 2007, NHANES and monotonicity rules (`make model-test`); details and per-profile changes:
 `docs/v3_1_duzeltme.md` (`make v31-diff`).
 
+**Two questions, two layers.** *Should I be screened?* — the 6-year layer (risk factors only, PLCOm2012 threshold
+1.5 %, shown with the relative risk vs a same-age never-smoker and, for current smokers, a continue-vs-quit projection).
+*Should I see a doctor about my symptoms?* — the symptom layer: probability that the current symptoms are due to lung
+cancer (latent *symptomatic* node), threshold 3 % = NICE NG12 referral PPV (`PRAEVIDIO_SYMPTOM_REFERRAL_PPV`), combined
+with the NICE age rule and an any-age haemoptysis rule. The full score (mixed horizon) is no longer banded.
+See `docs/belirti_katmani.md`.
+
 **Side questions (clarification loop).** `src/conversation/clarify.py` lets the user ask instead of answer at any step. The state machine is unchanged: the single listening point (`_heard`) detects a side question, answers it, re-asks the current prompt word for word (TTS cache hit) and listens again (≤3 times per prompt). Answers come from a fixed Turkish glossary (paket-yıl — personalised with the user's own numbers —, KOAH, amfizem, hırıltı, kan tükürme, KETEM, düşük doz BT, 6-year risk, PM2.5 …) and per-question "why we ask" texts, so they work in keyword mode for free and are reproducible; only unmatched questions in `llm` mode go to a constrained GPT prompt (no diagnosis, no risk numbers, no treatment advice, urgent symptoms → doctor/112).
 
 **Conversation transcripts (debugging the dialogue).** Every conversation (CLI or PWA) is written line by line to

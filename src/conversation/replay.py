@@ -6,7 +6,8 @@ kaydedilenlerle karşılaştırılır, "# beklenen:" satırları kontrol edilir.
 
 Beklenti anahtarları (değerler JSON gibi okunur; "yok" = alan hiç doldurulmamış):
   * kanıt alanları:     AGE, GENDER, SMOKING, _pack_years, COUGHING, COPD, _province …
-  * sonuç alanları:     risk_level_factors, risk_level, alarm, bitti (true/false)
+  * sonuç alanları:     risk_level_factors, risk_level, alarm (NICE), belirti (none|low|elevated),
+                        acil (true/false: kısa sürede hekim), bitti (true/false)
   * ajan metni:         ajan_der="…"  (herhangi bir ajan mesajında geçer)
                         ajan_demez="…" (hiçbir ajan mesajında geçmez)
 """
@@ -79,6 +80,10 @@ def check(expect, agent_msgs, evidence, result, finished) -> list:
             got = (result or {}).get(key)
         elif key == "alarm":
             got = ((result or {}).get("alarm") or {}).get("level")
+        elif key == "belirti":
+            got = ((result or {}).get("symptom_assessment") or {}).get("level")
+        elif key == "acil":
+            got = (result or {}).get("urgent_assessment")
         else:
             got = evidence.get(key)
         same = (got == want) or (isinstance(got, (int, float)) and isinstance(want, (int, float))

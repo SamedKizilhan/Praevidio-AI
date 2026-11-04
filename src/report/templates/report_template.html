@@ -230,7 +230,7 @@
     <!-- NICE NG12 alarm (score-independent) -->
     {% if alarm %}
     <div class="recommendation high" style="margin-bottom: 20px;">
-        <h4>⚠️ Kısa sürede hekim değerlendirmesi önerilir / Prompt physician assessment advised (NICE NG12)</h4>
+        <h4>⚠️ Kısa sürede hekim değerlendirmesi önerilir / Prompt physician assessment advised</h4>
         <ul>{% for r in alarm.reasons_tr %}<li>{{ r }}</li>{% endfor %}</ul>
         <p>{{ alarm.message_tr }}<br><em>{{ alarm.message_en }}</em></p>
     </div>

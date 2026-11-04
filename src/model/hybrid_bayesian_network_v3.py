@@ -130,6 +130,11 @@ RISK_FACTOR_NODES = ["AGE", "GENDER", "SMOKING", "FAMILY_HISTORY", "ASBESTOS",
 #   v3: PLCOm2012 tarama eşiği %1.51 (USPSTF-2013 eşdeğeri) → "Orta" = tarama adayı;
 #       ≥%5 (NLST taban oranının ~1.3 katı, v2'nin Orta eşiği) → "Yüksek"
 #   v2: 5 / 15 (geriye dönük karşılaştırma için)
+# Belirti katmanı eşiği (Kas 2026): "bugünkü belirtilerin akciğer kanserine bağlı olma olasılığı" bu değeri
+# aşarsa kısa sürede hekim değerlendirmesi önerilir. NICE NG12 öneri eşiği PPV %3 (birinci basamak, İngiltere;
+# NICE'ın açıkça belirttiği bir değer yargısı). Model değeri ölçülmüş PPV değildir → başlangıç değeri, uzmana sorulacak.
+SYMPTOM_REFERRAL_PPV = float(os.getenv("PRAEVIDIO_SYMPTOM_REFERRAL_PPV", "0.03"))
+
 RISK_BANDS = {
     "v3": {"low": (0.0, 0.015), "moderate": (0.015, 0.05), "high": (0.05, 1.0)},
     "v2": {"low": (0.0, 0.05),  "moderate": (0.05, 0.15),  "high": (0.15, 1.0)},
@@ -507,6 +512,37 @@ class HybridLungCancerEngineV3(HybridLungCancerEngine):
                              "message_tr": msg_tr, "message_en": msg_en}
         return out
 
+    def symptom_assessment(self, evidence: dict, p_full: float) -> dict:
+        """
+        Belirti katmanı: P(şu an belirti veren akciğer kanseri | kanıt) = P(LC | kanıt) · P(SEMPTOMATİK | LC, kanıt).
+        İkinci çarpan taban riskten (NLST/PLCOm2012/Wakelee) bağımsızdır → her tabanla tutarlı.
+        Tam skor (karma ufuk: 6 yılda ortaya çıkacak belirtisiz kanser + bugünkü belirtiler) artık bantlanmaz.
+        """
+        valid = set(self.model.nodes()) - {"LUNG_CANCER", "SYMPTOMATIC", "OTHER_ILLNESS"}
+        obs = {k: v for k, v in evidence.items() if k in valid}
+        q = self.inference.query(variables=["SYMPTOMATIC"], evidence={**obs, "LUNG_CANCER": 1},
+                                 show_progress=False)
+        p_now = p_full * float(q.values[1])
+        reported = [s for s in SYMPTOMS_7 if evidence.get(s) == 1]
+        thr = SYMPTOM_REFERRAL_PPV
+        if not reported:
+            level, tr, en = "none", None, None
+        elif p_now >= thr:
+            level = "elevated"
+            tr = ("Bildirdiğiniz belirti tablosu, hekimlerin kısa sürede değerlendirme önerdiği düzeyin üzerinde. "
+                  "Bu belirtilerin çoğu zaman enfeksiyon gibi başka nedenleri olur; yine de beklemeden bir hekime görünün.")
+            en = ("Your symptom pattern is above the level at which physicians advise prompt assessment. These symptoms "
+                  "often have other causes such as infection; still, please see a physician without delay.")
+        else:
+            level = "low"
+            tr = ("Bildirdiğiniz belirtiler büyük olasılıkla akciğer kanseri dışındaki nedenlere bağlı; birkaç haftadır "
+                  "sürüyor ya da artıyorsa aile hekiminize görünün.")
+            en = ("Your symptoms most likely have causes other than lung cancer; if they have lasted several weeks or are "
+                  "getting worse, please see your family physician.")
+        return {"probability": p_now, "percent": round(p_now * 100, 2), "level": level, "threshold": thr,
+                "reported": reported, "message_tr": tr, "message_en": en,
+                "source": f"Model; eşik NICE NG12 PPV %{thr * 100:g} (birinci basamak sevk eşiği)"}
+
     def _level(self, p: float) -> str:
         for lvl, info in self.RISK_LEVELS.items():
             lo, hi = info["range"]
@@ -584,9 +620,22 @@ class HybridLungCancerEngineV3(HybridLungCancerEngine):
         res["risk_level_factors_display_tr"], res["risk_level_factors_display_en"] = disp.get(
             lvl6, (self.RISK_LEVELS[lvl6]["label_tr"], self.RISK_LEVELS[lvl6]["label_en"]))
         res.update(self.risk_context(evidence, p6))
-        has_sym = any(ev.get(s) == 1 for s in SYMPTOMS_7)
-        res["recommendation_tr"] = self._recommend_v3(lvl6, alarm, "tr", has_sym)
-        res["recommendation_en"] = self._recommend_v3(lvl6, alarm, "en", has_sym)
+        sa = self.symptom_assessment(ev, res["risk_probability"])
+        res["symptom_assessment"] = sa
+        # Kısa sürede hekim: NICE kuralı YA DA model belirti katmanı YA DA hemoptizi (her yaşta; kanser dışı
+        # nedenler — enfeksiyon, tüberküloz — için de beklenmemeli; kanser şüphesi diliyle değil).
+        reasons = list(res["alarm"].get("reasons_tr") or [])
+        if sa["level"] == "elevated":
+            reasons.append("Belirti tablonuz, hekimlerin kısa sürede değerlendirme önerdiği düzeyin üzerinde (model tahmini)")
+        if ev.get("HEMOPTYSIS") == 1 and not any("emoptizi" in r for r in reasons):
+            reasons.append("Kan tükürme her yaşta kısa sürede hekim değerlendirmesi gerektirir; enfeksiyon gibi "
+                           "kanser dışı nedenleri de olabilir")
+        urgent = bool(reasons)
+        res["urgent_assessment"] = urgent
+        res["urgent_reasons_tr"] = reasons
+        # Belirti notu artık ayrı alan (symptom_assessment.message_*); öneri metni yalnız tarama/aciliyet
+        res["recommendation_tr"] = self._recommend_v3(lvl6, urgent, "tr")
+        res["recommendation_en"] = self._recommend_v3(lvl6, urgent, "en")
         res["data_sources"]["symptoms"] = ("Literatür (Hamilton 2005, Beckles 2003) + latent "
                                            "semptomatik düğüm; KOAH ortak neden (noisy-OR)")
         return res

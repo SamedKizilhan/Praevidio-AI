@@ -125,6 +125,11 @@ class Result(BaseModel):
     relative_risk_peers: Optional[float] = Field(None, description="Aynı yaş/cinsiyette hiç içmemiş, risk etkensiz kişiye göre kat")
     relative_message_tr: Optional[str] = None
     projection_message_tr: Optional[str] = Field(None, description="Aktif içici: devam / bugün bırakma projeksiyonu")
+    symptom_level: Optional[str] = Field(None, description="none | low | elevated (bugünkü belirtiler, eşik PPV %3)")
+    symptom_now: Optional[float] = Field(None, description="Bugünkü belirtilerin akciğer kanserine bağlı olma olasılığı, %")
+    symptom_message_tr: Optional[str] = None
+    urgent_assessment: Optional[bool] = Field(None, description="Kısa sürede hekim (NICE kuralı / belirti katmanı / hemoptizi)")
+    urgent_reasons_tr: List[str] = []
     plcom2012_6y: Optional[float] = None
     alarm: Optional[Alarm] = None
     screening: Optional[Screening] = None
@@ -178,6 +183,11 @@ def _result(sess: Session) -> Optional[Result]:
         relative_risk_peers=r.get("relative_risk_peers"),
         relative_message_tr=r.get("relative_message_tr"),
         projection_message_tr=(r.get("projection") or {}).get("message_tr"),
+        symptom_level=(r.get("symptom_assessment") or {}).get("level"),
+        symptom_now=(r.get("symptom_assessment") or {}).get("percent"),
+        symptom_message_tr=(r.get("symptom_assessment") or {}).get("message_tr"),
+        urgent_assessment=r.get("urgent_assessment"),
+        urgent_reasons_tr=r.get("urgent_reasons_tr") or [],
         plcom2012_6y=(float(bm["risk_6y"]) if bm.get("applicable") else None),
         alarm=(Alarm(level=alarm["level"], reasons_tr=alarm.get("reasons_tr", []),
                      message_tr=alarm.get("message_tr", "")) if alarm else None),

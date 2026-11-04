@@ -19,7 +19,7 @@ FIXTURES = [
      "3 Kasım 2026 kullanıcı bildirimi: '5 paket-yıl ne demek?' sorusu cevapsız kalıyordu (düzeltildi).",
      ['_pack_years=5', 'ajan_der="günde 10 sigara yaklaşık 0,5 paket"', 'ajan_der="üç haftadan uzun"',
       'ajan_der="asbeste"', 'COUGHING=0', 'COPD=0', '_province="İstanbul"', 'ajan_der="tarama eşiğinin altında"',
-      'ajan_der="bugün bırakırsanız"', 'bitti=true'],
+      'ajan_der="bugün bırakırsanız"', 'belirti="none"', 'acil=false', 'bitti=true'],
      {"5 paket-yıl ne demek ki?": "önceden açıklamadan sonraki soruya geçiyordu — artık açıklayıp aynı soruyu tekrar sormalı"}),
     ("02_35y_kadin_tum_belirtiler",
      ["35 yaşında kadınım", "günde bir paket, 18 yıldır içiyorum", "evet",
@@ -28,8 +28,10 @@ FIXTURES = [
      "4 Kasım 2026 simülasyonu: 35 yaş, aktif içici 18 paket-yıl, aile öyküsü + meslek + yüksek hava, KOAH yok, 7 belirti.",
      ['_pack_years=18', 'FAMILY_HISTORY=1', 'ASBESTOS=1', 'COPD=0', 'AIR_POLLUTION=2', 'HEMOPTYSIS=1', 'WEIGHT_LOSS=1',
       'risk_level_factors="low"', 'ajan_der="tarama eşiğinin altında"', 'ajan_der="34 kat"',
-      'ajan_der="tarama aralığına girersiniz"', 'ajan_demez="düşük risk grubuna"', 'alarm="none"', 'bitti=true'],
-     {"Iğdır": "AÇIK KONU: 40 yaş altında kan tükürme + kilo kaybı için NICE alarmı yok; öneri 'birkaç haftadır sürüyorsa' diyor ve 'riskiniz düşük görünüyor' cümlesi belirtili skorla çelişiyor (düzeltilince bu kayıt ve beklentisi güncellenecek)"}),
+      'ajan_der="tarama aralığına girersiniz"', 'ajan_demez="düşük risk grubuna"', 'ajan_demez="yüksek risk"',
+      'ajan_demez="birkaç haftadır"', 'ajan_der="kısa sürede"', 'alarm="none"', 'belirti="elevated"', 'acil=true',
+      'bitti=true'],
+     {"Iğdır": "ÇÖZÜLDÜ (4 Kas 2026): 40 yaş altında NICE alarmı yoktu ve 'birkaç haftadır sürüyorsa' deniyordu; belirti katmanı (bugünkü belirtilerin kansere bağlı olma olasılığı, eşik %3) ve her yaşta hemoptizi kuralı ile artık 'kısa sürede hekim' öneriliyor; tam skor ('%14,4 yüksek risk') bantlanmıyor"}),
 ]
 
 

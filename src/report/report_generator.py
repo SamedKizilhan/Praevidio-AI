@@ -248,10 +248,19 @@ def prepare_template_data(risk_result: dict, evidence: dict = None) -> dict:
             (risk_result.get("relative_message_tr"), risk_result.get("relative_message_en")),
             ((risk_result.get("projection") or {}).get("message_tr"), (risk_result.get("projection") or {}).get("message_en")),
         ) if x[0]]
+        sa = risk_result.get("symptom_assessment") or {}
         full_line = None
-        if risk_result.get("risk_level") != lvl6 or abs(score - p6) >= 0.5:
-            full_line = (f"Belirtilerle birlikte değerlendirme / Including symptoms: %{_fmt(score)} "
-                         f"({RISK_LEVEL_LABELS[risk_level]['tr']} / {RISK_LEVEL_LABELS[risk_level]['en']})")
+        if sa.get("level") in ("low", "elevated"):
+            lvl_txt = {"low": "eşiğin altında / below threshold",
+                       "elevated": "eşiğin üzerinde / above threshold"}[sa["level"]]
+            full_line = (f"Belirti katmanı / Symptom layer — bugünkü belirtilerin akciğer kanserine bağlı olma olasılığı "
+                         f"(model) / probability that current symptoms are due to lung cancer: %{_fmt(sa['percent'])} "
+                         f"({lvl_txt}; eşik / threshold %{sa['threshold'] * 100:g}, NICE NG12). "
+                         f"Tam skor (karma ufuk, ek bilgi) / full score (mixed horizon): %{_fmt(score)}")
+        if risk_result.get("urgent_assessment"):
+            alarm = {**alarm, "level": "urgent", "reasons_tr": risk_result.get("urgent_reasons_tr") or [],
+                     "message_tr": alarm.get("message_tr") or "Kısa sürede bir hekim değerlendirmesi önerilir.",
+                     "message_en": alarm.get("message_en") or "Prompt physician assessment is advised."}
         rec_level = "high" if alarm.get("level") == "urgent" else lvl6
         rec_tr, rec_en = risk_result.get("recommendation_tr"), risk_result.get("recommendation_en")
         src = risk_result.get("base_risk_source", "nlst")

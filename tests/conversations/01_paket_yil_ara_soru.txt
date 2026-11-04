@@ -46,6 +46,7 @@ agent: Değerlendirmeniz tamamlandı. Risk faktörlerinize göre önümüzdeki a
 # --- sonuç ---
 # model sürümü: 3.1
 # 6 yıllık: %0,09 (Tarama eşiğinin altında) · tam: %0,06 (Düşük Risk) · alarm: none
+# belirti katmanı: %0,00 (none, eşik %3) · kısa sürede hekim: False
 # göreli risk: ×6.5 · projeksiyon: Sigaraya bu şekilde devam ederseniz 50 yaşında 6 yıllık riskiniz yaklaşık %0,16 olur; bugün bırakırsanız aynı yaşta yaklaşık %0,09.
 # kanıt: {"AGE": 0, "AIR_POLLUTION": 1, "ASBESTOS": 0, "CHEST_PAIN": 0, "COPD": 0, "COUGHING": 0, "FAMILY_HISTORY": 0, "FATIGUE": 0, "GENDER": 1, "HEMOPTYSIS": 0, "SHORTNESS_OF_BREATH": 0, "SMOKING": 1, "WEIGHT_LOSS": 0, "WHEEZING": 0, "_age_exact": 45, "_cigs_per_day": 10, "_pack_years": 5.0, "_province": "İstanbul", "_years_smoked": 10}
 # beklenen: _pack_years=5
@@ -57,4 +58,6 @@ agent: Değerlendirmeniz tamamlandı. Risk faktörlerinize göre önümüzdeki a
 # beklenen: _province="İstanbul"
 # beklenen: ajan_der="tarama eşiğinin altında"
 # beklenen: ajan_der="bugün bırakırsanız"
+# beklenen: belirti="none"
+# beklenen: acil=false
 # beklenen: bitti=true
