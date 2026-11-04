@@ -1,19 +1,22 @@
 # v3 duyarlılık analizi
 
-*Hücreler: tam skor % (6 yıllık faktör katmanı %). Varsayılan q=0.35.*
+*Otomatik üretildi: `make sensitivity`. Hücreler: tam skor % (6 yıllık faktör katmanı %). v3.1 varsayılanı: q=0.35, π (başka hastalık önceliği)=0,20, ρ (ortak neden payı)=1,0, taban PLCOm2012 / Wakelee 2007.*
 
-| Vaka | q=0.25 | q=0.35 (varsayılan) | q=0.50 | q=0.35, normalizasyon kapalı | q=0.35, taban=PLCOm2012 |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| K1 72y erkek aktif (50 py), semptom sorulmamış | 8.8 (8.8) | 8.8 (8.8) | 8.8 (8.8) | 11.7 (11.7) | 6.7 (6.7) |
-| K2 aynı, 7 semptom 'hayır' | 6.4 (8.8) | 5.6 (8.8) | 4.5 (8.8) | 7.6 (11.7) | 4.3 (6.7) |
-| K3 aynı, sadece hemoptizi 'evet' (6 hayır) | 8.6 (8.8) | 8.7 (8.8) | 8.9 (8.8) | 11.7 (11.7) | 6.7 (6.7) |
-| K4 aynı, öksürük+nefes+hırıltı, KOAH ? | 15.5 (8.8) | 17.1 (8.8) | 19.5 (8.8) | 22.3 (11.7) | 13.4 (6.7) |
-| K5 aynı, 7 semptom 'evet' | 99.5 (8.8) | 99.7 (8.8) | 99.8 (8.8) | 99.8 (11.7) | 99.6 (6.7) |
-| K6 58y kadın eski içici (15 py, 20 yıl önce), semptomsuz | 1.7 (1.7) | 1.7 (1.7) | 1.7 (1.7) | 2.3 (2.3) | 0.3 (0.3) |
-| K7 62y erkek aktif (30 py), sadece hemoptizi (diğerleri ?) | 23.2 (5.0) | 28.7 (5.0) | 35.6 (5.0) | 35.8 (6.8) | 11.8 (1.7) |
+| Vaka | v3.0 | v3.1 (varsayılan) | q=0.25 | q=0.50 | π=0.15 | π=0.30 | ρ=0.70 | ρ=0.85 | normalizasyon kapalı |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| K1 72y erkek aktif (50 py), semptom sorulmamış | 8.76 (8.76) | 6.03 (6.03) | 6.03 (6.03) | 6.03 (6.03) | 6.03 (6.03) | 6.03 (6.03) | 6.03 (6.03) | 6.03 (6.03) | 6.03 (6.03) |
+| K2 aynı, 7 semptom 'hayır' | 5.62 (8.76) | 3.83 (6.03) | 4.36 (6.03) | 3.04 (6.03) | 3.83 (6.03) | 3.83 (6.03) | 3.83 (6.03) | 3.83 (6.03) | 3.84 (6.03) |
+| K3 aynı, sadece hemoptizi 'evet' (6 hayır) | 8.72 (8.76) | 20.61 (6.03) | 16.84 (6.03) | 25.66 (6.03) | 27.79 (6.03) | 12.32 (6.03) | 8.60 (6.03) | 11.17 (6.03) | 20.62 (6.03) |
+| K4 aynı, öksürük+nefes+hırıltı, KOAH ? | 17.15 (8.76) | 11.20 (6.03) | 10.15 (6.03) | 12.74 (6.03) | 11.21 (6.03) | 11.54 (6.03) | 11.63 (6.03) | 11.43 (6.03) | 11.22 (6.03) |
+| K5 aynı, 7 semptom 'evet' | 99.68 (8.76) | 67.60 (6.03) | 60.18 (6.03) | 74.67 (6.03) | 54.02 (6.03) | 86.08 (6.03) | 84.20 (6.03) | 76.33 (6.03) | 67.63 (6.03) |
+| K6 58y kadın eski içici (15 py, 20 yıl önce), semptomsuz | 1.66 (1.66) | 0.37 (0.37) | 0.37 (0.37) | 0.37 (0.37) | 0.37 (0.37) | 0.37 (0.37) | 0.37 (0.37) | 0.37 (0.37) | 0.37 (0.37) |
+| K7 62y erkek aktif (30 py), sadece hemoptizi (diğerleri ?) | 28.72 (5.00) | 13.52 (2.00) | 10.52 (2.00) | 17.67 (2.00) | 13.52 (2.00) | 13.52 (2.00) | 13.52 (2.00) | 13.52 (2.00) | 13.52 (2.00) |
+| K8 45y erkek aktif (5 py), asbest, 5 belirti, KOAH yok (kullanıcı denemesi) | 85.27 (1.49) | 0.84 (0.14) | 0.64 (0.14) | 1.14 (0.14) | 0.60 (0.14) | 2.08 (0.14) | 1.97 (0.14) | 1.24 (0.14) | 0.84 (0.14) |
+| **Hamilton zarfı: en kötü çarpan / sınır** (≤1 = içinde) | **169.94** | **0.35** | **0.25** | **0.50** | **0.47** | **1.40** | **1.06** | **0.58** | **0.35** |
 
 ## Okuma
 
-- q arttıkça negatif kanıt ('hayır') daha çok düşürür, pozitif kanıt daha çok yükseltir; q=0,25–0,50 aralığında sıralama (K2 < K1 < K3 < K4 < K5) değişmez, yalnız mesafeler değişir.
-- Normalizasyon: K1–K5'te aile öyküsü/asbest/hava açıkça 0 verildiği için fark iki kaynaktan gelir — normalize modelde 'temiz' kişi NLST hücresinin (≈%10,9) altına iner (%8,8), normalize olmayan modelde sorulmamış KOAH prior üzerinden ×1,07 şişirir (%11,7). Sorulmamış faktör sayısı arttıkça fark ~1,3×'e çıkar.
-- PLCOm2012 tabanı aynı profilde NLST hücresinin ~1/3'ünü verir: NLST taban oranı (%3,85/≈6,5 yıl) yalnız ≥30 paket-yıl ağır içicilerin gözlenen oranıdır ve tarama ile saptanan kanserleri içerir; PLCOm2012 ise doz/süre/bırakma ile düzeltir. Hangi tabanın kullanılacağı uzman görüşüyle kararlaştırılacak; iki taban da raporlanır (`nlst_6y_factors`, `benchmark_plcom2012`).
+- **v3.0 → v3.1:** sigara içmişlerde taban PLCOm2012'ye geçtiği için 6 yıllık katman genel olarak 2–3 kat (genç/hafif içicilerde 10–35 kat) düşer; ortak neden düğümü sayesinde çoklu belirti kombinasyonları Hamilton 2005 zarfına girer (son satır).
+- **q (bugün semptomatik pay):** 0,25–0,50 aralığında vaka sıralaması değişmez; q büyüdükçe belirtilerin (hem 'evet' hem 'hayır') etkisi artar.
+- **π, ρ (ortak neden):** ρ küçüldükçe belirtiler yeniden bağımsızlaşır ve zarf aşılmaya başlar; π büyüdükçe belirti başına ortak neden katkısı azalır. Varsayılan (π=0,20, ρ=1,0), NHANES 2007–12'deki öksürük–hırıltı birlikteliğine (OR 4,1; kansersiz, hiç içmemiş, KOAH'sız) p_o ≤ p_cancer kısıtı altında en yakın değerdir (model OR 3,4).
+- **Normalizasyon:** v3.1'de yalnız asbest ve il PM2.5 çarpanlarını etkiler (aile öyküsü ve KOAH PLCOm2012'nin içinde).

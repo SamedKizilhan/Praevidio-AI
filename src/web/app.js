@@ -31,7 +31,10 @@ function setMode(m) {
   $("mic-status").textContent = m === "voice" ? "Anlamadığınız bir şey olursa sorabilirsiniz." : "";
 }
 const micSupported = () => window.isSecureContext && navigator.mediaDevices && window.MediaRecorder;
-function pct(n) { return "%" + Number(n).toLocaleString("tr-TR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }); }
+function pct(n) {                              // %10 altında iki ondalık: bant sınırında "%1,49 Düşük" net okunur
+  const d = Number(n) < 10 ? 2 : 1;
+  return "%" + Number(n).toLocaleString("tr-TR", { minimumFractionDigits: d, maximumFractionDigits: d });
+}
 function show(view) {
   for (const v of ["welcome", "chat", "result"]) $("view-" + v).hidden = v !== view;
   $("composer").hidden = view !== "chat"; $("btn-mode").hidden = view !== "chat";

@@ -1,5 +1,10 @@
 # Risk Modeli v3 — Tasarım Notu (Güz 2026)
 
+> **Güncelleme (4 Kasım 2026): v3.1.** Bu not v3.0 tasarımını anlatır. v3.1'de 6 yıllık taban sigara içmişlerde
+> PLCOm2012, hiç içmemişlerde Wakelee 2007 oldu; yedi belirtiye ortak neden "başka bir hastalık" düğümü eklendi
+> (NHANES'e kalibre). Gerekçe, testler ve profil bazında değişim: [`v3_1_duzeltme.md`](v3_1_duzeltme.md).
+> §2.2'deki "KOAH yok → semptomlar kansere daha çok yazılır" davranışı v3.1'de ortak neden düğümüyle sınırlandı.
+
 **Amaç.** Bahar dönemi modelini (v2, `src/model/hybrid_bayesian_network.py`) *değiştirmeden*
 dört metodolojik düzeltmeyi ayrı bir modülde (`hybrid_bayesian_network_v3.py`) uygulamak ve iki
 sürümü yan yana karşılaştırabilmek (`make compare` → `docs/v2_vs_v3_karsilastirma.md`).

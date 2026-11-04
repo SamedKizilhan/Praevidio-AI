@@ -209,7 +209,8 @@ __marimo__/
 # LLM stuff
 ProjectPlan.md
 claude/ 
-report/
+# kökteki LaTeX raporu (src/report/ PDF üreticisi izlenir)
+/report/
 
 #recordings
 *.wav
@@ -238,3 +239,5 @@ docs/veri_kaynaklari_semptom.md
 
 # PWA test fixture (local only)
 .pwa_fixture.json
+# yerel rapor önizlemeleri
+.rapor_*.html

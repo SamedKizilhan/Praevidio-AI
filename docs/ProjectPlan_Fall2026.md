@@ -23,6 +23,7 @@ This document is the Fall 2026 continuation of the [Spring 2026 plan](ProjectPla
 | Model v3 + conversation v3 | 5 October 2026 | New risk model, flow, STT/TTS — delivered. |
 | PLCOm2012 benchmark, sensitivity, NHANES calibration, AGPL-3.0 | 19 October 2026 | Delivered and merged to `main`. |
 | Backend (FastAPI) | 3 November 2026 | Delivered: sessions, text/audio turns, report, TTS; end-to-end tests. |
+| Model v3.1 calibration fix | 4 November 2026 | Delivered: PLCOm2012 / Wakelee 2007 base, symptom common cause (NHANES-calibrated), 86 model tests incl. frozen v3.0 baseline and Hamilton 2005 envelope. |
 | Mobile client (PWA) end-to-end | 12 November 2026 | Voice/text conversation on the phone through the backend — core delivered 3 Nov. |
 | **Midterm report** | **17 November 2026** | Methodology review, model v3, v2/v3 comparison, PLCOm2012, NHANES calibration, conversation v3, backend + mobile architecture, remaining plan. |
 | Expert + usability validation | 4 December 2026 | Pulmonologist blind scoring (10 vignettes, v2 vs v3); 5–8-person SUS test. |
@@ -36,6 +37,8 @@ This document is the Fall 2026 continuation of the [Spring 2026 plan](ProjectPla
 
 ### Phase 1 — Analysis and model correction (28 Sep – 19 Oct) ✅
 Full code/report review; four methodological findings on the v2 score (meaning mismatch between NLST outcome and symptom CPTs, naive-Bayes over-confidence, reference-category bias, undefined time horizon). Implementation of v3 and of the v2/v3 comparison harness (`make compare`), PLCOm2012 benchmark, sensitivity analysis (`make sensitivity`), NHANES 2007–12 calibration of the no-cancer respiratory baselines (`make nhanes`), expert-validation answer key with v2/v3 side by side. Conversation flow v3, STT/TTS upgrades, blind TTS listening test. Relicensed to AGPL-3.0-or-later.
+
+**v3.1 fix (4 Nov) — finding 5.** A user trial on the PWA gave 1.49 % (6-year) and 85 % (with symptoms) for a young light smoker with five symptoms. Root causes: the NLST base applied the heavy-smoker cohort level outside its age/dose range, never-smokers used a fixed ×0.15 on that cell, and four non-respiratory symptoms were conditionally independent without cancer (the v3.0 COPD node covered only three respiratory symptoms). The over-confidence was visible in the comparison table (7 symptoms → 99.7 %) but had been accepted because the NICE alarm fired in those rows. Fix: PLCOm2012 base for ever-smokers, Wakelee 2007 for never-smokers, latent "other illness" common cause calibrated to NHANES 2007–12; a frozen v3.0 regression baseline and clinical plausibility tests (Hamilton 2005 PPV envelope, PLCOm2012/Wakelee agreement, NHANES co-occurrence, monotonicity). Details: `docs/v3_1_duzeltme.md`.
 
 ### Phase 2 — Backend (19 Oct – 3 Nov) ✅
 FastAPI service (`src/api/`): the CLI conversation agent runs unchanged, one thread per session behind a queue-backed channel, so CLI and API share a single state machine; shared, lock-protected risk engines (v2 and v3); text and audio turns (STT with the agent's context hint), PDF/HTML report download, cached TTS audio per message, optional bearer token; eight end-to-end tests (`make api-test`). Docker image deferred to deployment.

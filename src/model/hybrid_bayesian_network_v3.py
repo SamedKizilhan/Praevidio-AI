@@ -105,6 +105,22 @@ SIMPLE_SYMPTOMS = {
     "HEMOPTYSIS":  (0.01, 0.20),
     "WEIGHT_LOSS": (0.05, 0.35),
 }
+# v3.1 ortak neden: "başka bir hastalık" (enfeksiyon, astım, reflü, kaygı, kas-iskelet ağrısı…).
+# v3.0'da yalnız KOAH, yalnız üç solunum belirtisini açıklıyordu; göğüs ağrısı, halsizlik, kilo
+# kaybı ve hemoptizi kansersiz kişide birbirinden bağımsızdı → kanser olasılık oranları çarpılıyor,
+# 5 belirtide ×380'e çıkıyordu (Hamilton 2005 ile tutarsız). Parametreler:
+#   OTHER_PRIOR  π : P(başka bir hastalık var) — gözlenmez, yalnız belirtiler üzerinden çıkarılır
+#   OTHER_SHARE  ρ : her belirtinin kansersiz taban sıklığının (leak) ortak nedenden gelen payı
+# Belirti başına katkı p_o = ρ·leak/π; leak' = 1 − (1−leak)/(1−ρ·leak) → kansersiz kişide her
+# belirtinin marjinal sıklığı (NHANES kalibrasyonu) DEĞİŞMEZ, yalnız belirtiler arası korelasyon eklenir.
+# Kalibrasyon (Kas 2026, tests/model + docs/v3_1_duzeltme.md): NHANES 2007-12 kansersiz, 40+, hiç
+# içmemiş ve KOAH/amfizem/kronik bronşit tanısı olmayanlarda OR(kronik öksürük, hırıltı) = 4,1
+# (n=5053); v3.0'da bu grupta OR = 1,0 (bağımsız). p_o ≤ p_cancer kısıtıyla ulaşılabilen en yakın
+# değer π=0,20, ρ=1,0 → OR 3,4 (veriden hafif düşük = açıklama etkisini abartmaz).
+OTHER_PRIOR = float(os.getenv("PRAEVIDIO_OTHER_PRIOR", "0.20"))
+OTHER_SHARE = float(os.getenv("PRAEVIDIO_OTHER_SHARE", "1.0"))
+OTHER_CAUSE = os.getenv("PRAEVIDIO_OTHER_CAUSE", "1") not in ("0", "false", "False")
+
 SYMPTOMS_7 = ["COUGHING", "SHORTNESS_OF_BREATH", "CHEST_PAIN", "WHEEZING",
               "FATIGUE", "HEMOPTYSIS", "WEIGHT_LOSS"]
 RISK_FACTOR_NODES = ["AGE", "GENDER", "SMOKING", "FAMILY_HISTORY", "ASBESTOS",
@@ -123,19 +139,50 @@ BANDS_CHOICE = os.getenv("PRAEVIDIO_BANDS", "v3")
 # Taban risk kaynağı: "nlst" (varsayılan; BBN'in NLST hücresi) | "plco" (PLCOm2012 uygulanabiliyorsa
 # risk-faktörü katmanı PLCOm2012'den alınır, semptom kanıtı BBN'den türetilen olasılık oranı
 # (LR = odds(tam sonsal)/odds(faktör-sonsalı)) olarak PLCO odds'una uygulanır; uygulanamıyorsa NLST).
-BASE_RISK_SOURCE = os.getenv("PRAEVIDIO_BASE_RISK", "nlst")
+BASE_RISK_SOURCE = os.getenv("PRAEVIDIO_BASE_RISK", "plco")      # v3.1 varsayılanı; v3.0: "nlst"
+
+# v3.1 hiç içmemiş tabanı (base_risk="plco" ile birlikte): Wakelee 2007 (J Clin Oncol 25:472),
+# altı kohort, 40–79 yaş yaşa göre standardize insidans: erkek 4,8–13,7, kadın 14,4–20,8 /100.000
+# kişi-yıl → aralık ortaları (9,3 / 17,6) ~58 yaşa atanır; yaşla her 10 yılda ×2,2 artış (akciğer
+# kanseri insidansının yaş eğimi). 6 yıllık risk ≈ 1 − exp(−6·oran). NLST'de hiç içmemiş yoktu;
+# v3.0'daki NLST eski-içici hücresi × 0,15 yaklaşımı 60–70 yaşta 4–7 kat yüksekti.
+NEVER_SMOKER_RATE_100K = {0: 17.6, 1: 9.3}      # GENDER: 0 kadın, 1 erkek (Wakelee 2007 orta değerler)
+NEVER_SMOKER_REF_AGE = 58.0
+NEVER_SMOKER_AGE_FACTOR_10Y = 2.2
 
 
 # ==============================================================
 # 2. YAPI
 # ==============================================================
 
-def get_structure_v3():
+def get_structure_v3(other_cause: bool = False):
     edges = [(f, "LUNG_CANCER") for f in RISK_FACTOR_NODES]
     edges += [("SMOKING", "COPD"), ("LUNG_CANCER", "SYMPTOMATIC")]
     edges += [("SYMPTOMATIC", s) for s in SYMPTOMS_7]
     edges += [(p, s) for s in NOISY_OR for p in ("SMOKING", "COPD")]
+    if other_cause:
+        edges += [("OTHER_ILLNESS", s) for s in SYMPTOMS_7]
     return edges
+
+
+def other_cause_params(prior: float = None, share: float = None) -> dict:
+    """{belirti: (leak', p_o)} — marjinal kansersiz sıklığı koruyan ortak neden parametreleri."""
+    prior = OTHER_PRIOR if prior is None else prior
+    share = OTHER_SHARE if share is None else share
+    leaks = {k: v["leak"] for k, v in NOISY_OR.items()}
+    leaks.update({k: v[0] for k, v in SIMPLE_SYMPTOMS.items()})
+    p_cancer = {k: v["cancer"] for k, v in NOISY_OR.items()}
+    p_cancer.update({k: 1 - (1 - v[1]) / (1 - v[0]) for k, v in SIMPLE_SYMPTOMS.items()})
+    out = {}
+    for s, leak in leaks.items():
+        # Ortak neden bir belirtiyi semptomatik kanserden daha güçlü üretemez (p_o ≤ p_cancer).
+        # Aksi hâlde çok yaygın/özgül olmayan belirtiler (halsizlik, hırıltı) "başka hastalık"
+        # kanıtına dönüşüp diğer belirtileri açıklar ve belirti EKLEMEK riski düşürür.
+        p_o = min(share * leak / prior, p_cancer[s])
+        if not 0 <= p_o <= 1:
+            raise ValueError(f"{s}: p_o={p_o:.2f} — OTHER_PRIOR ≥ OTHER_SHARE·leak olmalı")
+        out[s] = (1 - (1 - leak) / (1 - prior * p_o), p_o)
+    return out
 
 
 # ==============================================================
@@ -200,6 +247,30 @@ def _noisy_or(p: dict, s: int, sm: int, copd: int) -> float:
     return 1 - q
 
 
+def build_other_cause_cpds(prior: float = None, share: float = None) -> list:
+    """OTHER_ILLNESS düğümü + ortak nedenli 7 belirti CPT'si (noisy-OR, sıra pgmpy: ilk ebeveyn en yavaş)."""
+    import itertools
+    prior = OTHER_PRIOR if prior is None else prior
+    par = other_cause_params(prior, share)
+    cpds = [TabularCPD("OTHER_ILLNESS", 2, [[1 - prior], [prior]])]
+    for name in SYMPTOMS_7:
+        leak2, p_o = par[name]
+        if name in NOISY_OR:
+            p = NOISY_OR[name]
+            yes = [1 - (1 - leak2) * (1 - p["smoke"]) ** sm * (1 - p["copd"]) ** copd
+                   * (1 - p["cancer"]) ** s * (1 - p_o) ** o
+                   for s, sm, copd, o in itertools.product(range(2), repeat=4)]
+            ev, card = ["SYMPTOMATIC", "SMOKING", "COPD", "OTHER_ILLNESS"], [2, 2, 2, 2]
+        else:
+            p0, p1 = SIMPLE_SYMPTOMS[name]
+            pc = 1 - (1 - p1) / (1 - p0)          # P(s|semptomatik kanser)=p1 korunur
+            yes = [1 - (1 - leak2) * (1 - pc) ** s * (1 - p_o) ** o
+                   for s, o in itertools.product(range(2), repeat=2)]
+            ev, card = ["SYMPTOMATIC", "OTHER_ILLNESS"], [2, 2]
+        cpds.append(TabularCPD(name, 2, [[1 - y for y in yes], yes], evidence=ev, evidence_card=card))
+    return cpds
+
+
 def build_symptom_cpds_v3() -> list:
     cpds = []
     for name, p in NOISY_OR.items():
@@ -219,18 +290,21 @@ def build_symptom_cpds_v3() -> list:
 
 def build_hybrid_model_v3(nlst_data_path: Path = NLST_CLEANED_PATH,
                           verbose: bool = True, q: float = None,
-                          normalize: bool = None) -> DiscreteBayesianNetwork:
-    """q / normalize: duyarlılık analizi için parametre geçersiz kılma (None → config)."""
+                          normalize: bool = None, other_cause: bool = None,
+                          other_prior: float = None, other_share: float = None) -> DiscreteBayesianNetwork:
+    """q / normalize / other_*: duyarlılık analizi için parametre geçersiz kılma (None → config)."""
+    other_cause = OTHER_CAUSE if other_cause is None else other_cause
     if verbose:
         print("\n🧠 BUILDING HYBRID BBN v3 (latent semptomatik + KOAH + OR normalizasyonu)")
         print("=" * 72)
     df = pd.read_csv(nlst_data_path)
-    model = DiscreteBayesianNetwork(get_structure_v3())
+    model = DiscreteBayesianNetwork(get_structure_v3(other_cause))
     nlst_cpts = compute_nlst_cancer_cpt(df) if verbose else _quiet(compute_nlst_cancer_cpt, df)
     # v2 priorları: AGE, GENDER, SMOKING, FAMILY_HISTORY, ASBESTOS, AIR_POLLUTION
     priors = build_prior_cpds()
     model.add_cpds(build_cancer_cpd_v3(nlst_cpts, normalize), *priors, build_copd_cpd(),
-                   build_symptomatic_cpd(q), *build_symptom_cpds_v3())
+                   build_symptomatic_cpd(q),
+                   *(build_other_cause_cpds(other_prior, other_share) if other_cause else build_symptom_cpds_v3()))
     assert model.check_model(), "v3 model validation FAILED"
     if verbose:
         print(f"   ✅ v3 doğrulandı — {len(model.nodes())} düğüm, {len(model.edges())} kenar, "
@@ -304,7 +378,7 @@ class HybridLungCancerEngineV3(HybridLungCancerEngine):
         super().__init__(model)
 
     def _posterior(self, ev: dict, never_flag: bool) -> float:
-        valid = set(self.model.nodes()) - {"LUNG_CANCER", "SYMPTOMATIC"}
+        valid = set(self.model.nodes()) - {"LUNG_CANCER", "SYMPTOMATIC", "OTHER_ILLNESS"}
         q = self.inference.query(variables=["LUNG_CANCER"],
                                  evidence={k: v for k, v in ev.items() if k in valid})
         p = float(q.values[1])
@@ -313,6 +387,44 @@ class HybridLungCancerEngineV3(HybridLungCancerEngine):
             o = p / max(1e-9, 1 - p) * NEVER_SMOKER_OR
             p = o / (1 + o)
         return min(0.9999, max(0.0001, p))
+
+    def _plco_6y(self, ev: dict) -> float:
+        """
+        v3.1 sigara içmiş kişi tabanı: PLCOm2012 (yaş, adet/gün, süre, bırakalı yıl, KOAH, aile
+        öyküsü — sürekli değişkenlerle; NLST'nin 55–74 yaş/≥30 paket-yıl kohort sınırı yok).
+          • Bilinmeyen aile öyküsü / KOAH → prior üzerinden ortalama (PLCO'daki 0 varsayımı yerine)
+          • PLCOm2012'de olmayan faktörler (asbest, il PM2.5) → normalize OR çarpanı (OR/E[OR]);
+            bilinmiyorsa çarpan 1 (marjinal ortalama)
+        """
+        from model.plcom2012 import plcom2012_from_evidence
+        fh = ([(ev["FAMILY_HISTORY"], 1.0)] if ev.get("FAMILY_HISTORY") is not None else
+              [(0, RISK_FACTOR_PRIORS["FAMILY_HISTORY"][0]), (1, RISK_FACTOR_PRIORS["FAMILY_HISTORY"][1])])
+        pc = COPD_GIVEN_SMOKING[1 if ev.get("SMOKING") == 1 else 0]
+        copd = [(ev["COPD"], 1.0)] if ev.get("COPD") is not None else [(0, 1 - pc), (1, pc)]
+        p = sum(wf * wc * plcom2012_from_evidence({**ev, "FAMILY_HISTORY": f, "COPD": c})["risk_6y_raw"]
+                for f, wf in fh for c, wc in copd)
+        mult = 1.0
+        for factor in ("ASBESTOS", "AIR_POLLUTION"):
+            if ev.get(factor) is not None:
+                mult *= effective_or(factor, ev[factor])
+        o = p / (1 - p) * mult
+        return min(0.9999, max(1e-6, o / (1 + o)))
+
+    def _never_6y(self, ev: dict) -> float:
+        """v3.1 hiç içmemiş 6 yıllık taban (Wakelee 2007) × normalize OR'ler (aile, asbest, hava, KOAH)."""
+        import math
+        from model.plcom2012 import AGE_GROUP_MID
+        age = ev.get("_age_exact") or AGE_GROUP_MID.get(ev.get("AGE", 2), 62)
+        sexes = [ev["GENDER"]] if ev.get("GENDER") in (0, 1) else [0, 1]
+        rate = sum(NEVER_SMOKER_RATE_100K[g] for g in sexes) / len(sexes) / 1e5
+        rate *= NEVER_SMOKER_AGE_FACTOR_10Y ** ((age - NEVER_SMOKER_REF_AGE) / 10.0)
+        p = 1 - math.exp(-6 * rate)
+        mult = 1.0
+        for factor in ("FAMILY_HISTORY", "ASBESTOS", "AIR_POLLUTION", "COPD"):
+            if ev.get(factor) is not None:
+                mult *= effective_or(factor, ev[factor])
+        o = p / (1 - p) * mult
+        return min(0.9999, max(1e-6, o / (1 + o)))
 
     def _level(self, p: float) -> str:
         for lvl, info in self.RISK_LEVELS.items():
@@ -338,34 +450,44 @@ class HybridLungCancerEngineV3(HybridLungCancerEngine):
             res["or_contributions"]["KOAH tanısı"] = RISK_FACTOR_ORS["COPD"][1]
 
         from model.plcom2012 import plcom2012_from_evidence
-        bm = plcom2012_from_evidence(ev)
-        nlst_p6, nlst_full = p6, res["risk_probability"]
+        # Benchmark: v3.1'de özgün kanıt (v3.0'da "ağır eski içici → aktif" uyarlanmış kanıt; geriye dönük korunur)
+        bm = plcom2012_from_evidence(evidence if self.base_risk == "plco" else ev)
+        nlst_p6 = p6
+        nlst_full = self._posterior(ev, never_flag)       # = v2 şemasındaki tam sonsal, yuvarlanmamış
+        res["risk_probability"] = nlst_full
         base_used = "nlst"
-        if self.base_risk == "plco" and bm["applicable"]:
+        pb = None
+        if self.base_risk == "plco":
+            if bm["applicable"]:
+                pb, base_used = self._plco_6y(evidence), "plco"     # özgün kanıt ("ağır eski → aktif" kuralı yok)
+            elif never_flag:
+                pb, base_used = self._never_6y(evidence), "wakelee2007"
+        if pb is not None:
             # Semptom kanıtının BBN'deki etkisi = odds oranı; PLCOm2012 tabanına taşınır
             o6, ofull = nlst_p6 / (1 - nlst_p6), nlst_full / (1 - nlst_full)
             lr = ofull / o6
-            pb = bm["risk_6y"] / 100.0
             ob = pb / (1 - pb)
             p6 = pb
             pfull = (ob * lr) / (1 + ob * lr)
             lvl6 = self._level(p6)
-            res["risk_probability"] = round(pfull, 6)
+            res["risk_probability"] = pfull
             res["risk_score"] = round(pfull * 100, 2)
             res["no_cancer_probability"] = round(1 - pfull, 6)
             res["risk_level"] = self._level(pfull)
             res["risk_level_tr"] = self.RISK_LEVELS[res["risk_level"]]["label_tr"]
             res["risk_level_en"] = self.RISK_LEVELS[res["risk_level"]]["label_en"]
             res["risk_color"] = self.RISK_LEVELS[res["risk_level"]]["color"]
-            base_used = "plco"
         res.update({
             "benchmark_plcom2012": bm,
             "base_risk_source": base_used,
             "nlst_6y_factors": round(nlst_p6 * 100, 2),
             "model_version": MODEL_VERSION,
+            "model_revision": "3.1" if (self.base_risk == "plco" and "OTHER_ILLNESS" in self.model.nodes()) else (
+                "3.0" if self.base_risk == "nlst" and "OTHER_ILLNESS" not in self.model.nodes() else "3.x-custom"),
             "bands": self.bands,
             "q_symptomatic": SYMPTOMATIC_FRACTION,
             "risk_6y_factors": round(p6 * 100, 2),
+            "risk_6y_probability": p6,                  # yuvarlanmamış (testler/çarpan hesabı)
             "risk_level_factors": lvl6,
             "risk_level_factors_tr": self.RISK_LEVELS[lvl6]["label_tr"],
             "alarm": nice_ng12_alarm(ev),
@@ -373,15 +495,18 @@ class HybridLungCancerEngineV3(HybridLungCancerEngine):
         })
         # Öneri metni iki katmana göre: alarm yoksa "Yüksek" bile tarama dilinde konuşur
         alarm = res["alarm"]["level"] == "urgent"
-        res["recommendation_tr"] = self._recommend_v3(res["risk_level"], alarm, "tr")
-        res["recommendation_en"] = self._recommend_v3(res["risk_level"], alarm, "en")
+        # Öneri 6 yıllık TARAMA katmanına + alarma bağlı (Kas 2026 düzeltmesi: önceden tam skora
+        # bağlıydı → faktörleri "Düşük" kişiye "risk faktörleriniz riskinizi artırıyor" deniyordu).
+        has_sym = any(ev.get(s) == 1 for s in SYMPTOMS_7)
+        res["recommendation_tr"] = self._recommend_v3(lvl6, alarm, "tr", has_sym)
+        res["recommendation_en"] = self._recommend_v3(lvl6, alarm, "en", has_sym)
         res["data_sources"]["symptoms"] = ("Literatür (Hamilton 2005, Beckles 2003) + latent "
                                            "semptomatik düğüm; KOAH ortak neden (noisy-OR)")
         return res
 
 
     @staticmethod
-    def _recommend_v3(level: str, alarm: bool, lang: str) -> str:
+    def _recommend_v3(level: str, alarm: bool, lang: str, has_symptoms: bool = False) -> str:
         tr = {
             "urgent": ("Belirtileriniz, risk skorunuzdan bağımsız olarak kısa sürede bir hekim "
                        "değerlendirmesi gerektiriyor. Lütfen en kısa sürede bir göğüs hastalıkları "
@@ -411,17 +536,41 @@ class HybridLungCancerEngineV3(HybridLungCancerEngine):
                     "if new symptoms appear. This is a screening tool, not a diagnosis."),
         }
         key = "urgent" if alarm else level
-        return (tr if lang == "tr" else en)[key]
+        text = (tr if lang == "tr" else en)[key]
+        if has_symptoms and not alarm:
+            # NICE alarmı yok (ör. 40 yaş altı ya da tek, hafif belirti) ama belirti bildirilmiş
+            text += (" Bildirdiğiniz şikâyetler çoğu zaman akciğer kanseri dışındaki nedenlerden kaynaklanır; "
+                     "yine de birkaç haftadır sürüyor ya da artıyorsa aile hekiminize görünün."
+                     if lang == "tr" else
+                     " The symptoms you reported usually have causes other than lung cancer; if they have "
+                     "lasted several weeks or are getting worse, please see your family physician.")
+        return text
 
 
-def load_engine(version: str = "v3", verbose: bool = False):
-    """Sürüm seçici: 'v2' → eski motor (değişmedi), 'v3' → bu modül."""
+# Sürüm ön ayarları — her sürüm adıyla birebir yeniden üretilebilir (tests/model/test_baseline.py)
+PRESETS = {
+    "v3.0": {"base_risk": "nlst"},
+    "v3.1a": {"base_risk": "plco", "other_cause": False},  # ara adım: yalnız yeni taban (A + A2)
+    "v3.1": {"base_risk": "plco", "other_cause": True, "other_prior": 0.20, "other_share": 1.0},
+}
+
+
+def load_engine(version: str = "v3", verbose: bool = False, **overrides):
+    """
+    Sürüm seçici: 'v2' → eski motor (değişmedi); 'v3' → ortam değişkenleriyle varsayılan v3;
+    'v3.0' … → dondurulmuş ön ayar (PRESETS). overrides ön ayarı ezer (duyarlılık analizi için).
+    """
     if version == "v2":
         from model.hybrid_bayesian_network import build_hybrid_model
         m = build_hybrid_model() if verbose else _quiet(build_hybrid_model)
         return HybridLungCancerEngine(m) if verbose else _quiet(HybridLungCancerEngine, m)
-    m = build_hybrid_model_v3(verbose=verbose)
-    return HybridLungCancerEngineV3(m) if verbose else _quiet(HybridLungCancerEngineV3, m)
+    cfg = {**PRESETS.get(version, {}), **overrides}
+    eng_kw = {k: cfg[k] for k in ("base_risk", "bands") if k in cfg}
+    mdl_kw = {k: cfg[k] for k in ("q", "normalize", "other_cause", "other_prior", "other_share") if k in cfg}
+    if version == "v3.0":
+        mdl_kw.setdefault("other_cause", False)
+    m = build_hybrid_model_v3(verbose=verbose, **mdl_kw)
+    return HybridLungCancerEngineV3(m, **eng_kw) if verbose else _quiet(HybridLungCancerEngineV3, m, **eng_kw)
 
 
 # ==============================================================

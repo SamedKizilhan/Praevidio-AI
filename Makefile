@@ -18,7 +18,7 @@ PORT    ?= 8000
 MODEL   ?= v3         # risk modeli: v3 (latent semptomatik + KOAH) | v2 (bahar dönemi)
 
 .DEFAULT_GOAL := help
-.PHONY: help chat voice api api-test pipeline demo scenarios compare model-v3 sensitivity nhanes nhanes-download tts-test expert expert-analyze sus eval calibrate explain model rag install clean
+.PHONY: help chat voice api api-test pipeline demo scenarios compare model-v3 model-test v31-diff sensitivity nhanes nhanes-download tts-test expert expert-analyze sus eval calibrate explain model rag install clean
 
 help:  ## Komut listesini göster
 	@echo "Praevidio AI — komutlar:"
@@ -57,6 +57,12 @@ compare:  ## v2 ile v3 risk modelini tüm senaryolarda karşılaştır
 
 model-v3:  ## v3 BBN'i kur, doğrula, demo senaryoları çalıştır
 	$(PY) src/model/hybrid_bayesian_network_v3.py
+
+model-test:  ## Model testleri: v3.0 regresyon + klinik makullük (Hamilton zarfı, PLCOm2012, NHANES)
+	$(PY) -m pytest tests/model -q
+
+v31-diff:  ## v3.0 → v3.1 profil bazında değişim raporu (docs/v3_1_duzeltme.md)
+	cd tests/model && $(PY) diff_report.py
 
 sensitivity:  ## v3 duyarlılık analizi
 	$(PY) src/model/sensitivity_v3.py

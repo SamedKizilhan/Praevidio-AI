@@ -327,6 +327,11 @@ STATIC_TTS_PROMPTS = [q for _, q in SYMPTOM_QUESTIONS] + [
 # Ajan
 # ──────────────────────────────────────────────
 
+def _tr_pct(x: float) -> str:
+    """Türkçe yüzde: %10 altında iki ondalık (bant sınırında '%1,5 Düşük' karışıklığı olmasın)."""
+    return (f"{x:.2f}" if x < 10 else f"{x:.1f}").replace(".", ",")
+
+
 class ConversationAgent:
     def __init__(self, channel: Channel, nlp_mode: str = "keyword", model_version: str = "v3",
                  engine=None):
@@ -642,10 +647,10 @@ class ConversationAgent:
         if result.get("model_version") == "v3":
             p6 = result["risk_6y_factors"]
             summary = (f"Değerlendirmeniz tamamlandı. Risk faktörlerinize göre önümüzdeki altı yıl "
-                       f"için tahmini riskiniz yüzde {p6:.1f}; bu, {result['risk_level_factors_tr'].lower()} "
+                       f"için tahmini riskiniz yüzde {_tr_pct(p6)}; bu, {result['risk_level_factors_tr'].lower()} "
                        f"grubuna giriyor. ")
-            if abs(score - p6) >= 0.5:
-                summary += f"Belirtilerinizle birlikte skor yüzde {score:.1f} ({level.lower()}). "
+            if abs(score - p6) >= 0.5 or result["risk_level"] != result.get("risk_level_factors"):
+                summary += f"Belirtilerinizle birlikte skor yüzde {_tr_pct(score)} ({level.lower()}). "
             # (alarm varsa recommendation_tr zaten acil sevk dilinde — tekrar edilmez)
         else:
             summary = (f"Değerlendirmeniz tamamlandı. Risk düzeyiniz: {level}, "

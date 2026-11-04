@@ -223,6 +223,15 @@ accepts "bilmiyorum", confirms demographics, asks about COPD and speaks a two-la
 medical-term context hint; a free native-Turkish TTS option (`PRAEVIDIO_TTS_PROVIDER=edge`) and a blind
 listening test (`make tts-test`) were added.
 
+**v3.1 (November 2026) — calibration fix.** A user trial exposed two over-estimates in v3.0: the 6-year layer
+used the NLST cohort level for young / light smokers (2–35× PLCOm2012), and multiple non-respiratory symptoms
+were independent given no cancer (5 symptoms ×380 → 85 %). v3.1 uses PLCOm2012 as the 6-year base for ever-smokers
+and Wakelee 2007 incidence for never-smokers, and adds a latent *other illness* common cause for all seven symptoms,
+calibrated to the NHANES cough–wheeze co-occurrence while keeping each symptom's no-cancer prevalence unchanged.
+`tests/model` (86 tests) freezes v3.0 (`load_engine("v3.0")`) and checks v3.1 against a Hamilton 2005 PPV envelope,
+PLCOm2012, Wakelee 2007, NHANES and monotonicity rules (`make model-test`); details and per-profile changes:
+`docs/v3_1_duzeltme.md` (`make v31-diff`).
+
 **Side questions (clarification loop).** `src/conversation/clarify.py` lets the user ask instead of answer at any step. The state machine is unchanged: the single listening point (`_heard`) detects a side question, answers it, re-asks the current prompt word for word (TTS cache hit) and listens again (≤3 times per prompt). Answers come from a fixed Turkish glossary (paket-yıl — personalised with the user's own numbers —, KOAH, amfizem, hırıltı, kan tükürme, KETEM, düşük doz BT, 6-year risk, PM2.5 …) and per-question "why we ask" texts, so they work in keyword mode for free and are reproducible; only unmatched questions in `llm` mode go to a constrained GPT prompt (no diagnosis, no risk numbers, no treatment advice, urgent symptoms → doctor/112).
 
 ## 🌐 Backend API (Fall 2026)

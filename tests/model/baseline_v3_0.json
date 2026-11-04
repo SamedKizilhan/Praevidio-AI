@@ -1,0 +1,397 @@
+{
+ "_meta": {
+  "model": "v3.0",
+  "created": "2026-11-03",
+  "git": "d4de22c",
+  "n_profiles": 43
+ },
+ "profiles": {
+  "S:D1": {
+   "risk_score": 0.01,
+   "risk_6y_factors": 0.02,
+   "nlst_6y_factors": 0.02,
+   "risk_level": "low",
+   "risk_level_factors": "low",
+   "alarm": "none",
+   "plcom2012_6y": null
+  },
+  "S:D2": {
+   "risk_score": 5.63,
+   "risk_6y_factors": 3.99,
+   "nlst_6y_factors": 3.99,
+   "risk_level": "high",
+   "risk_level_factors": "moderate",
+   "alarm": "urgent",
+   "plcom2012_6y": 1.31
+  },
+  "S:D3": {
+   "risk_score": 24.26,
+   "risk_6y_factors": 6.22,
+   "nlst_6y_factors": 6.22,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "urgent",
+   "plcom2012_6y": 1.9
+  },
+  "S:D4": {
+   "risk_score": 5.91,
+   "risk_6y_factors": 1.14,
+   "nlst_6y_factors": 1.14,
+   "risk_level": "high",
+   "risk_level_factors": "low",
+   "alarm": "urgent",
+   "plcom2012_6y": 0.61
+  },
+  "S:D5": {
+   "risk_score": 24.07,
+   "risk_6y_factors": 24.07,
+   "nlst_6y_factors": 24.07,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "none",
+   "plcom2012_6y": 5.86
+  },
+  "S:P1a": {
+   "risk_score": 11.97,
+   "risk_6y_factors": 7.46,
+   "nlst_6y_factors": 7.46,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "urgent",
+   "plcom2012_6y": 2.29
+  },
+  "S:P1b": {
+   "risk_score": 13.33,
+   "risk_6y_factors": 8.35,
+   "nlst_6y_factors": 8.35,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "urgent",
+   "plcom2012_6y": 2.29
+  },
+  "S:P2a": {
+   "risk_score": 5.64,
+   "risk_6y_factors": 7.46,
+   "nlst_6y_factors": 7.46,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "urgent",
+   "plcom2012_6y": 2.29
+  },
+  "S:P2b": {
+   "risk_score": 9.22,
+   "risk_6y_factors": 12.04,
+   "nlst_6y_factors": 12.04,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "urgent",
+   "plcom2012_6y": 4.05
+  },
+  "S:P3a": {
+   "risk_score": 11.31,
+   "risk_6y_factors": 3.99,
+   "nlst_6y_factors": 3.99,
+   "risk_level": "high",
+   "risk_level_factors": "moderate",
+   "alarm": "urgent",
+   "plcom2012_6y": 1.31
+  },
+  "S:P3b": {
+   "risk_score": 14.92,
+   "risk_6y_factors": 7.46,
+   "nlst_6y_factors": 7.46,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "urgent",
+   "plcom2012_6y": 2.29
+  },
+  "S:P4a": {
+   "risk_score": 0.02,
+   "risk_6y_factors": 0.02,
+   "nlst_6y_factors": 0.02,
+   "risk_level": "low",
+   "risk_level_factors": "low",
+   "alarm": "none",
+   "plcom2012_6y": null
+  },
+  "S:P4b": {
+   "risk_score": 6.04,
+   "risk_6y_factors": 8.76,
+   "nlst_6y_factors": 8.76,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "none",
+   "plcom2012_6y": 3.35
+  },
+  "S:P5a": {
+   "risk_score": 24.07,
+   "risk_6y_factors": 24.07,
+   "nlst_6y_factors": 24.07,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "none",
+   "plcom2012_6y": 5.86
+  },
+  "S:P5b": {
+   "risk_score": 16.49,
+   "risk_6y_factors": 24.07,
+   "nlst_6y_factors": 24.07,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "none",
+   "plcom2012_6y": 5.86
+  },
+  "S:S1": {
+   "risk_score": 0.43,
+   "risk_6y_factors": 0.43,
+   "nlst_6y_factors": 0.43,
+   "risk_level": "low",
+   "risk_level_factors": "low",
+   "alarm": "none",
+   "plcom2012_6y": null
+  },
+  "S:S2": {
+   "risk_score": 2.79,
+   "risk_6y_factors": 2.79,
+   "nlst_6y_factors": 2.79,
+   "risk_level": "moderate",
+   "risk_level_factors": "moderate",
+   "alarm": "none",
+   "plcom2012_6y": 0.52
+  },
+  "S:S3": {
+   "risk_score": 5.0,
+   "risk_6y_factors": 5.0,
+   "nlst_6y_factors": 5.0,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "none",
+   "plcom2012_6y": 1.72
+  },
+  "S:S4": {
+   "risk_score": 2.79,
+   "risk_6y_factors": 2.79,
+   "nlst_6y_factors": 2.79,
+   "risk_level": "moderate",
+   "risk_level_factors": "moderate",
+   "alarm": "none",
+   "plcom2012_6y": 0.72
+  },
+  "S:S5": {
+   "risk_score": 5.0,
+   "risk_6y_factors": 5.0,
+   "nlst_6y_factors": 5.0,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "none",
+   "plcom2012_6y": 1.72
+  },
+  "S:S6": {
+   "risk_score": 2.79,
+   "risk_6y_factors": 2.79,
+   "nlst_6y_factors": 2.79,
+   "risk_level": "moderate",
+   "risk_level_factors": "moderate",
+   "alarm": "none",
+   "plcom2012_6y": 0.89
+  },
+  "P:B1a": {
+   "risk_score": 8.76,
+   "risk_6y_factors": 8.76,
+   "nlst_6y_factors": 8.76,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "none",
+   "plcom2012_6y": 3.35
+  },
+  "P:B1b": {
+   "risk_score": 5.62,
+   "risk_6y_factors": 8.76,
+   "nlst_6y_factors": 8.76,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "none",
+   "plcom2012_6y": 3.35
+  },
+  "P:B1c": {
+   "risk_score": 8.72,
+   "risk_6y_factors": 8.76,
+   "nlst_6y_factors": 8.76,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "urgent",
+   "plcom2012_6y": 3.35
+  },
+  "P:B2a": {
+   "risk_score": 17.15,
+   "risk_6y_factors": 8.76,
+   "nlst_6y_factors": 8.76,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "urgent",
+   "plcom2012_6y": 3.35
+  },
+  "P:B2b": {
+   "risk_score": 14.14,
+   "risk_6y_factors": 11.24,
+   "nlst_6y_factors": 11.24,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "urgent",
+   "plcom2012_6y": 4.71
+  },
+  "P:B2c": {
+   "risk_score": 43.03,
+   "risk_6y_factors": 8.14,
+   "nlst_6y_factors": 8.14,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "urgent",
+   "plcom2012_6y": 3.35
+  },
+  "P:B2d": {
+   "risk_score": 99.68,
+   "risk_6y_factors": 8.76,
+   "nlst_6y_factors": 8.76,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "urgent",
+   "plcom2012_6y": 3.35
+  },
+  "P:B3a": {
+   "risk_score": 5.0,
+   "risk_6y_factors": 5.0,
+   "nlst_6y_factors": 5.0,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "none",
+   "plcom2012_6y": 1.56
+  },
+  "P:B3b": {
+   "risk_score": 3.62,
+   "risk_6y_factors": 3.62,
+   "nlst_6y_factors": 3.62,
+   "risk_level": "moderate",
+   "risk_level_factors": "moderate",
+   "alarm": "none",
+   "plcom2012_6y": 1.56
+  },
+  "P:B3c": {
+   "risk_score": 4.48,
+   "risk_6y_factors": 4.48,
+   "nlst_6y_factors": 4.48,
+   "risk_level": "moderate",
+   "risk_level_factors": "moderate",
+   "alarm": "none",
+   "plcom2012_6y": 1.56
+  },
+  "P:B4a": {
+   "risk_score": 2.62,
+   "risk_6y_factors": 2.62,
+   "nlst_6y_factors": 2.62,
+   "risk_level": "moderate",
+   "risk_level_factors": "moderate",
+   "alarm": "none",
+   "plcom2012_6y": 0.74
+  },
+  "P:B4b": {
+   "risk_score": 28.72,
+   "risk_6y_factors": 5.0,
+   "nlst_6y_factors": 5.0,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "urgent",
+   "plcom2012_6y": 1.56
+  },
+  "E:E1": {
+   "risk_score": 0.01,
+   "risk_6y_factors": 0.02,
+   "nlst_6y_factors": 0.02,
+   "risk_level": "low",
+   "risk_level_factors": "low",
+   "alarm": "none",
+   "plcom2012_6y": null
+  },
+  "E:E2": {
+   "risk_score": 2.97,
+   "risk_6y_factors": 2.54,
+   "nlst_6y_factors": 2.54,
+   "risk_level": "moderate",
+   "risk_level_factors": "moderate",
+   "alarm": "urgent",
+   "plcom2012_6y": 1.73
+  },
+  "E:E3": {
+   "risk_score": 57.17,
+   "risk_6y_factors": 7.46,
+   "nlst_6y_factors": 7.46,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "urgent",
+   "plcom2012_6y": 4.64
+  },
+  "E:E4": {
+   "risk_score": 0.15,
+   "risk_6y_factors": 0.17,
+   "nlst_6y_factors": 0.17,
+   "risk_level": "low",
+   "risk_level_factors": "low",
+   "alarm": "urgent",
+   "plcom2012_6y": 0.22
+  },
+  "E:E5": {
+   "risk_score": 10.43,
+   "risk_6y_factors": 15.77,
+   "nlst_6y_factors": 15.77,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "none",
+   "plcom2012_6y": 8.62
+  },
+  "E:E6": {
+   "risk_score": 9.03,
+   "risk_6y_factors": 7.36,
+   "nlst_6y_factors": 7.36,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "urgent",
+   "plcom2012_6y": 1.86
+  },
+  "E:E7": {
+   "risk_score": 1.36,
+   "risk_6y_factors": 1.83,
+   "nlst_6y_factors": 1.83,
+   "risk_level": "low",
+   "risk_level_factors": "moderate",
+   "alarm": "urgent",
+   "plcom2012_6y": 0.82
+  },
+  "E:E8": {
+   "risk_score": 0.55,
+   "risk_6y_factors": 0.65,
+   "nlst_6y_factors": 0.65,
+   "risk_level": "low",
+   "risk_level_factors": "low",
+   "alarm": "none",
+   "plcom2012_6y": null
+  },
+  "E:E9": {
+   "risk_score": 1.71,
+   "risk_6y_factors": 2.54,
+   "nlst_6y_factors": 2.54,
+   "risk_level": "moderate",
+   "risk_level_factors": "moderate",
+   "alarm": "urgent",
+   "plcom2012_6y": 1.0
+  },
+  "E:E10": {
+   "risk_score": 7.49,
+   "risk_6y_factors": 8.28,
+   "nlst_6y_factors": 8.28,
+   "risk_level": "high",
+   "risk_level_factors": "high",
+   "alarm": "urgent",
+   "plcom2012_6y": 3.15
+  }
+ }
+}

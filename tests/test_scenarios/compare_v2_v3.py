@@ -15,7 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 from model.hybrid_bayesian_network_v3 import (load_engine, SYMPTOMATIC_FRACTION,
-                                              NORMALIZE_ORS, RISK_BANDS, BANDS_CHOICE)
+                                              NORMALIZE_ORS, RISK_BANDS, BANDS_CHOICE, PRESETS)
 
 SCENARIOS = ROOT / "tests" / "test_scenarios" / "scenarios.json"
 OUT = ROOT / "docs" / "v2_vs_v3_karsilastirma.md"
@@ -103,7 +103,12 @@ def fmt(r):
 
 
 def main():
-    e2, e3 = load_engine("v2"), load_engine("v3")
+    e2, e30, e3 = load_engine("v2"), load_engine("v3.0"), load_engine("v3.1")
+    d2 = e3.predict_risk(next(s["evidence"] for s in json.loads(SCENARIOS.read_text(encoding="utf-8"))["scenarios"]
+                              if s["id"] == "D2"))
+    d2_30 = e30.predict_risk(next(s["evidence"] for s in json.loads(SCENARIOS.read_text(encoding="utf-8"))["scenarios"]
+                                  if s["id"] == "D2"))
+    c = lambda x: f"{x:.1f}".replace(".", ",")
     data = json.loads(SCENARIOS.read_text(encoding="utf-8"))
     rows = []
     for s in data["scenarios"]:
@@ -113,7 +118,11 @@ def main():
     L = ["# v2 ile v3 risk modeli karşılaştırması", "",
          f"*Otomatik üretildi: `make compare`. v3 parametreleri: q={SYMPTOMATIC_FRACTION}, "
          f"OR normalizasyonu={'açık' if NORMALIZE_ORS else 'kapalı'}, bantlar={BANDS_CHOICE} "
-         f"({RISK_BANDS[BANDS_CHOICE]}).*", "",
+         f"({RISK_BANDS[BANDS_CHOICE]}); v3.0 = {PRESETS['v3.0']}, v3.1 = {PRESETS['v3.1']}.*", "",
+         "**v3.1 (Kasım 2026):** sigara içmişlerde 6 yıllık taban PLCOm2012, hiç içmemişlerde Wakelee 2007; "
+         "yedi belirtiye ortak neden \"başka bir hastalık\" düğümü (NHANES belirti birlikteliğine kalibre). "
+         "Gerekçe ve satır satır değişim: `docs/v3_1_duzeltme.md`. Aşağıdaki **v3 %/bant/6y** sütunları v3.1'dir; "
+         "**v3.0 %** ve **v3.0 6y** karşılaştırma için korunmuştur.", "",
          "v2 bantları: Düşük <%5, Orta %5–15, Yüksek ≥%15. v3 bantları (6 yıllık ufuk): Düşük <%1,5, "
          "Orta %1,5–5 (tarama adayı), Yüksek ≥%5. **6y-faktör** = yalnız risk faktörlerinden hesaplanan "
          "tarama katmanı; **alarm** = NICE NG12 acil sevk kuralı (skordan bağımsız).", "",
@@ -125,7 +134,8 @@ def main():
          "bulgularını sınayan vakalar.", "",
          "| Sütun | Anlamı |", "| --- | --- |",
          "| v2 % / v2 bant | Bahar modeli; bantlar bir zaman ufkuna bağlı değil (<%5 / %5–15 / ≥%15). |",
-         "| v3 % / v3 bant | v3 tam skoru (risk faktörleri + belirtiler) ve bu skorun 6 yıllık banda göre yeri. |",
+         "| v3.0 % / v3.0 6y | Ekim 2026 sürümü (NLST tabanı, ortak neden yok) — tam skor ve 6 yıllık katman. |",
+         "| v3 % / v3 bant | v3.1 tam skoru (risk faktörleri + belirtiler) ve bu skorun 6 yıllık banda göre yeri. |",
          "| v3 6y-faktör % | Yalnız yaş, cinsiyet, sigara, aile öyküsü, meslek, hava kirliliği ve KOAH'tan 6 yıllık risk: "
          "\"taranmalı mı?\" sorusunun cevabı. Belirtiler cevaplanmamışsa v3 % ile aynıdır (D5). |",
          "| PLCOm2012 6y % | Dış karşılaştırma (Tammemägi 2013); yalnız sigara içmiş kişiler için. Günlük adet / içilen yıl "
@@ -134,33 +144,34 @@ def main():
          "| alarm | NICE NG12 kuralı, skordan bağımsız: ≥40 yaş + kan tükürme; veya ≥40 yaş + ≥2 açıklanamayan belirti "
          "(öksürük, halsizlik, nefes darlığı, göğüs ağrısı, kilo kaybı); veya ≥40 yaş + sigara öyküsü + ≥1 belirti → "
          "kısa sürede hekim değerlendirmesi (göğüs röntgeni). |", "",
-         "**Örnek (D2).** 65–69 yaş erkek, eski içici, öksürük + halsizlik. v2: %12,2 \"Orta\". v3: risk faktörlerinden "
-         "6 yıllık risk %4,0 (tarama adayı aralığı), belirtilerle birlikte %5,6 \"Yüksek\"; iki açıklanamayan belirti "
-         "olduğu için ayrıca ACİL.", "",
+         f"**Örnek (D2).** 65–69 yaş erkek, eski içici, öksürük + halsizlik. v2: %12,2 \"Orta\". v3.0: 6 yıllık "
+         f"%{c(d2_30['risk_6y_factors'])}, tam %{c(d2_30['risk_score'])}. v3.1: risk faktörlerinden 6 yıllık risk "
+         f"%{c(d2['risk_6y_factors'])} ({d2['risk_level_factors_tr']}), belirtilerle birlikte %{c(d2['risk_score'])} "
+         f"({d2['risk_level_tr']}); iki açıklanamayan belirti olduğu için ayrıca ACİL.", "",
          "**v3 bantlarının gerekçesi.** %1,5 alt sınırı PLCOm2012'nin tarama eşiğidir (6 yıllık risk ≥ %1,51 → düşük doz "
          "BT önerilir; USPSTF ölçütlerine denk). %5 sınırı, NLST ağır içici popülasyonunun ortalama ~6,5 yıllık tanı "
          "oranının (%3,85) belirgin üstüdür ve v2'nin \"Orta\" alt sınırıyla aynıdır. Sınırlar uzman validasyonu ve "
          "karar eğrisi analiziyle kesinleşecektir.", "",
          "## Sonuçlar", "",
-         "| ID | Senaryo | v2 % | v2 bant | v3 % | v3 bant | v3 6y-faktör % | PLCOm2012 6y % | alarm |",
-         "| --- | --- | ---: | --- | ---: | --- | ---: | ---: | --- |"]
+         "| ID | Senaryo | v2 % | v2 bant | v3.0 % | v3.0 6y | v3 % | v3 bant | v3 6y-faktör % | PLCOm2012 6y % | alarm |",
+         "| --- | --- | ---: | --- | ---: | ---: | ---: | --- | ---: | ---: | --- |"]
     print(f"{'ID':5s} {'v2 %':>7s} {'v2 bant':10s} {'v3 %':>7s} {'v3 bant':10s} {'6y %':>6s} {'PLCO %':>7s} alarm   senaryo")
     for sid, name, ev in rows:
-        r2, r3 = e2.predict_risk(ev), e3.predict_risk(ev)
+        r2, r30, r3 = e2.predict_risk(ev), e30.predict_risk(ev), e3.predict_risk(ev)
         p2, l2 = fmt(r2); p3, l3 = fmt(r3)
         al = "ACİL" if r3["alarm"]["level"] == "urgent" else "—"
         bm = r3["benchmark_plcom2012"]
         plco = f"{bm['risk_6y']:.2f}" if bm["applicable"] else "n/a"
-        L.append(f"| {sid} | **{name}**<br><sub>{profile(ev)}</sub> | {p2} | {l2} | {p3} | {l3} | "
+        L.append(f"| {sid} | **{name}**<br><sub>{profile(ev)}</sub> | {p2} | {l2} | {r30['risk_score']:.2f} | "
+                 f"{r30['risk_6y_factors']:.2f} | {p3} | {l3} | "
                  f"{r3['risk_6y_factors']:.2f} | {plco} | {al} |")
         print(f"{sid:5s} {p2:>7s} {l2:10s} {p3:>7s} {l3:10s} {r3['risk_6y_factors']:6.2f} {plco:>7s} {al:7s} {name[:60]}")
 
     L += ["", "## Okuma notları", "",
-          "- **PLCOm2012 sütunu:** dış benchmark (Tammemägi 2013), yalnız ever-smoker; adet/gün, içilen yıl ve "
-          "bırakalı yıl verilmeyen senaryolarda model merkez değerleri varsayılır (20/gün, paket-yıl/1, 10 yıl), "
-          "bu yüzden yalnız S-serisi ve _age_exact içeren vakalarda birebir karşılaştırılabilir. NLST tabanı "
-          "(tüm NLST ≥30 paket-yıl ağır içici) hafif içicilerde PLCOm2012'den sistematik yüksek çıkar; "
-          "iki taban raporda yan yana verilir.",
+          "- **PLCOm2012 sütunu:** saf PLCOm2012 (bilinmeyen aile öyküsü/KOAH = 0, asbest/hava yok). v3.1'in 6 yıllık "
+          "katmanı sigara içmişlerde bunun üzerine kurulur; farklar bilinmeyen aile öyküsü/KOAH'ın prior ortalaması ve "
+          "asbest/il PM2.5 çarpanlarından gelir. v3.0'ın NLST tabanı (tüm NLST ≥30 paket-yıl, 55–74 yaş) genç ve hafif "
+          "içicilerde 2–35 kat yüksekti (Kasım 2026 düzeltmesi).",
           "- **B1b vs B1a:** v2'de 7 'hayır' tabanı 36 kat düşürüp 'Düşük'e çekiyordu; v3'te 6 yıllık taban "
           "korunur (latent semptomatik düğüm), yalnızca 'şu an semptomatik' olasılığı düşer.",
           "- **B2a–c:** KOAH düğümü açıklama-giderme (explaining away) davranışını klinik yönde çalıştırır: "
@@ -170,8 +181,10 @@ def main():
           "'temiz' kişi NLST hücresinin altında kalır (v2'de üstündeydi).",
           "- **B4:** v3 bantları PLCOm2012 tarama eşiğine (%1,51/6 yıl) bağlıdır; hemoptizi gibi alarm "
           "belirtileri skordan bağımsız 'ACİL' bayrağıyla yüzeye çıkar.",
-          "- 7 'evet' hâlâ ~%99 verir: çoklu pozitif kanıtın aşırı güveni bilinen bir naive-Bayes özelliğidir; "
-          "klinik karar 'Yüksek + ACİL' olduğundan sunumda sorun yaratmaz, ileride LR kısıtlamasıyla yumuşatılabilir."]
+          "- **B2d (7 'evet'):** v3.0'da %99,7 idi. Bu daha önce \"klinik karar zaten ACİL\" diye kabul edilmişti; "
+          "40 yaş altında alarm çıkmadığında tek başına kalan abartılı skor (kullanıcı denemesi: %85) bunun yanlış "
+          "olduğunu gösterdi. v3.1'de belirtiler ortak neden (\"başka bir hastalık\") üzerinden birbirini kısmen açıklar; "
+          "her kombinasyonun belirti çarpanı Hamilton 2005 zarfı içinde kalır (`tests/model/test_plausibility.py`)."]
     OUT.write_text("\n".join(L) + "\n", encoding="utf-8")
     print(f"\n📄 Rapor: {OUT}")
 

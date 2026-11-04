@@ -109,7 +109,7 @@ def plcom2012_from_evidence(ev: dict) -> dict:
     risk = plcom2012_risk(age=age, cigs_per_day=cigs, years_smoked=yrs,
                           years_quit=yq or 0, current_smoker=current,
                           copd=ev.get("COPD", 0) or 0, family_lc=ev.get("FAMILY_HISTORY", 0) or 0)
-    return {"applicable": True, "risk_6y": round(risk * 100, 2),
+    return {"applicable": True, "risk_6y": round(risk * 100, 2), "risk_6y_raw": risk,
             "screen_eligible": risk >= SCREEN_THRESHOLD,
             "reason": "; ".join(assumed) if assumed else "tüm girdiler mevcut",
             "inputs": {"age": age, "cigs_per_day": round(cigs, 1), "years_smoked": round(yrs, 1),
