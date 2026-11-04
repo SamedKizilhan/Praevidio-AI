@@ -1,0 +1,41 @@
+# Praevidio konuşma kaydı
+# oturum: 02_35y_kadin_tum_belirtiler  ·  model: v3  ·  nlp: keyword  ·  kanal: test-fixture
+# 4 Kasım 2026 simülasyonu: 35 yaş, aktif içici 18 paket-yıl, aile öyküsü + meslek + yüksek hava, KOAH yok, 7 belirti.
+agent: Merhaba. Sağlıklı bir risk analizi yapabilmem için öncelikle yaşınızı ve cinsiyetinizi belirtir misiniz?
+user: 35 yaşında kadınım
+agent: Sigara kullanıyor musunuz? Kullanıyorsanız ya da bıraktıysanız, günde kaç adet ve kaç yıl içtiğinizi de söyler misiniz?
+user: günde bir paket, 18 yıldır içiyorum
+agent: Şunları not ettim: 35 yaşında, kadın, aktif sigara içiyor, yaklaşık 18 paket-yıl. Doğru mu?
+user: evet
+agent: Teşekkürler. Son haftalarda sizi rahatsız eden şikâyetleriniz neler? Örneğin öksürük, nefes darlığı, göğüs ağrısı, halsizlik gibi; yoksa 'şikâyetim yok' diyebilirsiniz.
+user: öksürüyorum, nefes darlığım var, göğsüm ağrıyor, hırıltı oluyor, çok halsizim, kan tükürdüm ve kilo verdim
+agent: Şunları not ettim: öksürük, nefes darlığı, göğüs ağrısı, hırıltı, halsizlik, kan tükürme, kilo kaybı.
+agent: Birinci derece akrabalarınızda (anne, baba, kardeş) akciğer kanseri öyküsü var mı?
+user: evet
+agent: Şu meslek gruplarından birinde uzun süre çalıştınız mı: inşaat, yıkım, tersane, maden, yalıtım, oto tamir, çimento veya eternit fabrikası?
+user: evet
+agent: Doktorunuz size KOAH, amfizem veya kronik bronşit tanısı koydu mu?
+user: hayır
+agent: Hangi ilde yaşıyorsunuz?
+user: Iğdır
+>> AÇIK KONU: 40 yaş altında kan tükürme + kilo kaybı için NICE alarmı yok; öneri 'birkaç haftadır sürüyorsa' diyor ve 'riskiniz düşük görünüyor' cümlesi belirtili skorla çelişiyor (düzeltilince bu kayıt ve beklentisi güncellenecek)
+agent: Değerlendirmeniz tamamlandı. Risk faktörlerinize göre önümüzdeki altı yıl için tahmini riskiniz yüzde 0,42; bu, tarama eşiğinin altında. Bu, aynı yaşta ve cinsiyette, sigara içmeyen ve risk etkeni olmayan birine göre yaklaşık 34 kat. Sigaraya bu şekilde devam ederseniz 50 yaşında 6 yıllık riskiniz yaklaşık yüzde 2,14 olur ve tarama aralığına girersiniz; bugün bırakırsanız aynı yaşta yaklaşık yüzde 0,65. Belirtilerinizle birlikte skor yüzde 14,4 (yüksek risk). 6 yıllık riskiniz şu an tarama eşiğinin altında. Bu, risk faktörlerinizin önemsiz olduğu anlamına gelmez; sigara, yaş veya mesleki maruziyet varsa önemini korur. Yeni bir belirti olursa hekiminize başvurun. Bu bir tarama aracıdır, tanı koymaz. Bildirdiğiniz şikâyetler çoğu zaman akciğer kanseri dışındaki nedenlerden kaynaklanır; yine de birkaç haftadır sürüyor ya da artıyorsa aile hekiminize görünün. Unutmayın, bu bir tarama ve farkındalık aracıdır, kesin tanı koymaz. Ne kadar erken tarama, o kadar erken teşhis. Detaylı raporunuzu indirmek için rapor butonuna basabilirsiniz.
+# --- sonuç ---
+# model sürümü: 3.1
+# 6 yıllık: %0,42 (Tarama eşiğinin altında) · tam: %14,4 (Yüksek Risk) · alarm: none
+# göreli risk: ×33.79 · projeksiyon: Sigaraya bu şekilde devam ederseniz 50 yaşında 6 yıllık riskiniz yaklaşık %2,14 olur ve tarama aralığına girersiniz; bugün bırakırsanız aynı yaşta yaklaşık %0,65.
+# kanıt: {"AGE": 0, "AIR_POLLUTION": 2, "ASBESTOS": 1, "CHEST_PAIN": 1, "COPD": 0, "COUGHING": 1, "FAMILY_HISTORY": 1, "FATIGUE": 1, "GENDER": 0, "HEMOPTYSIS": 1, "SHORTNESS_OF_BREATH": 1, "SMOKING": 1, "WEIGHT_LOSS": 1, "WHEEZING": 1, "_age_exact": 35, "_cigs_per_day": 20, "_pack_years": 18.0, "_province": "Iğdır", "_years_smoked": 18}
+# beklenen: _pack_years=18
+# beklenen: FAMILY_HISTORY=1
+# beklenen: ASBESTOS=1
+# beklenen: COPD=0
+# beklenen: AIR_POLLUTION=2
+# beklenen: HEMOPTYSIS=1
+# beklenen: WEIGHT_LOSS=1
+# beklenen: risk_level_factors="low"
+# beklenen: ajan_der="tarama eşiğinin altında"
+# beklenen: ajan_der="34 kat"
+# beklenen: ajan_der="tarama aralığına girersiniz"
+# beklenen: ajan_demez="düşük risk grubuna"
+# beklenen: alarm="none"
+# beklenen: bitti=true

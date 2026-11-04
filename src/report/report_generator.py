@@ -240,8 +240,14 @@ def prepare_template_data(risk_result: dict, evidence: dict = None) -> dict:
         p6 = risk_result["risk_6y_factors"]
         lvl6 = risk_result.get("risk_level_factors") or _determine_risk_level(p6)
         banner = {"label": "6 Yıllık Tahmini Risk (risk etkenleri) / 6-Year Risk (risk factors)",
-                  "value": _fmt(p6), "level": lvl6,
-                  "level_tr": RISK_LEVEL_LABELS[lvl6]["tr"], "level_en": RISK_LEVEL_LABELS[lvl6]["en"]}
+                  "value": _fmt(p6), "level": "below" if lvl6 == "low" else lvl6,
+                  "level_tr": (risk_result.get("risk_level_factors_display_tr") or RISK_LEVEL_LABELS[lvl6]["tr"])
+                  .replace("i", "İ").replace("ı", "I").upper(),                     # Türkçe büyük harf (EŞİĞİNİN)
+                  "level_en": (risk_result.get("risk_level_factors_display_en") or RISK_LEVEL_LABELS[lvl6]["en"]).upper()}
+        context_lines = [x for x in (
+            (risk_result.get("relative_message_tr"), risk_result.get("relative_message_en")),
+            ((risk_result.get("projection") or {}).get("message_tr"), (risk_result.get("projection") or {}).get("message_en")),
+        ) if x[0]]
         full_line = None
         if risk_result.get("risk_level") != lvl6 or abs(score - p6) >= 0.5:
             full_line = (f"Belirtilerle birlikte değerlendirme / Including symptoms: %{_fmt(score)} "
@@ -257,7 +263,7 @@ def prepare_template_data(risk_result: dict, evidence: dict = None) -> dict:
     else:
         banner = {"label": "Risk Skoru / Risk Score", "value": f"{score:.1f}", "level": risk_level,
                   "level_tr": RISK_LEVEL_LABELS[risk_level]["tr"], "level_en": RISK_LEVEL_LABELS[risk_level]["en"]}
-        full_line, rec_level = None, risk_level
+        full_line, rec_level, context_lines = None, risk_level, []
         rec_tr, rec_en = RECOMMENDATIONS[risk_level]["tr"], RECOMMENDATIONS[risk_level]["en"]
         rf_source = "NLST Clinical Trial (n=53,452), NCI/NIH"
         sym_source = "Hamilton (2005), Beckles (2003), Kvale (2006), Hopwood (2000)"
@@ -265,6 +271,7 @@ def prepare_template_data(risk_result: dict, evidence: dict = None) -> dict:
     return {
         "banner": banner,
         "full_line": full_line,
+        "context_lines": context_lines,
         "alarm": alarm if alarm.get("level") == "urgent" else None,
         "screening": screening,
         "smoking_note": risk_result.get("smoking_adjustment"),

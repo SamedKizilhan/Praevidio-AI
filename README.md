@@ -234,6 +234,15 @@ PLCOm2012, Wakelee 2007, NHANES and monotonicity rules (`make model-test`); deta
 
 **Side questions (clarification loop).** `src/conversation/clarify.py` lets the user ask instead of answer at any step. The state machine is unchanged: the single listening point (`_heard`) detects a side question, answers it, re-asks the current prompt word for word (TTS cache hit) and listens again (≤3 times per prompt). Answers come from a fixed Turkish glossary (paket-yıl — personalised with the user's own numbers —, KOAH, amfizem, hırıltı, kan tükürme, KETEM, düşük doz BT, 6-year risk, PM2.5 …) and per-question "why we ask" texts, so they work in keyword mode for free and are reproducible; only unmatched questions in `llm` mode go to a constrained GPT prompt (no diagnosis, no risk numbers, no treatment advice, urgent symptoms → doctor/112).
 
+**Conversation transcripts (debugging the dialogue).** Every conversation (CLI or PWA) is written line by line to
+`data/conversations/<session>.txt` with `agent:` / `user:` labels (voice answers marked `# ses → STT`, result and
+evidence at the end); the PWA result screen has *Konuşma kaydını indir* (`GET /sessions/{id}/transcript.txt`).
+To report a problem, add a line starting with `>>` under the turn where it happened. `make replay F=<file>` feeds
+the recorded `user:` lines to the current agent and shows the notes, the differences and the final evidence;
+`# beklenen: KEY=VALUE` lines become checks, and transcripts copied to `tests/conversations/` are regression tests
+(`make conversation-test`). Transcripts are health data: `data/conversations/` is git-ignored, audio is not stored,
+`PRAEVIDIO_SAVE_TRANSCRIPTS=0` turns recording off.
+
 ## 🌐 Backend API (Fall 2026)
 
 `src/api/server.py` exposes the same conversation as the CLI over HTTP for the mobile/web client. The agent's logic is **not duplicated**: each session runs the existing `ConversationAgent` in its own thread behind a queue-backed channel (`src/api/sessions.py`); a request returns as soon as the agent asks its next question. Models are loaded once and shared.

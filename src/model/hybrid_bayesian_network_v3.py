@@ -426,6 +426,87 @@ class HybridLungCancerEngineV3(HybridLungCancerEngine):
         o = p / (1 - p) * mult
         return min(0.9999, max(1e-6, o / (1 + o)))
 
+    def _factor_6y(self, evidence: dict) -> float:
+        """Yalnız risk etkenlerinden 6 yıllık risk (predict_risk'teki katman 1 ile aynı yol;
+        test_factor_6y_matches_predict_risk eşitliği doğrular). Göreli risk ve projeksiyon için."""
+        from model.plcom2012 import plcom2012_from_evidence
+        ev = dict(evidence)
+        eff, never_flag, _ = self._refine_smoking(ev)
+        if eff is not None:
+            ev["SMOKING"] = eff
+        if self.base_risk == "plco":
+            if plcom2012_from_evidence(evidence)["applicable"]:
+                return self._plco_6y(evidence)
+            if never_flag:
+                return self._never_6y(evidence)
+        return self._posterior({k: v for k, v in ev.items() if k in RISK_FACTOR_NODES}, never_flag)
+
+    @staticmethod
+    def _age_group(age: float) -> int:
+        return 0 if age < 55 else min(4, int((age - 55) // 5) + 1)
+
+    def risk_context(self, evidence: dict, p6: float) -> dict:
+        """
+        Sayıları/bantları değiştirmeden 6 yıllık katmanı anlatan bağlam (Kas 2026):
+          • göreli risk: aynı yaş/cinsiyette, hiç içmemiş ve risk etkeni olmayan kişiye göre kaç kat
+          • projeksiyon (aktif içici): 50 yaşında (50+ ise 5 yıl sonra) içmeye devam / bugün bırakma
+        """
+        def pct(x):
+            v = x * 100
+            return (f"{v:.2f}" if v < 10 else f"{v:.1f}").replace(".", ",")
+        out = {"relative_risk_peers": None, "peer_6y": None, "relative_message_tr": None,
+               "relative_message_en": None, "projection": None}
+        age = evidence.get("_age_exact")
+        if age is None and evidence.get("AGE") is None:
+            return out
+        ref = {"SMOKING": 0, "_pack_years": 0, "FAMILY_HISTORY": 0, "ASBESTOS": 0, "AIR_POLLUTION": 0, "COPD": 0}
+        for k in ("AGE", "_age_exact", "GENDER"):
+            if evidence.get(k) is not None:
+                ref[k] = evidence[k]
+        p_ref = self._factor_6y(ref)
+        rr = p6 / p_ref
+        out.update(relative_risk_peers=round(rr, 2), peer_6y=round(p_ref * 100, 3))
+        if rr >= 1.5:
+            n = (f"{rr:.1f}".replace(".", ",") if rr < 10 else f"{rr:.0f}")
+            out["relative_message_tr"] = (f"Aynı yaşta ve cinsiyette, sigara içmeyen ve risk etkeni olmayan birine "
+                                          f"göre yaklaşık {n} kat.")
+            out["relative_message_en"] = (f"About {n}× that of a never-smoker of the same age and sex without "
+                                          f"risk factors.")
+        else:
+            out["relative_message_tr"] = ("Aynı yaşta ve cinsiyette, sigara içmeyen ve risk etkeni olmayan biriyle "
+                                          "benzer düzeyde.")
+            out["relative_message_en"] = "Similar to a never-smoker of the same age and sex without risk factors."
+
+        # Projeksiyon: yalnız aktif içici, yaş ve doz biliniyorsa
+        cigs, yrs, py = evidence.get("_cigs_per_day"), evidence.get("_years_smoked"), evidence.get("_pack_years")
+        if cigs is None and py and yrs:
+            cigs = py * 20.0 / yrs
+        if yrs is None and py and cigs:
+            yrs = py / (cigs / 20.0)
+        if evidence.get("SMOKING") != 1 or age is None or not cigs or yrs is None or age >= 80:
+            return out
+        target = 50 if age < 50 else min(age + 5, 80)
+        delta = target - age
+        facts = {k: v for k, v in evidence.items() if k in RISK_FACTOR_NODES or k in ("_province",)}
+        base = {**facts, "_age_exact": target, "AGE": self._age_group(target), "_cigs_per_day": cigs}
+        cont = self._factor_6y({**base, "SMOKING": 1, "_years_smoked": yrs + delta,
+                                "_pack_years": round(cigs / 20.0 * (yrs + delta), 1)})
+        quit_ = self._factor_6y({**base, "SMOKING": 0, "_years_smoked": yrs,
+                                 "_pack_years": round(cigs / 20.0 * yrs, 1), "_years_quit": delta})
+        lvl_now, lvl_cont = self._level(p6), self._level(cont)
+        enters = lvl_now == "low" and lvl_cont != "low"
+        msg_tr = (f"Sigaraya bu şekilde devam ederseniz {target:g} yaşında 6 yıllık riskiniz yaklaşık %{pct(cont)} olur"
+                  + (" ve tarama aralığına girersiniz" if enters else "")
+                  + f"; bugün bırakırsanız aynı yaşta yaklaşık %{pct(quit_)}.")
+        en = lambda x: pct(x).replace(",", ".")
+        msg_en = (f"If you keep smoking like this, your 6-year risk at age {target:g} will be about {en(cont)}%"
+                  + (", within the screening range" if enters else "")
+                  + f"; if you quit today, about {en(quit_)}% at the same age.")
+        out["projection"] = {"age": target, "continue_6y": round(cont * 100, 2), "quit_6y": round(quit_ * 100, 2),
+                             "continue_level": lvl_cont, "enters_screening_range": enters,
+                             "message_tr": msg_tr, "message_en": msg_en}
+        return out
+
     def _level(self, p: float) -> str:
         for lvl, info in self.RISK_LEVELS.items():
             lo, hi = info["range"]
@@ -497,6 +578,12 @@ class HybridLungCancerEngineV3(HybridLungCancerEngine):
         alarm = res["alarm"]["level"] == "urgent"
         # Öneri 6 yıllık TARAMA katmanına + alarma bağlı (Kas 2026 düzeltmesi: önceden tam skora
         # bağlıydı → faktörleri "Düşük" kişiye "risk faktörleriniz riskinizi artırıyor" deniyordu).
+        # Görüntüleme etiketi: 6 yıllık katman "Düşük" → "Tarama eşiğinin altında" (bant aynı; yalnız ifade).
+        # Tüm risk etkenlerine sahip genç biri için yeşil "Düşük Risk" yanlış güven veriyordu.
+        disp = {"low": ("Tarama eşiğinin altında", "Below screening threshold")}
+        res["risk_level_factors_display_tr"], res["risk_level_factors_display_en"] = disp.get(
+            lvl6, (self.RISK_LEVELS[lvl6]["label_tr"], self.RISK_LEVELS[lvl6]["label_en"]))
+        res.update(self.risk_context(evidence, p6))
         has_sym = any(ev.get(s) == 1 for s in SYMPTOMS_7)
         res["recommendation_tr"] = self._recommend_v3(lvl6, alarm, "tr", has_sym)
         res["recommendation_en"] = self._recommend_v3(lvl6, alarm, "en", has_sym)
@@ -518,7 +605,7 @@ class HybridLungCancerEngineV3(HybridLungCancerEngine):
                      "düşürecek adımdır."),
             "moderate": ("Risk profiliniz düşük doz BT taramasının önerildiği aralığa yakın. "
                          "Tarama uygunluğunuzu hekiminizle görüşün ve yıllık kontrollerinizi aksatmayın."),
-            "low": ("Tahmini riskiniz şu an düşük görünüyor. Bu, risk faktörlerinizin önemsiz olduğu "
+            "low": ("6 yıllık riskiniz şu an tarama eşiğinin altında. Bu, risk faktörlerinizin önemsiz olduğu "
                     "anlamına gelmez; sigara, yaş veya mesleki maruziyet varsa önemini korur. "
                     "Yeni bir belirti olursa hekiminize başvurun. Bu bir tarama aracıdır, tanı koymaz."),
         }
@@ -531,7 +618,7 @@ class HybridLungCancerEngineV3(HybridLungCancerEngine):
                      "cessation support is the single most effective step."),
             "moderate": ("Your risk profile is near the range where low-dose CT screening is recommended. "
                          "Discuss screening eligibility with your physician and keep annual check-ups."),
-            "low": ("Your estimated risk currently appears low. This does not mean your risk factors are "
+            "low": ("Your 6-year risk is currently below the screening threshold. This does not mean your risk factors are "
                     "unimportant; smoking, age or occupational exposure remain relevant. See a physician "
                     "if new symptoms appear. This is a screening tool, not a diagnosis."),
         }

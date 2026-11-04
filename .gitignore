@@ -241,3 +241,7 @@ docs/veri_kaynaklari_semptom.md
 .pwa_fixture.json
 # yerel rapor önizlemeleri
 .rapor_*.html
+
+# konuşma kayıtları (sağlık verisi — commit edilmez)
+data/conversations/
+.pwa_result.json

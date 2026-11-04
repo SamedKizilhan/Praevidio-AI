@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later · Copyright (C) 2026 Samed KIZILHAN — Praevidio AI
 // Uygulama kabuğunu önbellekler (hızlı açılış + "ana ekrana ekle"). API istekleri HİÇ önbelleklenmez.
-const CACHE = "praevidio-shell-v2";
+const CACHE = "praevidio-shell-v4";
 const SHELL = ["./", "index.html", "styles.css", "app.js", "manifest.webmanifest",
                "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL))); self.skipWaiting(); });

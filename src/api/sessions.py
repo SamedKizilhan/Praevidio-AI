@@ -44,6 +44,7 @@ class QueueChannel(Channel):
         self.waiting = False                # ajan şu an kullanıcı cevabı mı bekliyor?
         self.hint = ""                      # beklenen cevap için STT ipucu
         self.finished = False
+        self.last_input_kind = None         # "audio" → kayıtta "# ses → STT" işareti
 
     # --- ajan tarafı (oturum iş parçacığı) ---
     def say(self, text: str):
@@ -138,15 +139,18 @@ class SessionManager:
                         or now - s.last_active > IDLE_TIMEOUT_S + 60]:
                 self._sessions.pop(sid, None)
 
-    def create(self, model_version: str = "v3", nlp_mode: str = "keyword") -> Session:
+    def create(self, model_version: str = "v3", nlp_mode: str = "keyword", client: str = None) -> Session:
         self._purge()
         with self._lock:
             if len(self._sessions) >= MAX_SESSIONS:
                 raise RuntimeError("Sunucu meşgul: aktif oturum sınırına ulaşıldı.")
         ch = QueueChannel()
+        from conversation.transcript import new_session_id
+        sid = new_session_id()                           # = kayıt dosyasının adı (data/conversations/<sid>.txt)
         agent = ConversationAgent(ch, nlp_mode=nlp_mode, model_version=model_version,
-                                  engine=self.engines[model_version])
-        sess = Session(id=uuid.uuid4().hex[:12], channel=ch, agent=agent,
+                                  engine=self.engines[model_version], session_id=sid,
+                                  transcript_meta={"kanal": client or "api"})
+        sess = Session(id=sid, channel=ch, agent=agent,
                        model_version=model_version, nlp_mode=nlp_mode)
 
         def _run():
@@ -154,8 +158,10 @@ class SessionManager:
                 agent.run()
             except SessionExpired:
                 sess.expired = True
+                agent.transcript.note("oturum yarıda kaldı: süre aşımı (kullanıcı cevap vermedi)")
             except Exception as e:                       # ajan hatası istemciye raporlanır
                 sess.error = f"{type(e).__name__}: {e}"
+                agent.transcript.note(f"HATA: {sess.error}")
             finally:
                 ch.close()
 
@@ -171,9 +177,10 @@ class SessionManager:
         with self._lock:
             return self._sessions.get(sid)
 
-    def turn(self, sess: Session, text: str) -> list:
+    def turn(self, sess: Session, text: str, kind: str = None) -> list:
         sess.last_active = time.time()
         sess.transcript.append({"role": "user", "text": text})
+        sess.channel.last_input_kind = kind
         sess.channel.submit(text)
         msgs = sess.channel.wait_turn()
         sess.transcript += [{"role": "agent", "text": m} for m in msgs]

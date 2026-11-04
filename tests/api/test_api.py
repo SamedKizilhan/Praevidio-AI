@@ -34,11 +34,13 @@ ANSWERS = [
 
 
 @pytest.fixture(scope="module")
-def client():
+def client(tmp_path_factory):
+    import conversation.transcript as tr
     saved, server.API_TOKEN = server.API_TOKEN, ""   # .env'deki PRAEVIDIO_API_TOKEN testleri etkilemesin
+    saved_dir, tr.TRANSCRIPT_DIR = tr.TRANSCRIPT_DIR, tmp_path_factory.mktemp("conversations")
     with TestClient(server.app) as c:
         yield c
-    server.API_TOKEN = saved
+    server.API_TOKEN, tr.TRANSCRIPT_DIR = saved, saved_dir
 
 
 def _run_conversation(client, answers, model="v3"):
@@ -176,3 +178,32 @@ def test_side_question_is_answered_then_question_repeated(client):
     assert "üç hafta" in out["messages"][0]["text"]
     s = client.get(f"/sessions/{sid}").json()
     assert s["evidence"]["_pack_years"] == 5
+
+
+def test_transcript_saved_downloadable_and_replayable(client, monkeypatch):
+    """Görüşme agent:/user: satırlarıyla diske yazılır, indirilebilir, yeniden oynatılınca aynı akışı verir."""
+    import stt.whisper_stt as stt
+    from conversation.transcript import parse
+    from conversation.replay import replay
+    monkeypatch.setattr(stt, "transcribe_audio", lambda path, language="tr", prompt="": {"text": "62 yaşındayım erkeğim"})
+    r = client.post("/sessions", json={"nlp_mode": "keyword", "client": "pwa-voice"}).json()
+    sid = r["session_id"]
+    client.post(f"/sessions/{sid}/turn-audio", files={"file": ("c.m4a", b"\x00" * 2048, "audio/mp4")})
+    for a in ANSWERS[1:]:
+        out = client.post(f"/sessions/{sid}/turn", json={"text": a}).json()
+    assert out["status"] == "finished"
+    t = client.get(f"/sessions/{sid}/transcript.txt")
+    assert t.status_code == 200 and "attachment" in t.headers["content-disposition"]
+    txt = t.text
+    assert txt.startswith("# Praevidio konuşma kaydı") and "kanal: pwa-voice" in txt
+    assert "# ses → STT\nuser: 62 yaşındayım erkeğim" in txt          # sesli cevap işaretli
+    assert "# --- sonuç ---" in txt and '"_pack_years": 30' in txt
+    rec = parse(txt)
+    assert [x["text"] for x in rec["turns"] if x["role"] == "user"] == ANSWERS
+    assert sum(1 for x in rec["turns"] if x["role"] == "agent") >= len(ANSWERS)
+    # diskteki dosya = indirilen metin
+    import conversation.transcript as tr
+    assert (tr.TRANSCRIPT_DIR / f"{sid}.txt").read_text(encoding="utf-8") == txt
+    # yeniden oynatma: aynı cevaplar → birebir aynı konuşma
+    rp = replay(txt + "# beklenen: _pack_years=30\n# beklenen: alarm=urgent\n# beklenen: bitti=true\n")
+    assert rp["finished"] and not rp["diff"] and not rp["fails"], (rp["diff"], rp["fails"])

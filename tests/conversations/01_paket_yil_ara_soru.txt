@@ -1,0 +1,60 @@
+# Praevidio konuşma kaydı
+# oturum: 01_paket_yil_ara_soru  ·  model: v3  ·  nlp: keyword  ·  kanal: test-fixture
+# 3 Kasım 2026 kullanıcı bildirimi: '5 paket-yıl ne demek?' sorusu cevapsız kalıyordu (düzeltildi).
+agent: Merhaba. Sağlıklı bir risk analizi yapabilmem için öncelikle yaşınızı ve cinsiyetinizi belirtir misiniz?
+user: 45 yaşındayım erkeğim
+agent: Sigara kullanıyor musunuz? Kullanıyorsanız ya da bıraktıysanız, günde kaç adet ve kaç yıl içtiğinizi de söyler misiniz?
+user: günde 10 tane, yaklaşık 10 yıldır içiyorum
+agent: Şunları not ettim: 45 yaşında, erkek, aktif sigara içiyor, yaklaşık 5 paket-yıl. Doğru mu?
+user: 5 paket-yıl ne demek ki?
+>> önceden açıklamadan sonraki soruya geçiyordu — artık açıklayıp aynı soruyu tekrar sormalı
+agent: Paket-yıl, ömür boyu içilen sigara miktarının ölçüsüdür: günde içilen paket sayısı ile içilen yıl sayısı çarpılır, bir paket 20 sigaradır. Örneğin günde 1 paketi 20 yıl içmek 20 paket-yıl eder. Tarama önerilerinde kullanılır; 50–80 yaş arasında 20 paket-yıl ve üzeri, düşük doz tomografi taraması ölçütlerinden biridir. Sizin için: günde 10 sigara yaklaşık 0,5 paket eder; bunu 10 yıl içtiğiniz için yaklaşık 5 paket-yıl hesapladım.
+agent: Şunları not ettim: 45 yaşında, erkek, aktif sigara içiyor, yaklaşık 5 paket-yıl. Doğru mu?
+user: evet
+agent: Teşekkürler. Son haftalarda sizi rahatsız eden şikâyetleriniz neler? Örneğin öksürük, nefes darlığı, göğüs ağrısı, halsizlik gibi; yoksa 'şikâyetim yok' diyebilirsiniz.
+user: şikâyetim yok
+agent: Şimdi birkaç belirtiyi tek tek soracağım. Lütfen 'evet', 'hayır' ya da 'bilmiyorum' şeklinde yanıtlayın.
+agent: Son zamanlarda geçmeyen bir öksürük şikâyetiniz var mı?
+user: Bu ne demek?
+agent: Geçmeyen öksürükten kastımız, üç haftadan uzun süren ya da sık sık tekrarlayan öksürüktür.
+agent: Son zamanlarda geçmeyen bir öksürük şikâyetiniz var mı?
+user: hayır
+agent: Nefes darlığı yaşıyor musunuz?
+user: hayır
+agent: Göğüs ağrınız var mı?
+user: hayır
+agent: Solunumunuzda hırıltı oluyor mu?
+user: hayır
+agent: Sık sık yorgunluk veya halsizlik hissediyor musunuz?
+user: hayır
+agent: Hiç kan tükürdüğünüz oldu mu?
+user: hayır
+agent: Son dönemde istemsiz kilo kaybınız oldu mu?
+user: hayır
+agent: Birinci derece akrabalarınızda (anne, baba, kardeş) akciğer kanseri öyküsü var mı?
+user: hayır
+agent: Şu meslek gruplarından birinde uzun süre çalıştınız mı: inşaat, yıkım, tersane, maden, yalıtım, oto tamir, çimento veya eternit fabrikası?
+user: neden soruyorsunuz?
+agent: Bu işlerde akciğere zararlı tozlara, özellikle asbeste maruz kalınabiliyor; bu da riski artırır.
+agent: Şu meslek gruplarından birinde uzun süre çalıştınız mı: inşaat, yıkım, tersane, maden, yalıtım, oto tamir, çimento veya eternit fabrikası?
+user: hayır
+agent: Doktorunuz size KOAH, amfizem veya kronik bronşit tanısı koydu mu?
+user: hayır
+agent: Hangi ilde yaşıyorsunuz?
+user: İstanbul
+agent: Değerlendirmeniz tamamlandı. Risk faktörlerinize göre önümüzdeki altı yıl için tahmini riskiniz yüzde 0,09; bu, tarama eşiğinin altında. Bu, aynı yaşta ve cinsiyette, sigara içmeyen ve risk etkeni olmayan birine göre yaklaşık 6,5 kat. Sigaraya bu şekilde devam ederseniz 50 yaşında 6 yıllık riskiniz yaklaşık yüzde 0,16 olur; bugün bırakırsanız aynı yaşta yaklaşık yüzde 0,09. 6 yıllık riskiniz şu an tarama eşiğinin altında. Bu, risk faktörlerinizin önemsiz olduğu anlamına gelmez; sigara, yaş veya mesleki maruziyet varsa önemini korur. Yeni bir belirti olursa hekiminize başvurun. Bu bir tarama aracıdır, tanı koymaz. Unutmayın, bu bir tarama ve farkındalık aracıdır, kesin tanı koymaz. Ne kadar erken tarama, o kadar erken teşhis. Detaylı raporunuzu indirmek için rapor butonuna basabilirsiniz.
+# --- sonuç ---
+# model sürümü: 3.1
+# 6 yıllık: %0,09 (Tarama eşiğinin altında) · tam: %0,06 (Düşük Risk) · alarm: none
+# göreli risk: ×6.5 · projeksiyon: Sigaraya bu şekilde devam ederseniz 50 yaşında 6 yıllık riskiniz yaklaşık %0,16 olur; bugün bırakırsanız aynı yaşta yaklaşık %0,09.
+# kanıt: {"AGE": 0, "AIR_POLLUTION": 1, "ASBESTOS": 0, "CHEST_PAIN": 0, "COPD": 0, "COUGHING": 0, "FAMILY_HISTORY": 0, "FATIGUE": 0, "GENDER": 1, "HEMOPTYSIS": 0, "SHORTNESS_OF_BREATH": 0, "SMOKING": 1, "WEIGHT_LOSS": 0, "WHEEZING": 0, "_age_exact": 45, "_cigs_per_day": 10, "_pack_years": 5.0, "_province": "İstanbul", "_years_smoked": 10}
+# beklenen: _pack_years=5
+# beklenen: ajan_der="günde 10 sigara yaklaşık 0,5 paket"
+# beklenen: ajan_der="üç haftadan uzun"
+# beklenen: ajan_der="asbeste"
+# beklenen: COUGHING=0
+# beklenen: COPD=0
+# beklenen: _province="İstanbul"
+# beklenen: ajan_der="tarama eşiğinin altında"
+# beklenen: ajan_der="bugün bırakırsanız"
+# beklenen: bitti=true

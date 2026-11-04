@@ -45,6 +45,7 @@ from nlp.symptom_extractor import (
 )
 from stt.whisper_stt import post_process_medical_terms
 from conversation.clarify import is_side_question, answer_side_question, MAX_SIDE_QUESTIONS
+from conversation.transcript import TranscriptWriter, LoggingChannel, new_session_id
 
 
 # ──────────────────────────────────────────────
@@ -334,10 +335,16 @@ def _tr_pct(x: float) -> str:
 
 class ConversationAgent:
     def __init__(self, channel: Channel, nlp_mode: str = "keyword", model_version: str = "v3",
-                 engine=None):
+                 engine=None, session_id: str = None, transcript_meta: dict = None,
+                 save_transcript: bool = None):
         """engine: önceden yüklenmiş risk motoru (API sunucusu modeli bir kez yükleyip
-        tüm oturumlarla paylaşır). Verilmezse model burada yüklenir (CLI davranışı)."""
-        self.ch = channel
+        tüm oturumlarla paylaşır). Verilmezse model burada yüklenir (CLI davranışı).
+        Konuşma data/conversations/<session_id>.txt'ye agent:/user: satırlarıyla kaydedilir."""
+        self.session_id = session_id or new_session_id()
+        meta = {"tarih": __import__("datetime").datetime.now().strftime("%d.%m.%Y %H:%M"),
+                "model": model_version, "nlp": nlp_mode, **(transcript_meta or {})}
+        self.transcript = TranscriptWriter(self.session_id, meta, enabled=save_transcript)
+        self.ch = LoggingChannel(channel, self.transcript)
         self.nlp_mode = nlp_mode
         self.model_version = model_version
         self.evidence = {}
@@ -646,9 +653,14 @@ class ConversationAgent:
         # Açıklanabilir özet (yumuşak dil — korkutmadan taramaya yönlendir)
         if result.get("model_version") == "v3":
             p6 = result["risk_6y_factors"]
+            band = ("tarama eşiğinin altında" if result.get("risk_level_factors") == "low"
+                    else f"{result['risk_level_factors_tr'].lower()} grubuna giriyor")
             summary = (f"Değerlendirmeniz tamamlandı. Risk faktörlerinize göre önümüzdeki altı yıl "
-                       f"için tahmini riskiniz yüzde {_tr_pct(p6)}; bu, {result['risk_level_factors_tr'].lower()} "
-                       f"grubuna giriyor. ")
+                       f"için tahmini riskiniz yüzde {_tr_pct(p6)}; bu, {band}. ")
+            if result.get("relative_message_tr") and (result.get("relative_risk_peers") or 0) >= 1.5:
+                summary += "Bu, " + result["relative_message_tr"][0].lower() + result["relative_message_tr"][1:] + " "
+            if result.get("projection"):
+                summary += result["projection"]["message_tr"].replace("%", "yüzde ") + " "
             if abs(score - p6) >= 0.5 or result["risk_level"] != result.get("risk_level_factors"):
                 summary += f"Belirtilerinizle birlikte skor yüzde {_tr_pct(score)} ({level.lower()}). "
             # (alarm varsa recommendation_tr zaten acil sevk dilinde — tekrar edilmez)
@@ -657,7 +669,7 @@ class ConversationAgent:
                        f"tahmini risk skoru yüzde {score:.0f}. ")
         if result.get("smoking_adjustment"):
             summary += " " + result["smoking_adjustment"]
-        summary += " " + result["recommendation_tr"]
+        summary = summary.rstrip() + " " + result["recommendation_tr"]
 
         # Tarama uygunluğu (semptom skorundan BAĞIMSIZ) — düşük skor olsa bile önemli
         from model.screening import assess_screening_eligibility
@@ -734,6 +746,9 @@ class ConversationAgent:
         self.result = result
         # Rapora il adını da geçir (etiket için); model girişi 'clean' kalır
         self.report_path = self._generate_report(result, self.evidence)
+        self.transcript.finish(result, self.evidence, self.report_path)
+        if self.transcript.path:
+            print(f"   💬 Konuşma kaydı: {self.transcript.path}")
         print(f"\n   📋 Toplanan kanıtlar: {clean}")
         return result
 
@@ -742,12 +757,12 @@ def main():
     p = argparse.ArgumentParser(description="Praevidio AI Konuşmalı Ajan")
     p.add_argument("--channel", choices=["text", "voice"], default="text")
     p.add_argument("--nlp-mode", choices=["keyword", "llm"], default=NLP_MODE)
-    p.add_argument("--model", choices=["v2", "v3"], default="v3",
+    p.add_argument("--model", choices=["v2", "v3", "v3.0", "v3.1"], default="v3",
                    help="risk modeli: v3 (latent semptomatik + KOAH) | v2 (geçen dönem)")
     args = p.parse_args()
 
     agent = ConversationAgent(Channel(args.channel), nlp_mode=args.nlp_mode,
-                              model_version=args.model)
+                              model_version=args.model, transcript_meta={"kanal": f"cli-{args.channel}"})
     agent.run()
 
 

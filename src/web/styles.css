@@ -94,7 +94,10 @@ body.mode-voice #mic-status { text-align: center; }
 .score-number { font-size: 48px; font-weight: 800; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
 .score-label { font-weight: 600; }
 .band { display: inline-block; margin-top: 6px; padding: 4px 12px; border-radius: 999px; font-weight: 700; font-size: 15px; color: #fff; }
-.band.low { background: var(--low); } .band.moderate { background: var(--mid); } .band.high { background: var(--high); }
+.band.low { background: var(--low); }
+.band.below { background: var(--muted); }          /* "Tarama eşiğinin altında": yeşil güven vermesin */
+.context { margin: 8px 0; }
+.projection { border-left: 3px solid var(--mid); padding-left: 10px; } .band.moderate { background: var(--mid); } .band.high { background: var(--high); }
 .screening { background: var(--agent); border-radius: 12px; padding: 10px 14px; }
 .actions { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
 .toast { position: fixed; left: 50%; bottom: 110px; transform: translateX(-50%); background: #222; color: #fff;

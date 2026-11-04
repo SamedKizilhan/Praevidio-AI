@@ -89,6 +89,7 @@ class CreateSession(BaseModel):
     model: Literal["v3", "v2"] = "v3"
     nlp_mode: Optional[Literal["keyword", "llm"]] = None
     tts: bool = Field(False, description="Mesajlar için audio_url üretilsin mi?")
+    client: Optional[str] = Field(None, max_length=40, description="İstemci etiketi (kayıt için), ör. pwa-voice")
 
 
 class TurnIn(BaseModel):
@@ -120,6 +121,10 @@ class Result(BaseModel):
     risk_6y_factors: Optional[float] = Field(None, description="Yalnız risk faktörlerinden 6 yıllık risk, % (v3)")
     risk_level_factors: Optional[str] = Field(None, description="low | moderate | high (6y katmanı, v3)")
     risk_level_factors_tr: Optional[str] = None
+    risk_level_factors_display_tr: Optional[str] = Field(None, description="Görüntüleme etiketi (Düşük → 'Tarama eşiğinin altında')")
+    relative_risk_peers: Optional[float] = Field(None, description="Aynı yaş/cinsiyette hiç içmemiş, risk etkensiz kişiye göre kat")
+    relative_message_tr: Optional[str] = None
+    projection_message_tr: Optional[str] = Field(None, description="Aktif içici: devam / bugün bırakma projeksiyonu")
     plcom2012_6y: Optional[float] = None
     alarm: Optional[Alarm] = None
     screening: Optional[Screening] = None
@@ -169,6 +174,10 @@ def _result(sess: Session) -> Optional[Result]:
         risk_6y_factors=(float(r["risk_6y_factors"]) if "risk_6y_factors" in r else None),
         risk_level_factors=r.get("risk_level_factors"),
         risk_level_factors_tr=r.get("risk_level_factors_tr"),
+        risk_level_factors_display_tr=r.get("risk_level_factors_display_tr"),
+        relative_risk_peers=r.get("relative_risk_peers"),
+        relative_message_tr=r.get("relative_message_tr"),
+        projection_message_tr=(r.get("projection") or {}).get("message_tr"),
         plcom2012_6y=(float(bm["risk_6y"]) if bm.get("applicable") else None),
         alarm=(Alarm(level=alarm["level"], reasons_tr=alarm.get("reasons_tr", []),
                      message_tr=alarm.get("message_tr", "")) if alarm else None),
@@ -213,7 +222,8 @@ def health():
 @app.post("/sessions", response_model=TurnOut, dependencies=[Depends(require_token)])
 def create_session(body: CreateSession = CreateSession()):
     try:
-        sess, msgs = STATE["manager"].create(model_version=body.model, nlp_mode=body.nlp_mode or NLP_MODE)
+        sess, msgs = STATE["manager"].create(model_version=body.model, nlp_mode=body.nlp_mode or NLP_MODE,
+                                             client=body.client)
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))
     sess.tts = body.tts
@@ -246,7 +256,7 @@ def turn_audio(sid: str, file: UploadFile = File(...)):
             os.unlink(path)
         except OSError:
             pass
-    msgs = STATE["manager"].turn(sess, heard or "")
+    msgs = STATE["manager"].turn(sess, heard or "", kind="audio")
     return _turn_out(sess, msgs, heard=heard)
 
 
@@ -258,6 +268,15 @@ def get_session(sid: str):
     return {"session_id": sess.id, "status": sess.status, "model": sess.model_version,
             "nlp_mode": sess.nlp_mode, "transcript": sess.transcript, "evidence": ev,
             "result": res.model_dump() if res else None, "error": sess.error or None}
+
+
+@app.get("/sessions/{sid}/transcript.txt", dependencies=[Depends(require_token)])
+def get_transcript(sid: str):
+    """Konuşma kaydı (agent:/user: satırları). Hata notu ekleyip tools/replay_conversation.py ile oynatın."""
+    from fastapi.responses import PlainTextResponse
+    sess = _session(sid)
+    return PlainTextResponse(sess.agent.transcript.text(), headers={
+        "Content-Disposition": f'attachment; filename="praevidio_{sess.id}.txt"'})
 
 
 @app.get("/sessions/{sid}/report", dependencies=[Depends(require_token)])

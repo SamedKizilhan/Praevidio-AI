@@ -142,7 +142,7 @@ async function startSession(mode) {
   for (const id of ["btn-start-voice", "btn-start-text"]) $(id).disabled = true;
   $("player").play().catch(() => {});             // iOS: oynatıcıyı kullanıcı dokunuşuyla "aç"
   try {
-    const body = { model: CFG.model, tts: true };
+    const body = { model: CFG.model, tts: true, client: "pwa-" + mode };
     if (CFG.nlp) body.nlp_mode = CFG.nlp;
     $("messages").innerHTML = "";
     show("chat"); setBusy(true);
@@ -248,7 +248,8 @@ function releaseMic() { if (S.stream) { S.stream.getTracks().forEach((t) => t.st
 // ───────── sonuç ─────────
 function bandOf(r) {
   if (r.risk_6y_factors === null || r.risk_6y_factors === undefined) return { cls: r.risk_level, label: r.risk_level_tr };
-  return { cls: r.risk_level_factors || "moderate", label: r.risk_level_factors_tr || "" };
+  const lvl = r.risk_level_factors || "moderate";
+  return { cls: lvl === "low" ? "below" : lvl, label: r.risk_level_factors_display_tr || r.risk_level_factors_tr || "" };
 }
 function renderResult(r) {
   if (!r) return;
@@ -256,6 +257,9 @@ function renderResult(r) {
   $("risk6y").textContent = pct(main);
   const b = bandOf(r); const band = $("band");
   band.textContent = b.label; band.className = "band " + b.cls;
+  for (const [id, txt] of [["relative", r.relative_message_tr], ["projection", r.projection_message_tr]]) {
+    $(id).textContent = txt || ""; $(id).hidden = !txt;
+  }
   const fs = $("full-score");
   const has6y = r.risk_6y_factors !== null && r.risk_6y_factors !== undefined;
   // Bant farklıysa (ör. %1,4 Düşük ↔ %1,8 Orta) fark küçük olsa da göster — rapordaki skorla tutarlılık
@@ -284,6 +288,18 @@ async function openReport() {
   } catch (e) { if (w) w.close(); toast("Rapor açılamadı: " + e.message); }
 }
 
+async function downloadTranscript() {         // agent:/user: satırları — hata notu ekleyip geri gönderilebilir
+  if (!S.sid) return;
+  try {
+    const headers = CFG.token ? { Authorization: "Bearer " + CFG.token } : {};
+    const r = await fetch(`/sessions/${S.sid}/transcript.txt`, { headers });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(await r.blob()); a.download = `praevidio_${S.sid}.txt`;
+    document.body.appendChild(a); a.click(); a.remove();
+  } catch (e) { toast("Kayıt indirilemedi: " + e.message); }
+}
+
 function restart() {
   cancelRecording(); stopAudio(); releaseMic();
   Object.assign(S, { sid: null, status: null, hint: "", result: null, recording: false });
@@ -303,6 +319,7 @@ $("btn-mode").onclick = async () => {
 };
 $("btn-restart").onclick = restart;
 $("btn-report").onclick = openReport;
+$("btn-transcript").onclick = downloadTranscript;
 $("btn-mic").onclick = () => (S.recording ? S.stopRecording() : startRecording(false));
 $("form-text").onsubmit = (e) => { e.preventDefault(); const i = $("input-text"); sendText(i.value); i.value = ""; };
 setMode(S.mode);

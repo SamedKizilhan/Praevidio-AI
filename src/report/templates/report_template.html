@@ -62,6 +62,8 @@
             align-items: center;
         }
         .risk-banner.low { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+        .risk-banner.below { background: linear-gradient(135deg, #546e7a, #78909c); }
+        .context-line { margin: -8px 0 14px; font-size: 10.5pt; color: #333; border-left: 3px solid #f39c12; padding-left: 8px; }
         .risk-banner.moderate { background: linear-gradient(135deg, #e67e22, #f39c12); }
         .risk-banner.high { background: linear-gradient(135deg, #c0392b, #e74c3c); }
 
@@ -222,6 +224,7 @@
             <div class="risk-level-sub">{{ banner.level_en }}</div>
         </div>
     </div>
+    {% for tr, en in context_lines %}<p class="context-line">{{ tr }}<br><em>{{ en }}</em></p>{% endfor %}
     {% if full_line %}<p class="full-line">{{ full_line }}</p>{% endif %}
 
     <!-- NICE NG12 alarm (score-independent) -->
