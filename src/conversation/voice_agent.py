@@ -41,7 +41,7 @@ from config import (
     REC_AUTOSTOP, REC_SILENCE_THRESHOLD, REC_SILENCE_SECONDS, REC_WARMUP_SEC,
 )
 from nlp.symptom_extractor import (
-    extract_symptoms, resolve_air_pollution, extract_province
+    extract_symptoms, resolve_air_pollution, extract_province, symptom_mentioned, symptom_negated
 )
 from stt.whisper_stt import post_process_medical_terms
 from conversation.clarify import is_side_question, answer_side_question, MAX_SIDE_QUESTIONS
@@ -447,8 +447,8 @@ class ConversationAgent:
     # --- Stage 1: Karşılama + demografi (İKİ soru) ---
     def collect_demographics(self):
         demo_hint = "Kullanıcı yaşını ve cinsiyetini söylüyor, örneğin altmış yaşında erkek."
-        smoke_hint = ("Kullanıcı sigara kullanımını anlatıyor, örneğin günde bir paket, "
-                      "yirmi yıl, on yıl önce bıraktım, hiç içmedim.")
+        smoke_hint = ("Kullanıcı sigara kullanımını anlatıyor, örneğin günde yarım paket, günde bir paket, "
+                      "on beş yıldır, on yıl önce bıraktım, hiç içmedim.")
 
         # Soru 1: yaş + cinsiyet (eksikse tekrar sor)
         self._say("Merhaba. Sağlıklı bir risk analizi yapabilmem için öncelikle "
@@ -499,6 +499,18 @@ class ConversationAgent:
         if self._is_never_smoker(smoke_ans):
             self.evidence["SMOKING"] = 0
             self.evidence["_pack_years"] = 0
+
+        # Makul olmayan günlük miktar (ör. STT "yarım paket"i "yirmi paket" duydu → 400 adet): sor, düzelt
+        if (self.evidence.get("_cigs_per_day") or 0) > 60:
+            from model.screening import parse_pack_years
+            c = self.evidence["_cigs_per_day"]
+            got = parse_pack_years(self._heard_after(
+                f"Günde {c / 20:g} paket olarak anladım; bu çok yüksek görünüyor. "
+                "Günde kaç adet ya da kaç paket sigara içiyorsunuz?",
+                "Kullanıcı günde kaç sigara içtiğini söylüyor, örneğin yarım paket, bir paket, on tane."))
+            if got.get("_cigs_per_day") is not None:
+                self.evidence["_cigs_per_day"] = got["_cigs_per_day"]
+                self.evidence.pop("_pack_years", None)       # aşağıda yeniden hesaplanır
 
         # Günlük adet eksikse sor (paket-yıl = adet/20 × yıl; tarama uygunluğu için gerekli)
         if (self.evidence.get("SMOKING") is not None
@@ -590,28 +602,60 @@ class ConversationAgent:
                 parts.append(f"{past} ve {quit_}" if past else quit_)
         return ", ".join(parts)
 
+    def _apply_correction(self, fix: str) -> bool:
+        """Düzeltme cümlesinde ne geçiyorsa yalnız onu günceller (diğer alanlar korunur). Değişiklik oldu mu?"""
+        import re
+        from model.screening import normalize_tr_numbers, parse_pack_years
+        before = {k: self.evidence.get(k) for k in self._CARRY}
+        # "yirmi paket değil, yarım paket" → reddedilen kısım atılır, doğrusu kalır
+        t = normalize_tr_numbers((fix or "").replace("İ", "i").replace("I", "ı").lower().replace("̇", ""))
+        t = re.sub(r"[^,.;]*\bdeğil\b[,.;]?", " ", t)
+        t = re.sub(r"^\s*(hayır|yok|yanlış)\b[,.;]?", " ", t).strip()
+        if not t:
+            return False
+        ext = extract_symptoms(t, mode=self.nlp_mode)
+        for k in self._CARRY:
+            if k in ext:
+                self.evidence[k] = ext[k]
+        dose = parse_pack_years(t)                               # "günde on tane" / "yarım paket" / "5 yıl"
+        for k in ("_cigs_per_day", "_years_smoked", "_years_quit"):
+            if dose.get(k) is not None:
+                self.evidence[k] = dose[k]
+        if "AGE" not in ext and "_age_exact" not in ext:
+            age = self._bare_age(t)
+            if age is not None:
+                from nlp.symptom_extractor import _age_to_group
+                self.evidence["AGE"], self.evidence["_age_exact"] = _age_to_group(age), age
+        if self._is_never_smoker(t):
+            self.evidence["SMOKING"] = 0
+            self.evidence["_pack_years"] = 0
+        c, y = self.evidence.get("_cigs_per_day"), self.evidence.get("_years_smoked")
+        if c is not None and y is not None and self.evidence.get("_pack_years") != 0:
+            self.evidence["_pack_years"] = round(c / 20.0 * y, 1)
+        return {k: self.evidence.get(k) for k in self._CARRY} != before
+
     def confirm_demographics(self):
+        """Onay: 'hayır' denirse düzeltme alınır ve düzeltilmiş özet yeniden okunup tekrar onaylatılır (en fazla
+        2 düzeltme). Kullanıcı düzeltmeyi 'hayır' ile aynı cümlede verdiyse ('hayır, yirmi değil yarım paket')
+        ayrıca sorulmaz."""
         sent = self._demographics_sentence()
         if not sent:
             return
-        ans = self._heard_after(f"Şunları not ettim: {sent}. Doğru mu?",
-                                "Kullanıcı evet veya hayır diyor.")
-        if parse_yes_no(ans) is False:
-            self._say("Peki, hangisi yanlıştı? Doğrusunu söyler misiniz?")
-            fix = self._heard("Kullanıcı yaşını, cinsiyetini veya sigara kullanımını düzeltiyor.")
-            # Düzeltme cümlesinde ne geçiyorsa yalnız onu güncelle (diğer alanlar korunur)
-            ext = extract_symptoms(fix, mode=self.nlp_mode)
-            for k in self._CARRY:
-                if k in ext:
-                    self.evidence[k] = ext[k]
-            if self._is_never_smoker(fix):
-                self.evidence["SMOKING"] = 0
-                self.evidence["_pack_years"] = 0
-            if "_cigs_per_day" in ext or "_years_smoked" in ext:
-                c = self.evidence.get("_cigs_per_day"); y = self.evidence.get("_years_smoked")
-                if c is not None and y is not None:
-                    self.evidence["_pack_years"] = round(c / 20.0 * y, 1)
-            self._say("Anladım, düzelttim.")
+        hint_yn = "Kullanıcı evet ya da hayır diyor; hayır ise doğrusunu söylüyor, örneğin hayır, yarım paket."
+        ans = self._heard_after(f"Şunları not ettim: {sent}. Doğru mu?", hint_yn)
+        for _ in range(2):
+            if parse_yes_no(ans) is not False:
+                return
+            changed = self._apply_correction(ans)                # düzeltme aynı cümlede mi?
+            if not changed:
+                self._say("Peki, hangisi yanlıştı? Doğrusunu söyler misiniz?")
+                changed = self._apply_correction(
+                    self._heard("Kullanıcı yaşını, cinsiyetini veya sigara kullanımını düzeltiyor, "
+                                "örneğin yarım paket, on tane, kırk beş yaşındayım."))
+            if not changed:
+                self._say("Düzeltmeyi anlayamadım; not ettiklerimle devam ediyorum.")
+                return
+            ans = self._heard_after(f"Düzelttim: {self._demographics_sentence()}. Doğru mu?", hint_yn)
 
     def _heard_after(self, question: str, hint: str = "") -> str:
         self._say(question)
@@ -630,9 +674,14 @@ class ConversationAgent:
             ext = extract_symptoms(post_process_medical_terms(ans), mode=self.nlp_mode)
             for var, _ in SYMPTOM_QUESTIONS:
                 v = ext.get(var)
-                # keyword modu bahsedilmeyeni 0 döndürür → yalnız 1'leri al;
-                # llm modu açık inkârı 0, bahsedilmeyeni null döndürür → 0'ı da al
-                if v == 1 or (v == 0 and self.nlp_mode == "llm"):
+                # 1 → not edilir. 0 ("yok") yalnız llm modunda VE belirti cümlede gerçekten anılmışsa kabul
+                # edilir ("öksürüğüm yok"); anılmayan belirti sorulmamış kalır ve aşağıda tek tek sorulur.
+                # (15 Kas 2026: LLM anılmayan 4 belirtiye 0 döndürdü, kan tükürme dahil hiç sorulmadı.)
+                # keyword modu olumsuzluğu anlamaz ("öksürüğüm yok" → 1) → basit inkâr denetimi 0'a çevirir.
+                if self.nlp_mode != "llm" and v == 1 and symptom_negated(var, ans):
+                    v = 0
+                    self.evidence[var] = 0
+                elif v == 1 or (v == 0 and self.nlp_mode == "llm" and symptom_mentioned(var, ans)):
                     self.evidence[var] = v
             found = [q for v, q in _SYMPTOM_LABELS.items() if self.evidence.get(v) == 1]
             if found:

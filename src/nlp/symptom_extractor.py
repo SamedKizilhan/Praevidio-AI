@@ -49,21 +49,21 @@ EXTENDED_KEYWORDS = {
     ],
     "WEIGHT_LOSS": [
         "kilo verdim", "kilo kaybı", "kilo kaybettim",
-        "zayıfladım", "istemsiz kilo", "kilo düştü",
+        "zayıfladım", "istemsiz kilo", "kilo düştü", "kilo veriyorum", "zayıflıyorum",
     ],
     "FATIGUE": [
         "yorgunum", "yorgunluk", "halsizlik", "bitkinlik",
         "enerjim yok", "güçsüzüm", "bitkinim", "halsizim",
-        "takatsiz", "dermansız",
+        "takatsiz", "dermansız", "halsiz", "çabuk yoruluyorum", "yoruluyorum",
     ],
     "COUGHING": [
-        "öksürük", "öksürüyorum", "öksürük geçmiyor",
+        "öksürük", "öksürüğ", "öksürüyorum", "öksürük geçmiyor",
         "sürekli öksürük", "kuru öksürük", "balgamlı öksürük",
         "kronik öksürük",
     ],
     "SHORTNESS_OF_BREATH": [
         "nefes darlığı", "nefes alamıyorum", "nefesim kesiliyor",
-        "nefes almakta zorlanıyorum", "soluk alamıyorum",
+        "nefes almakta zorlanıyorum", "soluk alamıyorum", "nefesim daralıyor", "nefes nefese",
         "dispne", "nefes darlığı çekiyorum",
     ],
     "CHEST_PAIN": [
@@ -71,7 +71,7 @@ EXTENDED_KEYWORDS = {
         "göğsümde sızı", "ciğerlerim ağrıyor", "göğüs bölgesinde ağrı",
     ],
     "WHEEZING": [
-        "hırıltı", "hışıltı", "hırıltılı solunum",
+        "hırıltı", "hışıltı", "hırıltılı solunum", "hırıl",
         "nefes alırken ıslık sesi", "solunum sırasında ses",
     ],
     "SMOKING": [
@@ -285,13 +285,13 @@ Return a JSON object with these exact keys. Use 1 for present, 0 for absent, nul
   "SMOKING": 0 or 1 (0=former, 1=current, null=unknown),
   "AGE": 0-4 (0=<55, 1=55-59, 2=60-64, 3=65-69, 4=70+, null=unknown),
   "GENDER": 0 or 1 (0=Female, 1=Male, null=unknown),
-  "COUGHING": 0 or 1,
-  "SHORTNESS_OF_BREATH": 0 or 1,
-  "CHEST_PAIN": 0 or 1,
-  "WHEEZING": 0 or 1,
-  "FATIGUE": 0 or 1,
-  "HEMOPTYSIS": 0 or 1,
-  "WEIGHT_LOSS": 0 or 1,
+  "COUGHING": 1 if the patient says they have it, 0 ONLY if they explicitly deny it, null if not mentioned,
+  "SHORTNESS_OF_BREATH": 1 / 0 / null (same rule),
+  "CHEST_PAIN": 1 / 0 / null (same rule),
+  "WHEEZING": 1 / 0 / null (same rule),
+  "FATIGUE": 1 / 0 / null (same rule),
+  "HEMOPTYSIS": 1 / 0 / null (same rule),
+  "WEIGHT_LOSS": 1 / 0 / null (same rule),
   "FAMILY_HISTORY": 0 or 1 (1=first-degree relative had lung/other cancer, null=unknown),
   "ASBESTOS": 0 or 1 (1=worked in high-risk occupation, null=unknown),
   "PROVINCE": "Turkish province name as written, or null",
@@ -380,6 +380,8 @@ def extract_with_llm(text: str) -> dict:
     quit_yrs = evidence.pop("YEARS_SINCE_QUIT", None)
     if age_exact is not None:
         evidence["_age_exact"] = age_exact
+        # Yaş grubu her zaman kesin yaştan türetilir (LLM 41 yaş için "55–59" grubunu döndürmüştü, 15 Kas 2026)
+        evidence["AGE"] = _age_to_group(int(age_exact))
     if quit_yrs is not None:
         evidence["_years_quit"] = quit_yrs
     if cigs is not None:
@@ -444,3 +446,42 @@ if __name__ == "__main__":
             print(f"\n   📝 Input: \"{text}\"")
             llm_result = extract_symptoms(text, mode="llm")
             print(f"   📋 LLM: {llm_result}")
+
+
+# Belirti kökleri: çekimli biçimleri de yakalar ("öksürüğüm", "göğsümde", "yoruluyorum").
+SYMPTOM_STEMS = {
+    "COUGHING": ["öksür"],
+    "SHORTNESS_OF_BREATH": ["nefes", "soluk"],
+    "CHEST_PAIN": ["göğüs", "göğs"],
+    "WHEEZING": ["hırıl", "hışıl"],
+    "FATIGUE": ["halsiz", "yorgun", "bitkin", "yorul"],
+    "HEMOPTYSIS": ["kan tükür", "kanlı balgam", "balgamda kan", "kan gel", "hemoptizi"],
+    "WEIGHT_LOSS": ["kilo", "zayıfl"],
+}
+_NEG_WORDS = r"(?:yok|değil|olmuyor|olmadı|yaşamıyorum|çekmiyorum|hissetmiyorum)"
+_NOT_BRIDGE = r"(?!var\b|oluyor\b|ama\b|fakat\b|ancak\b)"
+
+
+def _norm_tr(text: str) -> str:
+    from model.screening import normalize_tr_numbers
+    return normalize_tr_numbers((text or "").replace("İ", "i").replace("I", "ı").lower().replace("̇", ""))
+
+
+def symptom_mentioned(var: str, text: str) -> bool:
+    """Belirti metinde anılıyor mu (kök eşleşmesi)? Ajan, LLM'in döndürdüğü 'yok' (0) değerini yalnız belirti
+    gerçekten anılmışsa kabul eder; anılmayan belirti 'sorulmamış' kalır ve tek tek sorulur."""
+    t = _norm_tr(text)
+    return any(st in t for st in SYMPTOM_STEMS.get(var, [])) or any(
+        kw.lower() in t for kw in EXTENDED_KEYWORDS.get(var, []))
+
+
+def symptom_negated(var: str, text: str) -> bool:
+    """Belirti açıkça inkâr ediliyor mu? "öksürüğüm yok", "öksürük ve nefes darlığı yok", "öksürmüyorum",
+    "kilo vermedim". Arada "var / ama" geçiyorsa inkâr o belirtiye ait sayılmaz ("öksürüğüm var ama ateşim yok")."""
+    t = _norm_tr(text)
+    for st in SYMPTOM_STEMS.get(var, []):
+        if re.search(rf"{st}\w*(?:\s+{_NOT_BRIDGE}\w+){{0,3}}?\s+{_NEG_WORDS}\b", t):
+            return True
+        if re.search(rf"{st}\w*(?:\s+\w+)?m[ıiuü]yor|{st}\w*(?:\s+\w+)?m[ae]d[ıi]", t):
+            return True
+    return False

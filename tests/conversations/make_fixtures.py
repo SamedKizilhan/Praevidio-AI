@@ -47,6 +47,20 @@ FIXTURES = [
       'alarm="urgent"', 'belirti="low"', 'acil=true', 'bitti=true'],
      {"45 yaş erkek": "özgün kayıtta: 'Şunu tam alamadım: yaşınızı' — artık ilk cevapta anlaşılmalı",
       "Günde 1 paket 10 yıl": "özgün kayıtta onay 'yaklaşık 10 paket-yıl' diyordu — kullanıcının söylediği biçimde olmalı"}),
+    ("04_telefon_sesli_yirmi_paket",
+     ["kırk bir yaşındayım, erkeğim.", "günde yirmi paket, beş yıl.", "günde on tane içiyorum, yarım paket.", "evet",
+      "öksürüyorum, biraz nefes darlığı var. normalin üstünde bir halsizlik de yaşıyorum.",
+      "hayır", "hayır", "hayır", "hayır", "yok.", "evet.", "hayır.", "istanbul."],
+     "15 Kasım 2026 ikinci telefon denemesi (iPhone/Chrome, sesli, özgün kayıt llm modu). Özgün kayıtta: STT 'yarım "
+     "paket'i 'yirmi paket' duydu ve sorgulanmadı; anılmayan 4 belirti (kan tükürme dahil) sorulmadan 'yok' "
+     "kaydedildi; 41 yaş '55–59' grubuna yazıldı. Bu kayıt düzeltilmiş akıştır (keyword modunda oynatılır).",
+     ['_age_exact=41', 'AGE=0', '_cigs_per_day=10', '_pack_years=2.5', 'ajan_der="bu çok yüksek görünüyor"',
+      'ajan_der="5 yıldır günde 10 adet sigara içiyorsunuz"', 'ajan_der="Hiç kan tükürdüğünüz oldu mu?"',
+      'ajan_der="Son dönemde istemsiz kilo kaybınız oldu mu?"', 'HEMOPTYSIS=0', 'COUGHING=1', 'ASBESTOS=1',
+      '_province="İstanbul"', 'alarm="urgent"', 'bitti=true'],
+     {"günde yirmi paket, beş yıl.": "STT hatası ('yarım' → 'yirmi'); günde 20 paket makul değil → ajan sormalı",
+      "öksürüyorum, biraz nefes darlığı var. normalin üstünde bir halsizlik de yaşıyorum.":
+          "özgün kayıtta buradan doğrudan aile öyküsüne geçildi; anılmayan 4 belirti tek tek sorulmalı"}),
 ]
 
 

@@ -213,7 +213,7 @@ def post_process_medical_terms(text: str) -> str:
     This ensures that colloquial expressions like "kan tükürdüm"
     are annotated with their medical equivalents like "hemoptizi".
     """
-    corrected = text.lower()
+    corrected = text.replace("İ", "i").replace("I", "ı").lower()   # Türkçe küçük harf ("İstanbul" → "istanbul")
 
     # Layer 1: Exact phrase corrections
     # Sort by length (longest first) to avoid partial matches

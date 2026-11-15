@@ -1,0 +1,54 @@
+# Praevidio konuşma kaydı
+# oturum: 04_telefon_sesli_yirmi_paket  ·  model: v3  ·  nlp: keyword  ·  kanal: test-fixture
+# 15 Kasım 2026 ikinci telefon denemesi (iPhone/Chrome, sesli, özgün kayıt llm modu). Özgün kayıtta: STT 'yarım paket'i 'yirmi paket' duydu ve sorgulanmadı; anılmayan 4 belirti (kan tükürme dahil) sorulmadan 'yok' kaydedildi; 41 yaş '55–59' grubuna yazıldı. Bu kayıt düzeltilmiş akıştır (keyword modunda oynatılır).
+agent: Merhaba. Sağlıklı bir risk analizi yapabilmem için öncelikle yaşınızı ve cinsiyetinizi belirtir misiniz?
+user: kırk bir yaşındayım, erkeğim.
+agent: Sigara kullanıyor musunuz? Kullanıyorsanız ya da bıraktıysanız, günde kaç adet ve kaç yıl içtiğinizi de söyler misiniz?
+user: günde yirmi paket, beş yıl.
+>> STT hatası ('yarım' → 'yirmi'); günde 20 paket makul değil → ajan sormalı
+agent: Günde 20 paket olarak anladım; bu çok yüksek görünüyor. Günde kaç adet ya da kaç paket sigara içiyorsunuz?
+user: günde on tane içiyorum, yarım paket.
+agent: Şunları not ettim: 41 yaşındasınız, erkeksiniz, 5 yıldır günde 10 adet sigara içiyorsunuz. Doğru mu?
+user: evet
+agent: Teşekkürler. Son haftalarda sizi rahatsız eden şikâyetleriniz neler? Örneğin öksürük, nefes darlığı, göğüs ağrısı, halsizlik gibi; yoksa 'şikâyetim yok' diyebilirsiniz.
+user: öksürüyorum, biraz nefes darlığı var. normalin üstünde bir halsizlik de yaşıyorum.
+>> özgün kayıtta buradan doğrudan aile öyküsüne geçildi; anılmayan 4 belirti tek tek sorulmalı
+agent: Şunları not ettim: öksürük, nefes darlığı, halsizlik.
+agent: Şimdi birkaç belirtiyi tek tek soracağım. Lütfen 'evet', 'hayır' ya da 'bilmiyorum' şeklinde yanıtlayın.
+agent: Göğüs ağrınız var mı?
+user: hayır
+agent: Solunumunuzda hırıltı oluyor mu?
+user: hayır
+agent: Hiç kan tükürdüğünüz oldu mu?
+user: hayır
+agent: Son dönemde istemsiz kilo kaybınız oldu mu?
+user: hayır
+agent: Birinci derece akrabalarınızda (anne, baba, kardeş) akciğer kanseri öyküsü var mı?
+user: yok.
+agent: Şu meslek gruplarından birinde uzun süre çalıştınız mı: inşaat, yıkım, tersane, maden, yalıtım, oto tamir, çimento veya eternit fabrikası?
+user: evet.
+agent: Doktorunuz size KOAH, amfizem veya kronik bronşit tanısı koydu mu?
+user: hayır.
+agent: Hangi ilde yaşıyorsunuz?
+user: istanbul.
+agent: Değerlendirmeniz tamamlandı. Risk faktörlerinize göre önümüzdeki altı yıl için tahmini riskiniz yüzde 0,09; bu, tarama eşiğinin altında. Bu sayı küçük görünebilir, ama şöyle düşünün: Sizinle aynı özelliklere sahip 10.000 kişiden yaklaşık 9 kişinin önümüzdeki 6 yılda akciğer kanseri tanısı alması beklenir. Aynı yaşta ve cinsiyette, sigara içmeyen ve risk etkeni olmayan 10.000 kişide bu sayı yaklaşık 1,1; yani riskiniz yaşıtlarınızın yaklaşık 8,3 katı. Sigaraya bu şekilde devam ederseniz 50 yaşında 6 yıllık riskiniz yaklaşık yüzde 0,24 olur; bugün bırakırsanız aynı yaşta yaklaşık yüzde 0,10. Belirtileriniz için önemli bir not: 40 yaşın üzerindesiniz ve açıklanamayan 3 belirtiniz var. Belirtileriniz, risk skorunuzdan bağımsız olarak kısa sürede bir hekim değerlendirmesi gerektiriyor. Lütfen en kısa sürede bir göğüs hastalıkları uzmanına veya aile hekiminize başvurun; göğüs röntgeni ve gerekirse düşük doz BT istenebilir. Unutmayın, bu bir tarama ve farkındalık aracıdır, kesin tanı koymaz. Ne kadar erken tarama, o kadar erken teşhis. Detaylı raporunuzu indirmek için rapor butonuna basabilirsiniz.
+# --- sonuç ---
+# model sürümü: 3.1
+# 6 yıllık: %0,09 (Tarama eşiğinin altında) · tam: %0,19 (Düşük Risk) · alarm: urgent
+# belirti katmanı: %0,13 (low, eşik %3) · kısa sürede hekim: True
+# göreli risk: ×8.35 · projeksiyon: Sigaraya bu şekilde devam ederseniz 50 yaşında 6 yıllık riskiniz yaklaşık %0,24 olur; bugün bırakırsanız aynı yaşta yaklaşık %0,10.
+# kanıt: {"AGE": 0, "AIR_POLLUTION": 1, "ASBESTOS": 1, "CHEST_PAIN": 0, "COPD": 0, "COUGHING": 1, "FAMILY_HISTORY": 0, "FATIGUE": 1, "GENDER": 1, "HEMOPTYSIS": 0, "SHORTNESS_OF_BREATH": 1, "SMOKING": 1, "WEIGHT_LOSS": 0, "WHEEZING": 0, "_age_exact": 41, "_cigs_per_day": 10, "_pack_years": 2.5, "_province": "İstanbul", "_years_smoked": 5}
+# beklenen: _age_exact=41
+# beklenen: AGE=0
+# beklenen: _cigs_per_day=10
+# beklenen: _pack_years=2.5
+# beklenen: ajan_der="bu çok yüksek görünüyor"
+# beklenen: ajan_der="5 yıldır günde 10 adet sigara içiyorsunuz"
+# beklenen: ajan_der="Hiç kan tükürdüğünüz oldu mu?"
+# beklenen: ajan_der="Son dönemde istemsiz kilo kaybınız oldu mu?"
+# beklenen: HEMOPTYSIS=0
+# beklenen: COUGHING=1
+# beklenen: ASBESTOS=1
+# beklenen: _province="İstanbul"
+# beklenen: alarm="urgent"
+# beklenen: bitti=true

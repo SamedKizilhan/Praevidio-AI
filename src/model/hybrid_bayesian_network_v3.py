@@ -475,7 +475,7 @@ class HybridLungCancerEngineV3(HybridLungCancerEngine):
             n = (f"{rr:.1f}".replace(".", ",") if rr < 10 else f"{rr:.0f}")
             out["relative_message_tr"] = (f"Aynı yaşta ve cinsiyette, sigara içmeyen ve risk etkeni olmayan birine "
                                           f"göre yaklaşık {n} kat.")
-            out["relative_message_en"] = (f"About {n}× that of a never-smoker of the same age and sex without "
+            out["relative_message_en"] = (f"About {n.replace(',', '.')}× that of a never-smoker of the same age and sex without "
                                           f"risk factors.")
         else:
             out["relative_message_tr"] = ("Aynı yaşta ve cinsiyette, sigara içmeyen ve risk etkeni olmayan biriyle "
@@ -497,7 +497,7 @@ class HybridLungCancerEngineV3(HybridLungCancerEngine):
                     f"yaklaşık {n} katı.")
             f_en = (f"About {you_n:,} in {per:,} people like you are expected to be diagnosed with lung cancer in the next "
                     f"6 years. Among {per:,} never-smokers of the same age and sex without risk factors the number is "
-                    f"about {peer_en}; your risk is about {n} times theirs.")
+                    f"about {peer_en}; your risk is about {n.replace(',', '.')} times theirs.")
         else:
             f_tr = (f"Sizinle aynı özelliklere sahip {tr_int(per)} kişiden yaklaşık {peer_tr} kişinin önümüzdeki 6 yılda "
                     f"akciğer kanseri tanısı alması beklenir; bu, sigara içmeyen ve risk etkeni olmayan yaşıtlarınızla "

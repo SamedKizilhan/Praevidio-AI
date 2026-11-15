@@ -254,3 +254,122 @@ def test_client_log_lands_in_transcript(client):
     assert r.status_code == 200
     assert "# istemci: ses kaydı atıldı (ölçüm kör): ctx=suspended" in client.get(f"/sessions/{sid}/transcript.txt").text
     assert client.post("/sessions/yok/client-log", json={"text": "x"}).status_code == 404
+
+
+# ───────── llm modu (OpenAI taklit edilir) ─────────
+
+class _FakeLLM:
+    """15 Kas 2026 telefon denemesindeki LLM davranışını taklit eder: anılmayan belirtilere 0 döndürür ve
+    yaş grubunu yanlış verir (41 yaş → AGE=1)."""
+
+    def __init__(self, *a, **k):
+        self.chat = self
+        self.completions = self
+
+    def create(self, model=None, messages=None, **k):
+        import json as _json
+        from types import SimpleNamespace as NS
+        from nlp.symptom_extractor import extract_keywords, SYMPTOM_VARIABLES, symptom_negated
+        text = messages[-1]["content"].rsplit('Patient statement: "', 1)[-1].rstrip().rstrip('"')
+        kw = extract_keywords(text)
+        # anılmayan → 0 (hatalı ama gerçekçi); açıkça inkâr edilen → 0 (doğru)
+        out = {v: (0 if symptom_negated(v, text) else kw.get(v, 0)) for v in SYMPTOM_VARIABLES}
+        for k_ in ("GENDER", "SMOKING", "FAMILY_HISTORY", "ASBESTOS"):
+            out[k_] = kw.get(k_)
+        out["AGE"] = 1 if kw.get("_age_exact") else None                # bilerek yanlış grup
+        out["AGE_EXACT"] = kw.get("_age_exact")
+        out["CIGARETTES_PER_DAY"] = kw.get("_cigs_per_day")
+        out["YEARS_SMOKED"] = kw.get("_years_smoked")
+        out["YEARS_SINCE_QUIT"] = kw.get("_years_quit")
+        out["PROVINCE"] = kw.get("_province")
+        return NS(choices=[NS(message=NS(content=_json.dumps(out)))])
+
+
+@pytest.fixture
+def fake_llm(monkeypatch):
+    import openai
+    import nlp.symptom_extractor as se
+    monkeypatch.setattr(openai, "OpenAI", _FakeLLM)
+    monkeypatch.setattr(se, "OPENAI_API_KEY", "test-key")
+
+
+def test_llm_mode_asks_unmentioned_symptoms_and_fixes_age_group(client, fake_llm):
+    """Telefon denemesi (llm modu): anılmayan 4 belirti sorulmadan 'yok' kaydedildi (kan tükürme dahil),
+    41 yaş '55–59' grubuna yazıldı, 'yirmi paket' sorgulanmadı."""
+    sid = client.post("/sessions", json={"nlp_mode": "llm"}).json()["session_id"]
+    turn = lambda t: client.post(f"/sessions/{sid}/turn", json={"text": t}).json()
+    turn("kırk bir yaşındayım, erkeğim.")
+    out = turn("günde yirmi paket, beş yıl.")
+    assert "Günde 20 paket olarak anladım; bu çok yüksek görünüyor" in out["messages"][-1]["text"]
+    out = turn("yarım paket")
+    assert "5 yıldır günde 10 adet sigara içiyorsunuz" in out["messages"][-1]["text"]
+    turn("evet")
+    out = turn("öksürüyorum, biraz nefes darlığı var. normalin üstünde bir halsizlik de yaşıyorum.")
+    asked = [out["messages"][-1]["text"]]
+    assert "Göğüs ağrınız var mı?" in asked[0], out["messages"]         # sorulmayan belirtiler tek tek sorulur
+    for _ in range(3):
+        asked.append(turn("hayır")["messages"][-1]["text"])
+    assert any("kan tükürdüğünüz" in q for q in asked) and any("kilo kaybınız" in q for q in asked), asked
+    ev = client.get(f"/sessions/{sid}").json()["evidence"]
+    assert ev["AGE"] == 0 and ev["_age_exact"] == 41                    # grup kesin yaştan türetilir
+    assert ev["_cigs_per_day"] == 10 and ev["COUGHING"] == 1 and ev["HEMOPTYSIS"] == 0
+
+
+def test_llm_mode_accepts_explicit_denial_of_a_mentioned_symptom(client, fake_llm):
+    sid = client.post("/sessions", json={"nlp_mode": "llm"}).json()["session_id"]
+    turn = lambda t: client.post(f"/sessions/{sid}/turn", json={"text": t}).json()
+    turn("50 yaşında kadınım"); turn("hiç içmedim"); turn("evet")
+    out = turn("nefes darlığım var ama öksürüğüm yok")
+    ev = client.get(f"/sessions/{sid}").json()["evidence"]
+    assert ev["SHORTNESS_OF_BREATH"] == 1
+    assert "Göğüs ağrınız var mı?" in out["messages"][-1]["text"]       # öksürük tekrar sorulmadı, sıradaki soruldu
+
+
+@pytest.mark.parametrize("no_answer,follow_up,expected", [
+    ("hayır, iki paket değil, yarım paket", None, "Düzelttim: 45 yaşındasınız, erkeksiniz, 5 yıldır günde 10 adet sigara içiyorsunuz. Doğru mu?"),
+    ("hayır", "kırk altı yaşındayım", "Düzelttim: 46 yaşındasınız, erkeksiniz, 5 yıldır günde 2 paket sigara içiyorsunuz. Doğru mu?"),
+])
+def test_correction_in_same_sentence_and_reconfirmation(client, no_answer, follow_up, expected):
+    sid = client.post("/sessions", json={"nlp_mode": "keyword"}).json()["session_id"]
+    turn = lambda t: client.post(f"/sessions/{sid}/turn", json={"text": t}).json()
+    turn("45 yaşında erkeğim"); turn("günde 2 paket 5 yıl")
+    out = turn(no_answer)
+    if follow_up:
+        assert out["messages"][-1]["text"] == "Peki, hangisi yanlıştı? Doğrusunu söyler misiniz?"
+        out = turn(follow_up)
+    assert out["messages"][-1]["text"] == expected
+    out = turn("evet")
+    assert "şikâyet" in out["messages"][-1]["text"]
+
+
+def test_stt_text_keeps_turkish_i(monkeypatch):
+    from stt.whisper_stt import post_process_medical_terms
+    assert post_process_medical_terms("İstanbul. IĞDIR") == "istanbul. ığdır"
+
+
+@pytest.mark.parametrize("text,var,mentioned,negated", [
+    ("öksürüğüm var", "COUGHING", True, False),
+    ("öksürüğüm yok", "COUGHING", True, True),
+    ("öksürmüyorum", "COUGHING", True, True),
+    ("öksürük ve nefes darlığı yok", "COUGHING", True, True),
+    ("öksürük ve nefes darlığı yok", "SHORTNESS_OF_BREATH", True, True),
+    ("öksürüğüm var ama nefes darlığım yok", "COUGHING", True, False),
+    ("öksürüğüm var ama nefes darlığım yok", "SHORTNESS_OF_BREATH", True, True),
+    ("kilo vermedim", "WEIGHT_LOSS", True, True),
+    ("kan tükürmedim", "HEMOPTYSIS", True, True),
+    ("göğsüm ağrıyor, çabuk yoruluyorum", "CHEST_PAIN", True, False),
+    ("göğsüm ağrıyor, çabuk yoruluyorum", "HEMOPTYSIS", False, False),
+])
+def test_symptom_mention_and_negation(text, var, mentioned, negated):
+    from nlp.symptom_extractor import symptom_mentioned, symptom_negated
+    assert symptom_mentioned(var, text) is mentioned and symptom_negated(var, text) is negated
+
+
+def test_keyword_mode_open_question_understands_denial(client):
+    sid = client.post("/sessions", json={"nlp_mode": "keyword"}).json()["session_id"]
+    turn = lambda t: client.post(f"/sessions/{sid}/turn", json={"text": t}).json()
+    turn("50 yaşında kadınım"); turn("hiç içmedim"); turn("evet")
+    out = turn("öksürüğüm var ama nefes darlığım yok")
+    ev = client.get(f"/sessions/{sid}").json()["evidence"]
+    assert ev["COUGHING"] == 1 and ev["SHORTNESS_OF_BREATH"] == 0
+    assert "Göğüs ağrınız var mı?" in out["messages"][-1]["text"]
