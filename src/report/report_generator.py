@@ -165,9 +165,11 @@ def prepare_template_data(risk_result: dict, evidence: dict = None) -> dict:
     if evidence:
         if "AGE" in evidence:
             age_labels = AGE_GROUP_LABELS.get(evidence["AGE"], {"tr": "Bilinmiyor", "en": "Unknown"})
+            exact = evidence.get("_age_exact")           # hekim için kesin yaş (grup parantez içinde)
             risk_factors.append({
-                "name_tr": "Yaş Grubu", "name_en": "Age Group",
-                "value_tr": age_labels["tr"], "value_en": age_labels["en"]
+                "name_tr": "Yaş" if exact else "Yaş Grubu", "name_en": "Age" if exact else "Age Group",
+                "value_tr": f"{exact} ({age_labels['tr']})" if exact else age_labels["tr"],
+                "value_en": f"{exact} ({age_labels['en']})" if exact else age_labels["en"]
             })
         if "GENDER" in evidence:
             g_labels = GENDER_LABELS.get(evidence["GENDER"], {"tr": "Bilinmiyor", "en": "Unknown"})
@@ -177,9 +179,22 @@ def prepare_template_data(risk_result: dict, evidence: dict = None) -> dict:
             })
         if "SMOKING" in evidence:
             s_labels = SMOKING_LABELS.get(evidence["SMOKING"], {"tr": "Bilinmiyor", "en": "Unknown"})
+            # Doz ayrıntısı (hekim için): adet/gün × yıl, paket-yıl, bırakma süresi
+            cigs, yrs, py, yq = (evidence.get("_cigs_per_day"), evidence.get("_years_smoked"),
+                                 evidence.get("_pack_years"), evidence.get("_years_quit"))
+            det_tr, det_en = [], []
+            if py == 0:
+                s_labels = {"tr": "Hiç içmemiş", "en": "Never smoker"}
+            if cigs and yrs:
+                det_tr.append(f"{cigs:g} adet/gün × {yrs:g} yıl"); det_en.append(f"{cigs:g}/day × {yrs:g} years")
+            if py:
+                det_tr.append(f"{py:g} paket-yıl"); det_en.append(f"{py:g} pack-years")
+            if yq is not None and evidence["SMOKING"] == 0 and py != 0:
+                det_tr.append(f"{yq:g} yıl önce bırakmış"); det_en.append(f"quit {yq:g} years ago")
             risk_factors.append({
                 "name_tr": "Sigara Durumu", "name_en": "Smoking Status",
-                "value_tr": s_labels["tr"], "value_en": s_labels["en"]
+                "value_tr": s_labels["tr"] + (" — " + ", ".join(det_tr) if det_tr else ""),
+                "value_en": s_labels["en"] + (" — " + ", ".join(det_en) if det_en else "")
             })
         # Yeni risk faktörleri
         if "FAMILY_HISTORY" in evidence:
@@ -245,7 +260,8 @@ def prepare_template_data(risk_result: dict, evidence: dict = None) -> dict:
                   .replace("i", "İ").replace("ı", "I").upper(),                     # Türkçe büyük harf (EŞİĞİNİN)
                   "level_en": (risk_result.get("risk_level_factors_display_en") or RISK_LEVEL_LABELS[lvl6]["en"]).upper()}
         context_lines = [x for x in (
-            (risk_result.get("relative_message_tr"), risk_result.get("relative_message_en")),
+            ((risk_result.get("frequency") or {}).get("message_tr") or risk_result.get("relative_message_tr"),
+             (risk_result.get("frequency") or {}).get("message_en") or risk_result.get("relative_message_en")),
             ((risk_result.get("projection") or {}).get("message_tr"), (risk_result.get("projection") or {}).get("message_en")),
         ) if x[0]]
         sa = risk_result.get("symptom_assessment") or {}

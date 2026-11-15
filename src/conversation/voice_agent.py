@@ -407,6 +407,18 @@ class ConversationAgent:
         return never and not quit_signal and not has_qty
 
     @staticmethod
+    def _bare_age(text):
+        """Yaş sorusuna verilen cevaptaki yalın sayı ('45', 'kırk beş', '45 erkek'). Birden çok sayı ya da
+        sigara/süre ifadesi varsa None (yanlış yaş almaktansa tekrar sor)."""
+        import re
+        from model.screening import normalize_tr_numbers
+        t = normalize_tr_numbers((text or "").lower().replace("̇", ""))
+        if re.search(r"paket|adet|tane|dal\b|yıl|sene|günde", t):
+            return None
+        nums = [int(n) for n in re.findall(r"\b(\d{1,3})\b", t)]
+        return nums[0] if len(nums) == 1 and 18 <= nums[0] <= 110 else None
+
+    @staticmethod
     def _parse_years(text):
         """Metinden yıl sayısı çıkarır ('on yıl önce' -> 10). Bulamazsa None."""
         import re
@@ -442,14 +454,21 @@ class ConversationAgent:
         self._say("Merhaba. Sağlıklı bir risk analizi yapabilmem için öncelikle "
                     "yaşınızı ve cinsiyetinizi belirtir misiniz?")
         for attempt in range(3):
-            self._absorb(self._heard(demo_hint))
+            ans = self._heard(demo_hint)
+            self._absorb(ans)
+            if "AGE" not in self.evidence:               # soru yaş olduğu için yalın sayı da yaştır: "45"
+                age = self._bare_age(ans)
+                if age is not None:
+                    from nlp.symptom_extractor import _age_to_group
+                    self.evidence["AGE"], self.evidence["_age_exact"] = _age_to_group(age), age
             missing = [k for k in ("AGE", "GENDER") if k not in self.evidence]
             if not missing:
                 break
-            labels = {"AGE": "yaşınızı", "GENDER": "cinsiyetinizi"}
             if attempt < 2:
-                self._say("Şunu tam alamadım: " + ", ".join(labels[m] for m in missing)
-                            + ". Tekrar belirtir misiniz?")
+                self._say({("AGE",): "Yaşınızı tam alamadım. Örneğin '45 yaşındayım' ya da yalnızca '45' diyebilirsiniz.",
+                           ("GENDER",): "Cinsiyetinizi tam alamadım. 'Kadınım' ya da 'erkeğim' diyebilirsiniz.",
+                           }.get(tuple(missing), "Yaşınızı ve cinsiyetinizi tam alamadım. Örneğin '45 yaşındayım, "
+                                                 "erkeğim' diyebilirsiniz."))
 
         # Soru 2: sigara durumu + sıklık/süre (paket-yıl)
         self._say("Sigara kullanıyor musunuz? Kullanıyorsanız ya da bıraktıysanız, "
@@ -520,23 +539,55 @@ class ConversationAgent:
     # --- Stage 1b: Demografi onayı (düzeltme imkânı) ---
     _AGE_LBL = {0: "55 yaş altı", 1: "55-59 yaş", 2: "60-64 yaş", 3: "65-69 yaş", 4: "70 yaş ve üzeri"}
 
+    @staticmethod
+    def _cigs_phrase(cigs) -> str:
+        """Günlük miktar: tam paketler 'günde 1 paket', diğerleri 'günde 10 adet' (kullanıcı '10 tane' dediyse
+        'yarım paket' diye çevirmeyiz)."""
+        if cigs and cigs % 20 == 0:
+            return f"günde {int(cigs // 20)} paket"
+        return f"günde {cigs:g} adet"
+
     def _demographics_sentence(self) -> str:
+        """Onay cümlesi kullanıcının söylediği biçimde kurulur ('10 yıldır günde 1 paket sigara içiyorsunuz');
+        'paket-yıl' terimi kullanılmaz (15 Kas 2026 geri bildirimi) — yalnız kullanıcı öyle söylediyse."""
         e = self.evidence
         parts = []
         if "_age_exact" in e:
-            parts.append(f"{e['_age_exact']} yaşında")
+            parts.append(f"{e['_age_exact']} yaşındasınız")
         elif "AGE" in e:
-            parts.append(self._AGE_LBL[e["AGE"]])
+            parts.append(f"yaşınız {self._AGE_LBL[e['AGE']]}")
         if "GENDER" in e:
-            parts.append("erkek" if e["GENDER"] == 1 else "kadın")
+            parts.append("erkeksiniz" if e["GENDER"] == 1 else "kadınsınız")
+        cigs, yrs, py, yq = (e.get("_cigs_per_day"), e.get("_years_smoked"), e.get("_pack_years"),
+                             e.get("_years_quit"))
+        dose = self._cigs_phrase(cigs) if cigs else None
         if e.get("SMOKING") == 1:
-            parts.append("aktif sigara içiyor")
+            if dose and yrs:
+                parts.append(f"{yrs:g} yıldır {dose} sigara içiyorsunuz")
+            elif dose:
+                parts.append(f"{dose} sigara içiyorsunuz")
+            elif yrs:
+                parts.append(f"{yrs:g} yıldır sigara içiyorsunuz")
+            elif py:
+                parts.append(f"sigara içiyorsunuz, yaklaşık {py:g} paket-yıl")
+            else:
+                parts.append("sigara içiyorsunuz")
         elif e.get("SMOKING") == 0:
-            parts.append("hiç içmemiş" if e.get("_pack_years") == 0 else "sigarayı bırakmış")
-        if e.get("_pack_years"):
-            parts.append(f"yaklaşık {e['_pack_years']:.0f} paket-yıl")
-        if e.get("_years_quit") is not None:
-            parts.append(f"{e['_years_quit']} yıl önce bırakmış")
+            if py == 0:
+                parts.append("hiç sigara içmediniz")
+            else:
+                if dose and yrs:
+                    past = f"{yrs:g} yıl boyunca {dose} sigara içtiniz"
+                elif dose:
+                    past = f"{dose} sigara içiyordunuz"
+                elif yrs:
+                    past = f"{yrs:g} yıl sigara içtiniz"
+                elif py:
+                    past = f"yaklaşık {py:g} paket-yıl sigara içtiniz"
+                else:
+                    past = None
+                quit_ = f"{yq:g} yıl önce bıraktınız" if yq is not None else "sigarayı bıraktınız"
+                parts.append(f"{past} ve {quit_}" if past else quit_)
         return ", ".join(parts)
 
     def confirm_demographics(self):
@@ -657,13 +708,18 @@ class ConversationAgent:
                     else f"{result['risk_level_factors_tr'].lower()} grubuna giriyor")
             summary = (f"Değerlendirmeniz tamamlandı. Risk faktörlerinize göre önümüzdeki altı yıl "
                        f"için tahmini riskiniz yüzde {_tr_pct(p6)}; bu, {band}. ")
-            if result.get("relative_message_tr") and (result.get("relative_risk_peers") or 0) >= 1.5:
-                summary += "Bu, " + result["relative_message_tr"][0].lower() + result["relative_message_tr"][1:] + " "
+            if result.get("frequency") and (result.get("relative_risk_peers") or 0) >= 1.5:
+                summary += "Bu sayı küçük görünebilir, ama şöyle düşünün: " + result["frequency"]["message_tr"] + " "
             if result.get("projection"):
                 summary += result["projection"]["message_tr"].replace("%", "yüzde ") + " "
             sa = result.get("symptom_assessment") or {}
             if result.get("urgent_assessment"):
-                spoken = [r.replace("≥40 yaş", "40 yaş ve üstü").replace(" (NICE NG12)", "").replace(" (model tahmini)", "")
+                import re as _re
+                spoken = [_re.sub(r"≥40 yaş ve (\d+) açıklanamayan semptom",
+                                  r"40 yaşın üzerindesiniz ve açıklanamayan \1 belirtiniz var", r)
+                          .replace("≥40 yaş, sigara öyküsü ve en az bir açıklanamayan semptom",
+                                   "40 yaşın üzerindesiniz, sigara öykünüz ve en az bir açıklanamayan belirtiniz var")
+                          .replace(" (NICE NG12)", "").replace(" (model tahmini)", "")
                           for r in (result.get("urgent_reasons_tr") or [])]
                 summary += "Belirtileriniz için önemli bir not: " + "; ".join(spoken) + ". "
             elif sa.get("level") == "low" and sa.get("message_tr"):
@@ -674,7 +730,8 @@ class ConversationAgent:
                        f"tahmini risk skoru yüzde {score:.0f}. ")
         if result.get("smoking_adjustment"):
             summary += " " + result["smoking_adjustment"]
-        summary = summary.rstrip() + " " + result["recommendation_tr"]
+        # Öneri metnindeki "tanı koymaz" cümlesi kapanışta zaten söyleniyor → sesli özette bir kez
+        summary = summary.rstrip() + " " + result["recommendation_tr"].replace(" Bu bir tarama aracıdır, tanı koymaz.", "")
 
         # Tarama uygunluğu (semptom skorundan BAĞIMSIZ) — düşük skor olsa bile önemli
         from model.screening import assess_screening_eligibility

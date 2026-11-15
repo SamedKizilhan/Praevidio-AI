@@ -96,6 +96,10 @@ class TurnIn(BaseModel):
     text: str = Field(..., max_length=2000)
 
 
+class ClientLog(BaseModel):
+    text: str = Field(..., max_length=300)
+
+
 class Message(BaseModel):
     text: str
     audio_url: Optional[str] = None
@@ -124,6 +128,10 @@ class Result(BaseModel):
     risk_level_factors_display_tr: Optional[str] = Field(None, description="Görüntüleme etiketi (Düşük → 'Tarama eşiğinin altında')")
     relative_risk_peers: Optional[float] = Field(None, description="Aynı yaş/cinsiyette hiç içmemiş, risk etkensiz kişiye göre kat")
     relative_message_tr: Optional[str] = None
+    frequency_per: Optional[int] = Field(None, description="Doğal sıklık paydası (ör. 10000)")
+    frequency_you: Optional[float] = Field(None, description="Bu paydada kullanıcı gibi kaç kişi (6 yıl)")
+    frequency_peer: Optional[float] = Field(None, description="Aynı paydada risk etkensiz yaşıtlarda kaç kişi")
+    frequency_message_tr: Optional[str] = None
     projection_message_tr: Optional[str] = Field(None, description="Aktif içici: devam / bugün bırakma projeksiyonu")
     symptom_level: Optional[str] = Field(None, description="none | low | elevated (bugünkü belirtiler, eşik PPV %3)")
     symptom_now: Optional[float] = Field(None, description="Bugünkü belirtilerin akciğer kanserine bağlı olma olasılığı, %")
@@ -182,6 +190,10 @@ def _result(sess: Session) -> Optional[Result]:
         risk_level_factors_display_tr=r.get("risk_level_factors_display_tr"),
         relative_risk_peers=r.get("relative_risk_peers"),
         relative_message_tr=r.get("relative_message_tr"),
+        frequency_per=(r.get("frequency") or {}).get("per"),
+        frequency_you=(r.get("frequency") or {}).get("you"),
+        frequency_peer=(r.get("frequency") or {}).get("peer"),
+        frequency_message_tr=(r.get("frequency") or {}).get("message_tr"),
         projection_message_tr=(r.get("projection") or {}).get("message_tr"),
         symptom_level=(r.get("symptom_assessment") or {}).get("level"),
         symptom_now=(r.get("symptom_assessment") or {}).get("percent"),
@@ -278,6 +290,17 @@ def get_session(sid: str):
     return {"session_id": sess.id, "status": sess.status, "model": sess.model_version,
             "nlp_mode": sess.nlp_mode, "transcript": sess.transcript, "evidence": ev,
             "result": res.model_dump() if res else None, "error": sess.error or None}
+
+
+@app.post("/sessions/{sid}/client-log", dependencies=[Depends(require_token)])
+def client_log(sid: str, body: ClientLog):
+    """İstemci teşhis satırı (ör. ses kaydı neden atıldı) → konuşma kaydına '# istemci: …' olarak yazılır."""
+    sess = _session(sid)
+    n = getattr(sess, "_client_logs", 0)
+    if n < 100:                                      # oturum başına sınır
+        sess._client_logs = n + 1
+        sess.agent.transcript.note("istemci: " + body.text.replace("\n", " "))
+    return {"ok": True}
 
 
 @app.get("/sessions/{sid}/transcript.txt", dependencies=[Depends(require_token)])

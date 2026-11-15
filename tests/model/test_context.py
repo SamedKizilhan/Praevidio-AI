@@ -66,3 +66,24 @@ def test_projection_continue_never_below_quit(age):
     p = e.predict_risk(ev)["projection"]
     assert p["age"] == (50 if age < 50 else min(age + 5, 80))
     assert p["continue_6y"] >= p["quit_6y"]
+
+
+@pytest.mark.parametrize("age,yrs", [(30, 10), (35, 18), (45, 28), (55, 38), (62, 45), (72, 50)])
+def test_natural_frequency_is_consistent_with_relative_risk(age, yrs):
+    """'N kişiden X kişi; yaşıtlarda Y' sayıları göreli riskle tutarlı (42 : 1,2 ≈ 34 kat) ve payda 10'un kuvveti."""
+    from model.hybrid_bayesian_network_v3 import load_engine
+    e = load_engine("v3.1")
+    ev = {**WOMAN_35, "_age_exact": age, "AGE": e._age_group(age), "_years_smoked": yrs, "_pack_years": yrs}
+    r = e.predict_risk(ev)
+    f = r["frequency"]
+    assert f["per"] in (100, 1000, 10_000, 100_000, 1_000_000) and f["peer"] >= 1
+    assert f["you"] == pytest.approx(r["risk_6y_probability"] * f["per"], abs=0.5)
+    assert f["you"] / f["peer"] == pytest.approx(r["relative_risk_peers"], rel=0.12)
+    assert "kişiden yaklaşık" in f["message_tr"] and "katı" in f["message_tr"]
+
+
+def test_natural_frequency_for_reference_person_says_similar():
+    from model.hybrid_bayesian_network_v3 import load_engine
+    r = load_engine("v3.1").predict_risk({"AGE": 2, "_age_exact": 60, "GENDER": 1, "SMOKING": 0, "_pack_years": 0,
+                                          "FAMILY_HISTORY": 0, "ASBESTOS": 0, "AIR_POLLUTION": 0, "COPD": 0})
+    assert "benzer düzeydedir" in r["frequency"]["message_tr"] and "katı" not in r["frequency"]["message_tr"]

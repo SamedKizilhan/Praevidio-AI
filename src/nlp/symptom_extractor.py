@@ -171,9 +171,11 @@ FORMER_SMOKER_KEYWORDS = [
 ]
 
 # Age group detection patterns
+# "45 yaş", "45 yaşında(yım)", "45 yaşımdayım", "yaşım 45"; "18 yaşında başladım / 15 yaşından beri" yaş DEĞİLDİR
+# (15 Kas 2026 telefon denemesi: "45 yaş erkek" anlaşılmıyordu).
 AGE_PATTERNS = [
-    (r"(\d{2,3})\s*yaşında", None),  # "65 yaşındayım"
-    (r"yaşım\s*(\d{2,3})", None),     # "yaşım 65"
+    (r"(\d{2,3})\s*yaş(?!\w*\s*(?:başla|beri|itibaren))", None),
+    (r"yaş(?:ım|ımız)?\s*(\d{2,3})\b", None),
 ]
 
 

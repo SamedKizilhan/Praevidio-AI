@@ -5,7 +5,7 @@ agent: Merhaba. Sağlıklı bir risk analizi yapabilmem için öncelikle yaşın
 user: 35 yaşında kadınım
 agent: Sigara kullanıyor musunuz? Kullanıyorsanız ya da bıraktıysanız, günde kaç adet ve kaç yıl içtiğinizi de söyler misiniz?
 user: günde bir paket, 18 yıldır içiyorum
-agent: Şunları not ettim: 35 yaşında, kadın, aktif sigara içiyor, yaklaşık 18 paket-yıl. Doğru mu?
+agent: Şunları not ettim: 35 yaşındasınız, kadınsınız, 18 yıldır günde 1 paket sigara içiyorsunuz. Doğru mu?
 user: evet
 agent: Teşekkürler. Son haftalarda sizi rahatsız eden şikâyetleriniz neler? Örneğin öksürük, nefes darlığı, göğüs ağrısı, halsizlik gibi; yoksa 'şikâyetim yok' diyebilirsiniz.
 user: öksürüyorum, nefes darlığım var, göğsüm ağrıyor, hırıltı oluyor, çok halsizim, kan tükürdüm ve kilo verdim
@@ -19,7 +19,7 @@ user: hayır
 agent: Hangi ilde yaşıyorsunuz?
 user: Iğdır
 >> ÇÖZÜLDÜ (4 Kas 2026): 40 yaş altında NICE alarmı yoktu ve 'birkaç haftadır sürüyorsa' deniyordu; belirti katmanı (bugünkü belirtilerin kansere bağlı olma olasılığı, eşik %3) ve her yaşta hemoptizi kuralı ile artık 'kısa sürede hekim' öneriliyor; tam skor ('%14,4 yüksek risk') bantlanmıyor
-agent: Değerlendirmeniz tamamlandı. Risk faktörlerinize göre önümüzdeki altı yıl için tahmini riskiniz yüzde 0,42; bu, tarama eşiğinin altında. Bu, aynı yaşta ve cinsiyette, sigara içmeyen ve risk etkeni olmayan birine göre yaklaşık 34 kat. Sigaraya bu şekilde devam ederseniz 50 yaşında 6 yıllık riskiniz yaklaşık yüzde 2,14 olur ve tarama aralığına girersiniz; bugün bırakırsanız aynı yaşta yaklaşık yüzde 0,65. Belirtileriniz için önemli bir not: Belirti tablonuz, hekimlerin kısa sürede değerlendirme önerdiği düzeyin üzerinde; Kan tükürme her yaşta kısa sürede hekim değerlendirmesi gerektirir; enfeksiyon gibi kanser dışı nedenleri de olabilir. Belirtileriniz, risk skorunuzdan bağımsız olarak kısa sürede bir hekim değerlendirmesi gerektiriyor. Lütfen en kısa sürede bir göğüs hastalıkları uzmanına veya aile hekiminize başvurun; göğüs röntgeni ve gerekirse düşük doz BT istenebilir. Bu bir tarama aracıdır, tanı koymaz. Unutmayın, bu bir tarama ve farkındalık aracıdır, kesin tanı koymaz. Ne kadar erken tarama, o kadar erken teşhis. Detaylı raporunuzu indirmek için rapor butonuna basabilirsiniz.
+agent: Değerlendirmeniz tamamlandı. Risk faktörlerinize göre önümüzdeki altı yıl için tahmini riskiniz yüzde 0,42; bu, tarama eşiğinin altında. Bu sayı küçük görünebilir, ama şöyle düşünün: Sizinle aynı özelliklere sahip 10.000 kişiden yaklaşık 42 kişinin önümüzdeki 6 yılda akciğer kanseri tanısı alması beklenir. Aynı yaşta ve cinsiyette, sigara içmeyen ve risk etkeni olmayan 10.000 kişide bu sayı yaklaşık 1,2; yani riskiniz yaşıtlarınızın yaklaşık 34 katı. Sigaraya bu şekilde devam ederseniz 50 yaşında 6 yıllık riskiniz yaklaşık yüzde 2,14 olur ve tarama aralığına girersiniz; bugün bırakırsanız aynı yaşta yaklaşık yüzde 0,65. Belirtileriniz için önemli bir not: Belirti tablonuz, hekimlerin kısa sürede değerlendirme önerdiği düzeyin üzerinde; Kan tükürme her yaşta kısa sürede hekim değerlendirmesi gerektirir; enfeksiyon gibi kanser dışı nedenleri de olabilir. Belirtileriniz, risk skorunuzdan bağımsız olarak kısa sürede bir hekim değerlendirmesi gerektiriyor. Lütfen en kısa sürede bir göğüs hastalıkları uzmanına veya aile hekiminize başvurun; göğüs röntgeni ve gerekirse düşük doz BT istenebilir. Unutmayın, bu bir tarama ve farkındalık aracıdır, kesin tanı koymaz. Ne kadar erken tarama, o kadar erken teşhis. Detaylı raporunuzu indirmek için rapor butonuna basabilirsiniz.
 # --- sonuç ---
 # model sürümü: 3.1
 # 6 yıllık: %0,42 (Tarama eşiğinin altında) · tam: %14,4 (Yüksek Risk) · alarm: none
@@ -35,7 +35,9 @@ agent: Değerlendirmeniz tamamlandı. Risk faktörlerinize göre önümüzdeki a
 # beklenen: WEIGHT_LOSS=1
 # beklenen: risk_level_factors="low"
 # beklenen: ajan_der="tarama eşiğinin altında"
-# beklenen: ajan_der="34 kat"
+# beklenen: ajan_der="yaklaşık 34 katı"
+# beklenen: ajan_der="10.000 kişiden yaklaşık 42 kişinin"
+# beklenen: ajan_der="bu sayı yaklaşık 1,2"
 # beklenen: ajan_der="tarama aralığına girersiniz"
 # beklenen: ajan_demez="düşük risk grubuna"
 # beklenen: ajan_demez="yüksek risk"

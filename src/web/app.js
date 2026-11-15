@@ -9,7 +9,7 @@ const CFG = {
   nlp: params.get("nlp") || null,              // ?nlp=llm | keyword (boşsa sunucu varsayılanı)
   token: params.get("token") || "",            // sunucu PRAEVIDIO_API_TOKEN kullanıyorsa
 };
-const VAD = { maxMs: 30000, noSpeechMs: 8000, silenceMs: 1600, minLevel: 0.012 };
+const VAD = { maxMs: 30000, noSpeechMs: 8000, silenceMs: 1600, minLevel: 0.012, blindMaxMs: 12000 };
 
 const S = {                                    // istemci durumu
   sid: null, status: null, hint: "", busy: false,
@@ -99,7 +99,7 @@ function renderChips(hint) {
   for (const o of opts) {
     const b = document.createElement("button");
     b.className = "chip" + (o === "Bu ne demek?" ? " ask" : ""); b.type = "button"; b.textContent = o;
-    b.onclick = () => { cancelRecording(); sendText(o); };
+    b.onclick = () => { primeAudio(); cancelRecording(); sendText(o); };
     box.appendChild(b);
   }
 }
@@ -129,6 +129,7 @@ async function handleTurn(data) {
 }
 
 async function startSession(mode) {
+  if (mode === "voice") primeAudio();             // dokunuş anında (await'ten ÖNCE) ses ölçümünü aç
   if (mode === "voice") {                         // mikrofon iznini başta, kullanıcı dokunuşuyla iste
     if (!micSupported()) {
       toast("Bu bağlantıda mikrofon kullanılamıyor (https gerekir). Yazılı görüşmeyle devam ediyoruz.", 6000);
@@ -186,6 +187,25 @@ async function ensureStream() {
   return S.stream;
 }
 
+// Ses düzeyi ölçümü için TEK AudioContext: kullanıcı dokunuşunda oluşturulup "resume" edilir.
+// (15 Kas 2026 telefon denemesi: her kayıtta dokunuşsuz oluşturulan context iOS'ta "suspended" kalıyor,
+//  ölçüm hep 0 okuyor ve kayıt "Sizi duyamadım" diye atılıyordu.)
+function audioCtx() {
+  if (!S.actx || S.actx.state === "closed") S.actx = new (window.AudioContext || window.webkitAudioContext)();
+  return S.actx;
+}
+function primeAudio() { try { const c = audioCtx(); if (c.state !== "running") c.resume().catch(() => {}); } catch { /* yok */ } }
+function clientLog(text) {                       // teşhis satırı → konuşma kaydına "# istemci: …" olarak düşer
+  if (!S.sid) return;
+  api(`/sessions/${S.sid}/client-log`, { method: "POST", json: { text: String(text).slice(0, 300) } }).catch(() => {});
+}
+function deviceTag() {
+  const ua = navigator.userAgent || "";
+  const os = (ua.match(/iPhone|iPad|Android|Macintosh|Windows|Linux/) || ["?"])[0];
+  const br = (ua.match(/CriOS|FxiOS|EdgiOS|Edg|Chrome|Firefox|Safari/) || ["?"])[0];
+  return `${os}/${br}`;
+}
+
 async function startRecording(auto = false) {
   if (S.recording || S.busy || S.status !== "awaiting_input") return;
   if (!micSupported()) {
@@ -200,34 +220,63 @@ async function startRecording(auto = false) {
   const mime = pickMime();
   const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
   const chunks = [];
-  let spoke = false, stopped = false;
+  let spoke = false, stopped = false, blind = false, maxRms = 0, thr = VAD.minLevel;
   rec.ondataavailable = (e) => e.data && e.data.size && chunks.push(e.data);
 
   // Basit VAD: ortam gürültüsünü ölç, konuşma başladıktan sonra sessizlikte dur
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const ctx = audioCtx();
+  if (ctx.state !== "running") { try { await ctx.resume(); } catch { /* aşağıda "kör" moda düşer */ } }
   const src = ctx.createMediaStreamSource(stream);
-  const an = ctx.createAnalyser(); an.fftSize = 1024; src.connect(an);
-  const buf = new Float32Array(an.fftSize);
+  const an = ctx.createAnalyser(); an.fftSize = 1024;
+  const mute = ctx.createGain(); mute.gain.value = 0;        // Safari: hedefe bağlı olmayan düğüm işlenmeyebilir
+  src.connect(an); an.connect(mute); mute.connect(ctx.destination);
+  const fbuf = new Float32Array(an.fftSize), bbuf = new Uint8Array(an.fftSize);
+  const level = () => {
+    let sum = 0;
+    if (an.getFloatTimeDomainData) { an.getFloatTimeDomainData(fbuf); for (const v of fbuf) sum += v * v; }
+    else { an.getByteTimeDomainData(bbuf); for (const b of bbuf) { const v = (b - 128) / 128; sum += v * v; } }
+    return Math.sqrt(sum / an.fftSize);
+  };
   const t0 = performance.now(); let noise = 0, nSamples = 0, lastVoice = t0;
 
   const finish = (discard, silent = false) => {
     if (stopped) return; stopped = true;
-    clearInterval(timer); ctx.close().catch(() => {});
+    clearInterval(timer);
+    try { src.disconnect(); an.disconnect(); mute.disconnect(); } catch { /* zaten kopuk */ }
     S.recording = false; $("btn-mic").classList.remove("recording");
     $("mic-status").textContent = S.mode === "voice" ? "Konuşmak için mikrofona dokunun." : "";
+    const secs = ((performance.now() - t0) / 1000).toFixed(1);
     rec.onstop = () => {
+      const blob = new Blob(chunks, { type: rec.mimeType || mime || "audio/webm" });
+      const diag = `ctx=${ctx.state} maxRms=${maxRms.toFixed(4)} eşik=${thr.toFixed(4)} süre=${secs}s ` +
+                   `mime=${rec.mimeType || mime || "?"} boyut=${blob.size} cihaz=${deviceTag()}`;
       if (silent) return;
-      if (discard || !spoke) { toast("Sizi duyamadım. Mikrofona dokunup tekrar deneyin ya da bir seçeneğe dokunun."); return; }
-      sendAudio(new Blob(chunks, { type: rec.mimeType || mime || "audio/webm" }), extFor(rec.mimeType || mime));
+      // "Kör" ölçüm (hep ~0): konuşma olup olmadığı bilinemez → kaydı atma, sunucudaki STT karar versin
+      const heard = (spoke || blind) && !discard && blob.size > 1500;
+      if (!heard) {
+        S.voiceFails = (S.voiceFails || 0) + 1;
+        clientLog(`ses kaydı atıldı (${blind ? "ölçüm kör" : "konuşma algılanmadı"}): ${diag}`);
+        toast(S.voiceFails >= 2
+          ? "Sizi yine duyamadım. Bir seçeneğe dokunabilir ya da üstteki düğmeyle yazılıya geçebilirsiniz."
+          : "Sizi duyamadım. Mikrofona dokunup tekrar deneyin ya da bir seçeneğe dokunun.", 6000);
+        return;
+      }
+      S.voiceFails = 0;
+      clientLog(`ses gönderildi${blind ? " (ölçüm kör, elle durduruldu)" : ""}: ${diag}`);
+      sendAudio(blob, extFor(rec.mimeType || mime));
     };
     rec.stop();
   };
   const timer = setInterval(() => {
-    an.getFloatTimeDomainData(buf);
-    let sum = 0; for (const v of buf) sum += v * v;
-    const rms = Math.sqrt(sum / buf.length), now = performance.now();
+    const rms = level(), now = performance.now();
+    maxRms = Math.max(maxRms, rms);
     if (now - t0 < 300) { noise += rms; nSamples++; return; }
-    const thr = Math.max(VAD.minLevel, (nSamples ? noise / nSamples : 0) * 2.5);
+    if (!blind && now - t0 > 1500 && maxRms < 0.0008) {       // ölçüm çalışmıyor → elle durdurma moduna geç
+      blind = true;
+      $("mic-status").textContent = "Dinliyorum… Bitirince mikrofona dokunun.";
+    }
+    if (blind) { if (now - t0 > VAD.blindMaxMs) finish(false); return; }
+    thr = Math.max(VAD.minLevel, (nSamples ? noise / nSamples : 0) * 2.5);
     if (rms > thr) { spoke = true; lastVoice = now; }
     if (spoke && now - lastVoice > VAD.silenceMs) finish(false);
     else if (!spoke && now - t0 > VAD.noSpeechMs) finish(true);
@@ -239,7 +288,7 @@ async function startRecording(auto = false) {
   S.cancelRecording = () => finish(true, true);
   $("btn-mic").classList.add("recording");
   $("mic-status").textContent = "Dinliyorum… Bitirince susmanız yeterli (ya da mikrofona dokunun).";
-  rec.start(250);
+  rec.start();                                   // dilimsiz: Safari'de tek, bütün bir mp4 üretir
 }
 
 function cancelRecording() { if (S.recording && S.cancelRecording) S.cancelRecording(); }
@@ -257,7 +306,17 @@ function renderResult(r) {
   $("risk6y").textContent = pct(main);
   const b = bandOf(r); const band = $("band");
   band.textContent = b.label; band.className = "band " + b.cls;
-  for (const [id, txt] of [["relative", r.relative_message_tr], ["projection", r.projection_message_tr]]) {
+  // Doğal sıklık: küçük yüzde önemsiz görünmesin → aynı paydada "siz / yaşıtınız" (çubuk + sayı) ve açıklama cümlesi
+  const nf = (v) => Number(v).toLocaleString("tr-TR", { maximumFractionDigits: v < 10 ? 1 : 0 });
+  const hasFreq = r.frequency_per && r.frequency_you !== null && r.frequency_you !== undefined && r.relative_risk_peers >= 1.5;
+  $("freq").hidden = !hasFreq;
+  if (hasFreq) {
+    $("freq-title").textContent = `Önümüzdeki 6 yılda ${nf(r.frequency_per)} kişide beklenen tanı sayısı`;
+    $("freq-you").textContent = nf(r.frequency_you); $("freq-peer").textContent = nf(r.frequency_peer);
+    $("freq-bar-you").style.width = "100%";
+    $("freq-bar-peer").style.width = Math.max(1, Math.min(100, (r.frequency_peer / r.frequency_you) * 100)) + "%";
+  }
+  for (const [id, txt] of [["relative", r.frequency_message_tr || r.relative_message_tr], ["projection", r.projection_message_tr]]) {
     $(id).textContent = txt || ""; $(id).hidden = !txt;
   }
   // Belirti katmanı: tam skor artık bantlanmaz. Acilse gerekçeler alarm kutusunda, değilse belirti notu ayrı satırda.
@@ -311,6 +370,7 @@ $("btn-start-voice").onclick = () => startSession("voice");
 $("btn-start-text").onclick = () => startSession("text");
 $("btn-mode").onclick = async () => {
   if (S.mode === "voice") { cancelRecording(); stopAudio(); setMode("text"); $("input-text").focus(); return; }
+  primeAudio();
   if (!micSupported()) { toast("Bu bağlantıda mikrofon kullanılamıyor (https gerekir).", 5000); return; }
   try { await ensureStream(); } catch { toast("Mikrofon izni verilmedi."); return; }
   setMode("voice");
@@ -319,7 +379,7 @@ $("btn-mode").onclick = async () => {
 $("btn-restart").onclick = restart;
 $("btn-report").onclick = openReport;
 $("btn-transcript").onclick = downloadTranscript;
-$("btn-mic").onclick = () => (S.recording ? S.stopRecording() : startRecording(false));
+$("btn-mic").onclick = () => { primeAudio(); return S.recording ? S.stopRecording() : startRecording(false); };
 $("form-text").onsubmit = (e) => { e.preventDefault(); const i = $("input-text"); sendText(i.value); i.value = ""; };
 setMode(S.mode);
 

@@ -158,7 +158,9 @@ def test_side_question_is_answered_then_question_repeated(client):
     client.post(f"/sessions/{sid}/turn", json={"text": "45 yaşındayım erkeğim"})
     out = client.post(f"/sessions/{sid}/turn", json={"text": "günde 10 tane, yaklaşık 10 yıldır içiyorum"}).json()
     confirm = out["messages"][-1]["text"]
-    assert "paket-yıl" in confirm and confirm.endswith("Doğru mu?")
+    # onay cümlesi kullanıcının söylediği biçimde; "paket-yıl" terimi yok (15 Kas 2026 geri bildirimi)
+    assert "10 yıldır günde 10 adet sigara içiyorsunuz" in confirm and "paket-yıl" not in confirm
+    assert confirm.endswith("Doğru mu?")
     out = client.post(f"/sessions/{sid}/turn", json={"text": "5 paket-yıl ne demek ki?"}).json()
     texts = [m["text"] for m in out["messages"]]
     assert out["status"] == "awaiting_input"
@@ -207,3 +209,48 @@ def test_transcript_saved_downloadable_and_replayable(client, monkeypatch):
     # yeniden oynatma: aynı cevaplar → birebir aynı konuşma
     rp = replay(txt + "# beklenen: _pack_years=30\n# beklenen: alarm=urgent\n# beklenen: bitti=true\n")
     assert rp["finished"] and not rp["diff"] and not rp["fails"], (rp["diff"], rp["fails"])
+
+
+@pytest.mark.parametrize("answer", ["45 yaş erkek", "45 erkek", "kırk beş yaşında erkeğim", "yaşım 45, erkeğim"])
+def test_age_understood_in_short_forms(client, answer):
+    """15 Kas 2026 telefon denemesi: '45 yaş erkek' anlaşılmıyor, yaş üç kez soruluyordu."""
+    sid = client.post("/sessions", json={"nlp_mode": "keyword"}).json()["session_id"]
+    out = client.post(f"/sessions/{sid}/turn", json={"text": answer}).json()
+    assert "Sigara kullanıyor musunuz" in out["messages"][-1]["text"], out["messages"]
+    ev = client.get(f"/sessions/{sid}").json()["evidence"]
+    assert ev["_age_exact"] == 45 and ev["AGE"] == 0 and ev["GENDER"] == 1
+
+
+def test_bare_number_is_age_only_for_the_age_question(client):
+    sid = client.post("/sessions", json={"nlp_mode": "keyword"}).json()["session_id"]
+    out = client.post(f"/sessions/{sid}/turn", json={"text": "erkeğim"}).json()
+    assert "Yaşınızı tam alamadım" in out["messages"][-1]["text"] and "'45'" in out["messages"][-1]["text"]
+    out = client.post(f"/sessions/{sid}/turn", json={"text": "45"}).json()
+    assert "Sigara kullanıyor musunuz" in out["messages"][-1]["text"]
+    out = client.post(f"/sessions/{sid}/turn", json={"text": "18 yaşında başladım, günde bir paket, 27 yıldır"}).json()
+    ev = client.get(f"/sessions/{sid}").json()["evidence"]
+    assert ev["_age_exact"] == 45, "sigaraya başlama yaşı kişinin yaşını ezmemeli"
+    assert "27 yıldır günde 1 paket sigara içiyorsunuz" in out["messages"][-1]["text"]
+
+
+@pytest.mark.parametrize("smoke,expected", [
+    ("günde 1 paket 10 yıl", "10 yıldır günde 1 paket sigara içiyorsunuz"),
+    ("günde 15 tane 20 yıldır içiyorum", "20 yıldır günde 15 adet sigara içiyorsunuz"),
+    ("hiç içmedim", "hiç sigara içmediniz"),
+    ("günde bir paket 20 yıl içtim, 5 yıl önce bıraktım", "20 yıl boyunca günde 1 paket sigara içtiniz ve 5 yıl önce bıraktınız"),
+])
+def test_confirmation_repeats_what_user_said(client, smoke, expected):
+    sid = client.post("/sessions", json={"nlp_mode": "keyword"}).json()["session_id"]
+    client.post(f"/sessions/{sid}/turn", json={"text": "45 yaşında erkeğim"})
+    out = client.post(f"/sessions/{sid}/turn", json={"text": smoke}).json()
+    confirm = out["messages"][-1]["text"]
+    assert confirm.startswith("Şunları not ettim: 45 yaşındasınız, erkeksiniz, ") and expected in confirm, confirm
+    assert "paket-yıl" not in confirm
+
+
+def test_client_log_lands_in_transcript(client):
+    sid = client.post("/sessions", json={"nlp_mode": "keyword", "client": "pwa-voice"}).json()["session_id"]
+    r = client.post(f"/sessions/{sid}/client-log", json={"text": "ses kaydı atıldı (ölçüm kör): ctx=suspended maxRms=0.0000"})
+    assert r.status_code == 200
+    assert "# istemci: ses kaydı atıldı (ölçüm kör): ctx=suspended" in client.get(f"/sessions/{sid}/transcript.txt").text
+    assert client.post("/sessions/yok/client-log", json={"text": "x"}).status_code == 404

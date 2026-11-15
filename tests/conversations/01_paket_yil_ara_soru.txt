@@ -5,11 +5,11 @@ agent: Merhaba. Sağlıklı bir risk analizi yapabilmem için öncelikle yaşın
 user: 45 yaşındayım erkeğim
 agent: Sigara kullanıyor musunuz? Kullanıyorsanız ya da bıraktıysanız, günde kaç adet ve kaç yıl içtiğinizi de söyler misiniz?
 user: günde 10 tane, yaklaşık 10 yıldır içiyorum
-agent: Şunları not ettim: 45 yaşında, erkek, aktif sigara içiyor, yaklaşık 5 paket-yıl. Doğru mu?
+agent: Şunları not ettim: 45 yaşındasınız, erkeksiniz, 10 yıldır günde 10 adet sigara içiyorsunuz. Doğru mu?
 user: 5 paket-yıl ne demek ki?
 >> önceden açıklamadan sonraki soruya geçiyordu — artık açıklayıp aynı soruyu tekrar sormalı
 agent: Paket-yıl, ömür boyu içilen sigara miktarının ölçüsüdür: günde içilen paket sayısı ile içilen yıl sayısı çarpılır, bir paket 20 sigaradır. Örneğin günde 1 paketi 20 yıl içmek 20 paket-yıl eder. Tarama önerilerinde kullanılır; 50–80 yaş arasında 20 paket-yıl ve üzeri, düşük doz tomografi taraması ölçütlerinden biridir. Sizin için: günde 10 sigara yaklaşık 0,5 paket eder; bunu 10 yıl içtiğiniz için yaklaşık 5 paket-yıl hesapladım.
-agent: Şunları not ettim: 45 yaşında, erkek, aktif sigara içiyor, yaklaşık 5 paket-yıl. Doğru mu?
+agent: Şunları not ettim: 45 yaşındasınız, erkeksiniz, 10 yıldır günde 10 adet sigara içiyorsunuz. Doğru mu?
 user: evet
 agent: Teşekkürler. Son haftalarda sizi rahatsız eden şikâyetleriniz neler? Örneğin öksürük, nefes darlığı, göğüs ağrısı, halsizlik gibi; yoksa 'şikâyetim yok' diyebilirsiniz.
 user: şikâyetim yok
@@ -42,7 +42,7 @@ agent: Doktorunuz size KOAH, amfizem veya kronik bronşit tanısı koydu mu?
 user: hayır
 agent: Hangi ilde yaşıyorsunuz?
 user: İstanbul
-agent: Değerlendirmeniz tamamlandı. Risk faktörlerinize göre önümüzdeki altı yıl için tahmini riskiniz yüzde 0,09; bu, tarama eşiğinin altında. Bu, aynı yaşta ve cinsiyette, sigara içmeyen ve risk etkeni olmayan birine göre yaklaşık 6,5 kat. Sigaraya bu şekilde devam ederseniz 50 yaşında 6 yıllık riskiniz yaklaşık yüzde 0,16 olur; bugün bırakırsanız aynı yaşta yaklaşık yüzde 0,09. 6 yıllık riskiniz şu an tarama eşiğinin altında. Bu, risk faktörlerinizin önemsiz olduğu anlamına gelmez; sigara, yaş veya mesleki maruziyet varsa önemini korur. Yeni bir belirti olursa hekiminize başvurun. Bu bir tarama aracıdır, tanı koymaz. Unutmayın, bu bir tarama ve farkındalık aracıdır, kesin tanı koymaz. Ne kadar erken tarama, o kadar erken teşhis. Detaylı raporunuzu indirmek için rapor butonuna basabilirsiniz.
+agent: Değerlendirmeniz tamamlandı. Risk faktörlerinize göre önümüzdeki altı yıl için tahmini riskiniz yüzde 0,09; bu, tarama eşiğinin altında. Bu sayı küçük görünebilir, ama şöyle düşünün: Sizinle aynı özelliklere sahip 10.000 kişiden yaklaşık 9 kişinin önümüzdeki 6 yılda akciğer kanseri tanısı alması beklenir. Aynı yaşta ve cinsiyette, sigara içmeyen ve risk etkeni olmayan 10.000 kişide bu sayı yaklaşık 1,4; yani riskiniz yaşıtlarınızın yaklaşık 6,5 katı. Sigaraya bu şekilde devam ederseniz 50 yaşında 6 yıllık riskiniz yaklaşık yüzde 0,16 olur; bugün bırakırsanız aynı yaşta yaklaşık yüzde 0,09. 6 yıllık riskiniz şu an tarama eşiğinin altında. Bu, risk faktörlerinizin önemsiz olduğu anlamına gelmez; sigara, yaş veya mesleki maruziyet varsa önemini korur. Yeni bir belirti olursa hekiminize başvurun. Unutmayın, bu bir tarama ve farkındalık aracıdır, kesin tanı koymaz. Ne kadar erken tarama, o kadar erken teşhis. Detaylı raporunuzu indirmek için rapor butonuna basabilirsiniz.
 # --- sonuç ---
 # model sürümü: 3.1
 # 6 yıllık: %0,09 (Tarama eşiğinin altında) · tam: %0,06 (Düşük Risk) · alarm: none

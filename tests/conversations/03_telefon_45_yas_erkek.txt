@@ -1,0 +1,52 @@
+# Praevidio konuşma kaydı
+# oturum: 03_telefon_45_yas_erkek  ·  model: v3  ·  nlp: keyword  ·  kanal: test-fixture
+# 15 Kasım 2026 telefon denemesi (pwa-voice, yazılıya geçildi). Özgün kayıtta '45 yaş erkek' ve '45' anlaşılmamış, yaş üç kez sorulmuştu; düzeltmeden sonra ilk cevap yettiği için fazlalık iki cevap ('45', 'Bu ne demek?', '45 yaşındayım') bu kayıttan çıkarıldı.
+agent: Merhaba. Sağlıklı bir risk analizi yapabilmem için öncelikle yaşınızı ve cinsiyetinizi belirtir misiniz?
+user: 45 yaş erkek
+>> özgün kayıtta: 'Şunu tam alamadım: yaşınızı' — artık ilk cevapta anlaşılmalı
+agent: Sigara kullanıyor musunuz? Kullanıyorsanız ya da bıraktıysanız, günde kaç adet ve kaç yıl içtiğinizi de söyler misiniz?
+user: Günde 1 paket 10 yıl
+>> özgün kayıtta onay 'yaklaşık 10 paket-yıl' diyordu — kullanıcının söylediği biçimde olmalı
+agent: Şunları not ettim: 45 yaşındasınız, erkeksiniz, 10 yıldır günde 1 paket sigara içiyorsunuz. Doğru mu?
+user: Evet
+agent: Teşekkürler. Son haftalarda sizi rahatsız eden şikâyetleriniz neler? Örneğin öksürük, nefes darlığı, göğüs ağrısı, halsizlik gibi; yoksa 'şikâyetim yok' diyebilirsiniz.
+user: Öksürük göğüs ağrısı halsizlik
+agent: Şunları not ettim: öksürük, göğüs ağrısı, halsizlik.
+agent: Şimdi birkaç belirtiyi tek tek soracağım. Lütfen 'evet', 'hayır' ya da 'bilmiyorum' şeklinde yanıtlayın.
+agent: Nefes darlığı yaşıyor musunuz?
+user: Hayır
+agent: Solunumunuzda hırıltı oluyor mu?
+user: Evet
+agent: Hiç kan tükürdüğünüz oldu mu?
+user: Hayır
+agent: Son dönemde istemsiz kilo kaybınız oldu mu?
+user: Evet
+agent: Birinci derece akrabalarınızda (anne, baba, kardeş) akciğer kanseri öyküsü var mı?
+user: Bilmiyorum
+agent: Şu meslek gruplarından birinde uzun süre çalıştınız mı: inşaat, yıkım, tersane, maden, yalıtım, oto tamir, çimento veya eternit fabrikası?
+user: Hayır
+agent: Doktorunuz size KOAH, amfizem veya kronik bronşit tanısı koydu mu?
+user: Hayır
+agent: Hangi ilde yaşıyorsunuz?
+user: İstanbul
+agent: Değerlendirmeniz tamamlandı. Risk faktörlerinize göre önümüzdeki altı yıl için tahmini riskiniz yüzde 0,25; bu, tarama eşiğinin altında. Bu sayı küçük görünebilir, ama şöyle düşünün: Sizinle aynı özelliklere sahip 10.000 kişiden yaklaşık 25 kişinin önümüzdeki 6 yılda akciğer kanseri tanısı alması beklenir. Aynı yaşta ve cinsiyette, sigara içmeyen ve risk etkeni olmayan 10.000 kişide bu sayı yaklaşık 1,4; yani riskiniz yaşıtlarınızın yaklaşık 17 katı. Sigaraya bu şekilde devam ederseniz 50 yaşında 6 yıllık riskiniz yaklaşık yüzde 0,43 olur; bugün bırakırsanız aynı yaşta yaklaşık yüzde 0,25. Belirtileriniz için önemli bir not: 40 yaşın üzerindesiniz ve açıklanamayan 4 belirtiniz var. Belirtileriniz, risk skorunuzdan bağımsız olarak kısa sürede bir hekim değerlendirmesi gerektiriyor. Lütfen en kısa sürede bir göğüs hastalıkları uzmanına veya aile hekiminize başvurun; göğüs röntgeni ve gerekirse düşük doz BT istenebilir. Unutmayın, bu bir tarama ve farkındalık aracıdır, kesin tanı koymaz. Ne kadar erken tarama, o kadar erken teşhis. Detaylı raporunuzu indirmek için rapor butonuna basabilirsiniz.
+# --- sonuç ---
+# model sürümü: 3.1
+# 6 yıllık: %0,25 (Tarama eşiğinin altında) · tam: %1,05 (Düşük Risk) · alarm: urgent
+# belirti katmanı: %0,89 (low, eşik %3) · kısa sürede hekim: True
+# göreli risk: ×17.42 · projeksiyon: Sigaraya bu şekilde devam ederseniz 50 yaşında 6 yıllık riskiniz yaklaşık %0,43 olur; bugün bırakırsanız aynı yaşta yaklaşık %0,25.
+# kanıt: {"AGE": 0, "AIR_POLLUTION": 1, "ASBESTOS": 0, "CHEST_PAIN": 1, "COPD": 0, "COUGHING": 1, "FATIGUE": 1, "GENDER": 1, "HEMOPTYSIS": 0, "SHORTNESS_OF_BREATH": 0, "SMOKING": 1, "WEIGHT_LOSS": 1, "WHEEZING": 1, "_age_exact": 45, "_cigs_per_day": 20, "_pack_years": 10.0, "_province": "İstanbul", "_years_smoked": 10}
+# beklenen: _age_exact=45
+# beklenen: GENDER=1
+# beklenen: _pack_years=10
+# beklenen: ajan_der="10 yıldır günde 1 paket sigara içiyorsunuz"
+# beklenen: ajan_demez="paket-yıl. Doğru mu"
+# beklenen: ajan_demez="tam alamadım"
+# beklenen: FAMILY_HISTORY=yok
+# beklenen: WHEEZING=1
+# beklenen: ajan_der="40 yaşın üzerindesiniz ve açıklanamayan 4 belirtiniz var"
+# beklenen: ajan_demez="40 yaş ve üstü ve"
+# beklenen: alarm="urgent"
+# beklenen: belirti="low"
+# beklenen: acil=true
+# beklenen: bitti=true

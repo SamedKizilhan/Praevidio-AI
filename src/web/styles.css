@@ -97,6 +97,16 @@ body.mode-voice #mic-status { text-align: center; }
 .band.low { background: var(--low); }
 .band.below { background: var(--muted); }          /* "Tarama eşiğinin altında": yeşil güven vermesin */
 .context { margin: 8px 0; }
+/* doğal sıklık karşılaştırması: "10.000 kişide: Siz 42 · Yaşıtınız 1,2" */
+.freq { margin: 12px 0 4px; padding: 12px 14px; background: var(--agent); border-radius: 12px; }
+.freq-title { margin: 0 0 8px; font-weight: 600; }
+.freq-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+.freq-label { flex: 0 0 84px; font-size: 15px; }
+.freq-track { flex: 1; min-width: 0; height: 14px; }
+.freq-bar { display: block; height: 100%; border-radius: 7px; min-width: 4px; }
+.freq-bar.you { background: var(--mid); } .freq-bar.peer { background: var(--muted); }
+.freq-num { flex: 0 0 auto; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 44px; text-align: right; }
+.freq .small { margin: 6px 0 0; }
 .projection { border-left: 3px solid var(--mid); padding-left: 10px; } .band.moderate { background: var(--mid); } .band.high { background: var(--high); }
 .screening { background: var(--agent); border-radius: 12px; padding: 10px 14px; }
 .actions { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }

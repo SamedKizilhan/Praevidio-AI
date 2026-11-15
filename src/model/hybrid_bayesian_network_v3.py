@@ -460,7 +460,7 @@ class HybridLungCancerEngineV3(HybridLungCancerEngine):
             v = x * 100
             return (f"{v:.2f}" if v < 10 else f"{v:.1f}").replace(".", ",")
         out = {"relative_risk_peers": None, "peer_6y": None, "relative_message_tr": None,
-               "relative_message_en": None, "projection": None}
+               "relative_message_en": None, "frequency": None, "projection": None}
         age = evidence.get("_age_exact")
         if age is None and evidence.get("AGE") is None:
             return out
@@ -481,6 +481,30 @@ class HybridLungCancerEngineV3(HybridLungCancerEngine):
             out["relative_message_tr"] = ("Aynı yaşta ve cinsiyette, sigara içmeyen ve risk etkeni olmayan biriyle "
                                           "benzer düzeyde.")
             out["relative_message_en"] = "Similar to a never-smoker of the same age and sex without risk factors."
+
+        # Doğal sıklık (15 Kas 2026): "%0,42" konuyu bilmeyene önemsiz görünür; küçük olasılıklar "N kişiden kaçı"
+        # biçiminde ve aynı paydada yaşıt karşılaştırmasıyla daha doğru anlaşılır. Payda: yaşıt sayısı ≥ 1 olan
+        # en küçük 10'un kuvveti; yaşıt sayısı < 10 ise bir ondalık (42 : 1,2 ≈ 34 kat tutarlı kalsın).
+        per = next((d for d in (100, 1000, 10_000, 100_000, 1_000_000) if p_ref * d >= 1), 1_000_000)
+        you_n, peer_x = round(p6 * per), p_ref * per
+        tr_int = lambda v: f"{v:,}".replace(",", ".")
+        peer_tr = tr_int(round(peer_x)) if peer_x >= 10 else f"{peer_x:.1f}".replace(".", ",").replace(",0", "")
+        peer_en = f"{round(peer_x):,}" if peer_x >= 10 else f"{peer_x:.1f}".replace(".0", "")
+        if rr >= 1.5:
+            f_tr = (f"Sizinle aynı özelliklere sahip {tr_int(per)} kişiden yaklaşık {tr_int(you_n)} kişinin önümüzdeki "
+                    f"6 yılda akciğer kanseri tanısı alması beklenir. Aynı yaşta ve cinsiyette, sigara içmeyen ve risk "
+                    f"etkeni olmayan {tr_int(per)} kişide bu sayı yaklaşık {peer_tr}; yani riskiniz yaşıtlarınızın "
+                    f"yaklaşık {n} katı.")
+            f_en = (f"About {you_n:,} in {per:,} people like you are expected to be diagnosed with lung cancer in the next "
+                    f"6 years. Among {per:,} never-smokers of the same age and sex without risk factors the number is "
+                    f"about {peer_en}; your risk is about {n} times theirs.")
+        else:
+            f_tr = (f"Sizinle aynı özelliklere sahip {tr_int(per)} kişiden yaklaşık {peer_tr} kişinin önümüzdeki 6 yılda "
+                    f"akciğer kanseri tanısı alması beklenir; bu, sigara içmeyen ve risk etkeni olmayan yaşıtlarınızla "
+                    f"benzer düzeydedir.")
+            f_en = (f"About {peer_en} in {per:,} people like you are expected to be diagnosed with lung cancer in the next "
+                    f"6 years; this is similar to never-smokers of the same age without risk factors.")
+        out["frequency"] = {"per": per, "you": you_n, "peer": round(peer_x, 1), "message_tr": f_tr, "message_en": f_en}
 
         # Projeksiyon: yalnız aktif içici, yaş ve doz biliniyorsa
         cigs, yrs, py = evidence.get("_cigs_per_day"), evidence.get("_years_smoked"), evidence.get("_pack_years")

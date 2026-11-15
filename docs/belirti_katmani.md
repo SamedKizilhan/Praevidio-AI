@@ -29,3 +29,13 @@ sürede hekim (NICE kuralı yaş nedeniyle tetiklenmez). 30 yaş hiç içmemiş,
 * Türkiye için eşik: %3 mü, daha düşük mü (göğüs röntgeni/uzman erişimi kolay)?
 * PLCOm2012'nin 50 yaş altına uzatılması genç kişilerde belirti katmanını da yükseltebilir.
 * Kullanıcı ekranında belirti katmanının **sayısı gösterilmiyor** (yalnız mesaj); sayı hekim raporunda yer alıyor.
+  Gerekçe: model tahmini, ölçülmüş PPV değil ve 50 yaş altında doğrulanmadı; karar için gereken bilgi eşiğin
+  altında/üstünde olmasıdır.
+
+## Ek (15 Kasım 2026): 6 yıllık küçük yüzdenin anlatımı
+Belirti sayısı gizlenince kullanıcının gördüğü tek sayı 6 yıllık risk kalıyor ve "%0,42" konuyu bilmeyene önemsiz
+görünebiliyor. Bu yüzden 6 yıllık katman **doğal sıklık** olarak da gösterilir: "Sizinle aynı özelliklere sahip
+10.000 kişiden yaklaşık 42 kişi; risk etkeni olmayan yaşıtlarınızda yaklaşık 1,2 — yaklaşık 34 kat" (ekranda iki
+çubuk, sesli özette ve hekim raporunda cümle). Payda, yaşıt sayısı ≥ 1 olan en küçük 10'un kuvvetidir; sayılar göreli
+riskle tutarlıdır (`tests/model/test_context.py`). Mutlak ve göreli risk birlikte verilir; yalnız göreli risk
+("34 kat") abartılı, yalnız yüzde ("%0,42") önemsiz algılanır.
