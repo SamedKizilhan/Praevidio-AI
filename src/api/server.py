@@ -79,7 +79,7 @@ def root():
 
 def require_token(authorization: Optional[str] = Header(default=None)):
     if API_TOKEN and authorization != f"Bearer {API_TOKEN}":
-        raise HTTPException(status_code=401, detail="Geçersiz ya da eksik API anahtarı.")
+        raise HTTPException(status_code=401, detail="Erişim anahtarı (token) eksik ya da hatalı. Adres …/app/?token=ANAHTAR biçiminde olmalı.")
 
 
 # ──────────────────────────────────────────────

@@ -3,7 +3,8 @@
 "use strict";
 
 const $ = (id) => document.getElementById(id);
-const params = new URLSearchParams(location.search);
+// Sık yapılan yazım hatasına tolerans: "?token=abc?nlp=llm" (ikinci "?" yerine "&" olmalı) → doğru ayrıştır
+const params = new URLSearchParams("?" + location.search.slice(1).replace(/\?/g, "&"));
 const CFG = {
   model: params.get("model") || "v3",          // ?model=v2 ile bahar modeli
   nlp: params.get("nlp") || null,              // ?nlp=llm | keyword (boşsa sunucu varsayılanı)
@@ -151,7 +152,10 @@ async function startSession(mode) {
     S.sid = data.session_id;
     await handleTurn(data);
   } catch (e) {
-    setBusy(false); show("welcome"); toast("Sunucuya bağlanılamadı: " + e.message);
+    setBusy(false); show("welcome");
+    toast(e.status === 401
+      ? "Erişim anahtarı (token) eksik ya da hatalı. Adres şu biçimde olmalı: …/app/?token=ANAHTAR&nlp=llm"
+      : "Sunucuya bağlanılamadı: " + e.message, 9000);
   } finally { for (const id of ["btn-start-voice", "btn-start-text"]) $(id).disabled = false; }
 }
 
