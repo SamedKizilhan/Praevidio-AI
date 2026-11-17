@@ -4,7 +4,7 @@
 
 **Katılımcılar.** 5–8 gönüllü yetişkin; en az biri 50 yaş üstü (hedef kitle), en az biri teknolojiyle az haşır neşir. 5 katılımcı, kullanılabilirlik sorunlarının çoğunu ortaya çıkarmaya yeterlidir; SUS puanı bu örneklemde gösterge niteliğindedir.
 
-**Etik ve gizlilik.** Katılımcılar **kendi sağlık bilgilerini vermez**; kendilerine verilen kurgusal bir vaka kartına göre cevap verir. Ad yerine katılımcı kodu (K1, K2…) kullanılır. Kurumun insan katılımcılı çalışmalar için onay gerektirip gerektirmediği danışmana sorulmalıdır.
+**Etik ve gizlilik.** Katılımcılar **kendi sağlık bilgilerini vermez**; kendilerine verilen kurgusal bir vaka kartına göre cevap verir. Ad yerine katılımcı kodu (K1, K2…) kullanılır.
 
 ## Akış (katılımcı başına ~20 dakika)
 

@@ -128,14 +128,17 @@ def run():
           "4. **Acil değerlendirme kuralı.** İngiltere NICE NG12 kılavuzu; 40 yaş üstü, sigara öyküsü olan ve "
           "açıklanamayan **tek bir** belirtisi (ör. hafif öksürük) bulunan kişiye kısa sürede göğüs röntgeni "
           "önermektedir. Türkiye pratiği için bu kural sizce:  ☐ Uygun   ☐ Aşırı temkinli   ☐ Yetersiz",
-          "5. **Eksik sorular.** Uygulamanın sorduğu belirti ve risk faktörlerine (öksürük, nefes darlığı, "
+          "5. **Belirtiler için sevk eşiği.** Bir hastanın bugünkü belirtilerinin akciğer kanserine bağlı olma "
+          "olasılığı en az yüzde kaç olduğunda onu beklemeden değerlendirirsiniz (göğüs röntgeni / sevk)? "
+          "NICE bu eşiği %3 alır; uygulama da şu an %3 kullanıyor.  ☐ %1   ☐ %2   ☐ %3   ☐ %5   ☐ Diğer: ____",
+          "6. **Eksik sorular.** Uygulamanın sorduğu belirti ve risk faktörlerine (öksürük, nefes darlığı, "
           "göğüs ağrısı, hırıltı, halsizlik, kan tükürme, kilo kaybı; sigara, aile öyküsü, mesleki maruziyet, "
           "KOAH, yaşanan il) eklenmesini önerdiğiniz bir şey var mı? (ör. ses kısıklığı, iştahsızlık, "
           "geçirilmiş tüberküloz, biyomas/tandır dumanı)",
           "",
           "   ______________________________________________________________",
           "",
-          "6. **Genel yorumunuz** (opsiyonel):",
+          "7. **Genel yorumunuz** (opsiyonel):",
           "",
           "   ______________________________________________________________",
           "",

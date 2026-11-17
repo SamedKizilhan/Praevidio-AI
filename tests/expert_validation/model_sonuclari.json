@@ -80,7 +80,7 @@
     "v3_6y": 2.27,
     "v3_action": "C",
     "alarm": "ACİL",
-    "plco": 1.86,
+    "plco": 1.35,
     "screen": "Tarama Adayı"
   },
   {
@@ -136,7 +136,7 @@
     "v3_6y": 2.1,
     "v3_action": "C",
     "alarm": "ACİL",
-    "plco": 3.15,
+    "plco": 2.1,
     "screen": "Tarama Adayı"
   }
 ]
