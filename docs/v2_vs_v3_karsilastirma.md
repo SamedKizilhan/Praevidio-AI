@@ -1,10 +1,12 @@
 # v2 ile v3 risk modeli karşılaştırması
 
-*Otomatik üretildi: `make compare`. v3 parametreleri: q=0.35, OR normalizasyonu=açık, bantlar=v3 ({'low': (0.0, 0.015), 'moderate': (0.015, 0.05), 'high': (0.05, 1.0)}); v3.0 = {'base_risk': 'nlst'}, v3.1 = {'base_risk': 'plco', 'other_cause': True, 'other_prior': 0.2, 'other_share': 1.0}.*
+*Otomatik üretildi: `make compare`. v3 parametreleri: q=0.35, OR normalizasyonu=açık; v3.0: NLST tabanı, ortak neden yok; v3.1: PLCOm2012 / Wakelee 2007 tabanı, ortak neden düğümü (π=0.2, ρ=1).*
 
-**v3.1 (Kasım 2026):** sigara içmişlerde 6 yıllık taban PLCOm2012, hiç içmemişlerde Wakelee 2007; yedi belirtiye ortak neden "başka bir hastalık" düğümü (NHANES belirti birlikteliğine kalibre). Gerekçe ve satır satır değişim: `docs/v3_1_duzeltme.md`. Aşağıdaki **v3 %/bant/6y** sütunları v3.1'dir; **v3.0 %** ve **v3.0 6y** karşılaştırma için korunmuştur.
+**v3.1 (Kasım 2026):** sigara içmişlerde 6 yıllık taban PLCOm2012, hiç içmemişlerde Wakelee 2007; yedi belirtiye ortak neden "başka bir hastalık" düğümü (NHANES belirti birlikteliğine kalibre). Gerekçe ve satır satır değişim: `docs/v3_1_duzeltme.md`. Aşağıdaki **v3 %**, **v3 belirti katmanı** ve **v3 6y-faktör** sütunları v3.1'dir; **v3.0 %** ve **v3.0 6y** karşılaştırma için korunmuştur.
 
-v2 bantları: Düşük <%5, Orta %5–15, Yüksek ≥%15. v3 bantları (6 yıllık ufuk): Düşük <%1,5, Orta %1,5–5 (tarama adayı), Yüksek ≥%5. **6y-faktör** = yalnız risk faktörlerinden hesaplanan tarama katmanı; **alarm** = NICE NG12 acil sevk kuralı (skordan bağımsız).
+**İki katman (Kasım 2026):** v3.1 sonucu iki ayrı soruyu cevaplar. *Taranmalı mıyım?* → 6 yıllık katman (yalnız risk etkenleri, eşik %1,5). *Belirtilerim için hekime gitmeli miyim?* → belirti katmanı (eşik %3) ile NICE NG12 kuralı ve her yaşta kan tükürme kuralı. Tam skor iki katmanı karıştırdığı için artık bantlanmaz. Ayrıntı: `docs/belirti_katmani.md`.
+
+v2 bantları: Düşük <%5, Orta %5–15, Yüksek ≥%15. v3 bantları yalnız 6 yıllık katmana uygulanır: tarama eşiğinin altında <%1,5, Orta %1,5–5 (tarama adayı), Yüksek ≥%5. **6y-faktör** = yalnız risk faktörlerinden hesaplanan tarama katmanı; **alarm** = kısa sürede hekim değerlendirmesi önerisi (NICE NG12 kuralı, belirti katmanı ≥ %3 ya da her yaşta kan tükürme).
 
 ## Nasıl okunur
 
@@ -18,9 +20,9 @@ Her satır aynı kişinin (aynı cevapların) iki modeldeki sonucudur; senaryo a
 | v3 belirti katmanı % | Bugünkü belirtilerin akciğer kanserine bağlı olma olasılığı; ≥ %3 (NICE NG12 PPV eşiği) → kısa sürede hekim (⚠). Belirti bildirilmemişse —. |
 | v3 6y-faktör % | Yalnız yaş, cinsiyet, sigara, aile öyküsü, meslek, hava kirliliği ve KOAH'tan 6 yıllık risk: "taranmalı mı?" sorusunun cevabı. Belirtiler cevaplanmamışsa v3 % ile aynıdır (D5). |
 | PLCOm2012 6y % | Dış karşılaştırma (Tammemägi 2013); yalnız sigara içmiş kişiler için. Günlük adet / içilen yıl verilmeyen vakalarda modelin merkez değerleri varsayılır (20/gün, 27 yıl, bırakalı 10 yıl); en anlamlı karşılaştırma S serisindedir. |
-| alarm | NICE NG12 kuralı, skordan bağımsız: ≥40 yaş + kan tükürme; veya ≥40 yaş + ≥2 açıklanamayan belirti (öksürük, halsizlik, nefes darlığı, göğüs ağrısı, kilo kaybı); veya ≥40 yaş + sigara öyküsü + ≥1 belirti → kısa sürede hekim değerlendirmesi (göğüs röntgeni). |
+| alarm | "ACİL" = kısa sürede hekim değerlendirmesi önerilir. Üç koşuldan biri yeter: (1) NICE NG12 kuralı: ≥40 yaş + kan tükürme; veya ≥40 yaş + ≥2 açıklanamayan belirti (öksürük, halsizlik, nefes darlığı, göğüs ağrısı, kilo kaybı); veya ≥40 yaş + sigara öyküsü + ≥1 belirti. (2) Belirti katmanı ≥ %3. (3) Her yaşta kan tükürme. |
 
-**Örnek (D2).** 65–69 yaş erkek, eski içici, öksürük + halsizlik. v2: %12,2 "Orta". v3.0: 6 yıllık %4,0, tam %5,6. v3.1: risk faktörlerinden 6 yıllık risk %1,3 (Düşük Risk), belirtilerle birlikte %2,1 (Orta Risk); iki açıklanamayan belirti olduğu için ayrıca ACİL.
+**Örnek (D2).** 65–69 yaş erkek, eski içici, öksürük + halsizlik. v2: %12,2 "Orta". v3.0: 6 yıllık %4,0, tam %5,6. v3.1: risk faktörlerinden 6 yıllık risk %1,3 (tarama eşiğinin altında); belirti katmanı %1,2 (eşiğin altında); tam skor %2,1. 40 yaş üstü ve iki açıklanamayan belirti olduğu için NICE kuralıyla ACİL.
 
 **v3 bantlarının gerekçesi.** %1,5 alt sınırı PLCOm2012'nin tarama eşiğidir (6 yıllık risk ≥ %1,51 → düşük doz BT önerilir; USPSTF ölçütlerine denk). %5 sınırı, NLST ağır içici popülasyonunun ortalama ~6,5 yıllık tanı oranının (%3,85) belirgin üstüdür ve v2'nin "Orta" alt sınırıyla aynıdır. Sınırlar uzman validasyonu ve karar eğrisi analiziyle kesinleşecektir.
 
@@ -67,6 +69,7 @@ Her satır aynı kişinin (aynı cevapların) iki modeldeki sonucudur; senaryo a
 - **PLCOm2012 sütunu:** saf PLCOm2012 (bilinmeyen aile öyküsü/KOAH = 0, asbest/hava yok). v3.1'in 6 yıllık katmanı sigara içmişlerde bunun üzerine kurulur; farklar bilinmeyen aile öyküsü/KOAH'ın prior ortalaması ve asbest/il PM2.5 çarpanlarından gelir. v3.0'ın NLST tabanı (tüm NLST ≥30 paket-yıl, 55–74 yaş) genç ve hafif içicilerde 2–35 kat yüksekti (Kasım 2026 düzeltmesi).
 - **B1b vs B1a:** v2'de 7 'hayır' tabanı 36 kat düşürüp 'Düşük'e çekiyordu; v3'te 6 yıllık taban korunur (latent semptomatik düğüm), yalnızca 'şu an semptomatik' olasılığı düşer.
 - **B2a–c:** KOAH düğümü açıklama-giderme (explaining away) davranışını klinik yönde çalıştırır: KOAH 'yok' → semptomlar kansere daha çok yazılır (skor yükselir); KOAH 'var' → semptomlar kısmen KOAH'a yazılır ama KOAH'ın kendi OR'si tabanı yükseltir.
-- **B3a–c:** OR normalizasyonu ile 'sorulmamış' ve 'ortalama maruziyet' NLST hücresine düşer; 'temiz' kişi NLST hücresinin altında kalır (v2'de üstündeydi).
-- **B4:** v3 bantları PLCOm2012 tarama eşiğine (%1,51/6 yıl) bağlıdır; hemoptizi gibi alarm belirtileri skordan bağımsız 'ACİL' bayrağıyla yüzeye çıkar.
+- **B3a–c:** OR normalizasyonu ile 'sorulmamış' ve 'ortalama maruziyet' taban değerde kalır; 'temiz' kişi tabanın altına iner (v2'de üstündeydi).
+- **B4:** 6 yıllık katmanın bantları PLCOm2012 tarama eşiğine (%1,51/6 yıl) bağlıdır; hemoptizi gibi alarm belirtileri skordan bağımsız 'ACİL' bayrağıyla yüzeye çıkar.
+- **Belirti katmanı sütunu:** ⚠ işareti %3 eşiğinin aşıldığını gösterir. Belirtisi olmayan ya da belirtileri sorulmamış satırlarda — yazar; bu satırlarda v3 % yalnız 6 yıllık katmanı (ve 'hayır' cevaplarının etkisini) yansıtır.
 - **B2d (7 'evet'):** v3.0'da %99,7 idi. Bu daha önce "klinik karar zaten ACİL" diye kabul edilmişti; 40 yaş altında alarm çıkmadığında tek başına kalan abartılı skor (kullanıcı denemesi: %85) bunun yanlış olduğunu gösterdi. v3.1'de belirtiler ortak neden ("başka bir hastalık") üzerinden birbirini kısmen açıklar; her kombinasyonun belirti çarpanı Hamilton 2005 zarfı içinde kalır (`tests/model/test_plausibility.py`).

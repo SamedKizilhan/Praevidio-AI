@@ -117,15 +117,21 @@ def main():
 
     L = ["# v2 ile v3 risk modeli karşılaştırması", "",
          f"*Otomatik üretildi: `make compare`. v3 parametreleri: q={SYMPTOMATIC_FRACTION}, "
-         f"OR normalizasyonu={'açık' if NORMALIZE_ORS else 'kapalı'}, bantlar={BANDS_CHOICE} "
-         f"({RISK_BANDS[BANDS_CHOICE]}); v3.0 = {PRESETS['v3.0']}, v3.1 = {PRESETS['v3.1']}.*", "",
+         f"OR normalizasyonu={'açık' if NORMALIZE_ORS else 'kapalı'}; v3.0: NLST tabanı, ortak neden yok; "
+         f"v3.1: PLCOm2012 / Wakelee 2007 tabanı, ortak neden düğümü (π={PRESETS['v3.1']['other_prior']:g}, "
+         f"ρ={PRESETS['v3.1']['other_share']:g}).*", "",
          "**v3.1 (Kasım 2026):** sigara içmişlerde 6 yıllık taban PLCOm2012, hiç içmemişlerde Wakelee 2007; "
          "yedi belirtiye ortak neden \"başka bir hastalık\" düğümü (NHANES belirti birlikteliğine kalibre). "
-         "Gerekçe ve satır satır değişim: `docs/v3_1_duzeltme.md`. Aşağıdaki **v3 %/bant/6y** sütunları v3.1'dir; "
-         "**v3.0 %** ve **v3.0 6y** karşılaştırma için korunmuştur.", "",
-         "v2 bantları: Düşük <%5, Orta %5–15, Yüksek ≥%15. v3 bantları (6 yıllık ufuk): Düşük <%1,5, "
-         "Orta %1,5–5 (tarama adayı), Yüksek ≥%5. **6y-faktör** = yalnız risk faktörlerinden hesaplanan "
-         "tarama katmanı; **alarm** = NICE NG12 acil sevk kuralı (skordan bağımsız).", "",
+         "Gerekçe ve satır satır değişim: `docs/v3_1_duzeltme.md`. Aşağıdaki **v3 %**, **v3 belirti katmanı** ve "
+         "**v3 6y-faktör** sütunları v3.1'dir; **v3.0 %** ve **v3.0 6y** karşılaştırma için korunmuştur.", "",
+         "**İki katman (Kasım 2026):** v3.1 sonucu iki ayrı soruyu cevaplar. *Taranmalı mıyım?* → 6 yıllık katman "
+         "(yalnız risk etkenleri, eşik %1,5). *Belirtilerim için hekime gitmeli miyim?* → belirti katmanı (eşik %3) ile "
+         "NICE NG12 kuralı ve her yaşta kan tükürme kuralı. Tam skor iki katmanı karıştırdığı için artık bantlanmaz. "
+         "Ayrıntı: `docs/belirti_katmani.md`.", "",
+         "v2 bantları: Düşük <%5, Orta %5–15, Yüksek ≥%15. v3 bantları yalnız 6 yıllık katmana uygulanır: "
+         "tarama eşiğinin altında <%1,5, Orta %1,5–5 (tarama adayı), Yüksek ≥%5. **6y-faktör** = yalnız risk "
+         "faktörlerinden hesaplanan tarama katmanı; **alarm** = kısa sürede hekim değerlendirmesi önerisi "
+         "(NICE NG12 kuralı, belirti katmanı ≥ %3 ya da her yaşta kan tükürme).", "",
          "## Nasıl okunur", "",
          "Her satır aynı kişinin (aynı cevapların) iki modeldeki sonucudur; senaryo adının altında kişinin "
          "profili (yaş, sigara, risk faktörleri, belirtiler) yazar. \"Sorulmadı\" = model o bilgiyi almadı "
@@ -143,13 +149,15 @@ def main():
          "| PLCOm2012 6y % | Dış karşılaştırma (Tammemägi 2013); yalnız sigara içmiş kişiler için. Günlük adet / içilen yıl "
          "verilmeyen vakalarda modelin merkez değerleri varsayılır (20/gün, 27 yıl, bırakalı 10 yıl); en anlamlı "
          "karşılaştırma S serisindedir. |",
-         "| alarm | NICE NG12 kuralı, skordan bağımsız: ≥40 yaş + kan tükürme; veya ≥40 yaş + ≥2 açıklanamayan belirti "
-         "(öksürük, halsizlik, nefes darlığı, göğüs ağrısı, kilo kaybı); veya ≥40 yaş + sigara öyküsü + ≥1 belirti → "
-         "kısa sürede hekim değerlendirmesi (göğüs röntgeni). |", "",
+         "| alarm | \"ACİL\" = kısa sürede hekim değerlendirmesi önerilir. Üç koşuldan biri yeter: (1) NICE NG12 kuralı: "
+         "≥40 yaş + kan tükürme; veya ≥40 yaş + ≥2 açıklanamayan belirti (öksürük, halsizlik, nefes darlığı, göğüs "
+         "ağrısı, kilo kaybı); veya ≥40 yaş + sigara öyküsü + ≥1 belirti. (2) Belirti katmanı ≥ %3. (3) Her yaşta "
+         "kan tükürme. |", "",
          f"**Örnek (D2).** 65–69 yaş erkek, eski içici, öksürük + halsizlik. v2: %12,2 \"Orta\". v3.0: 6 yıllık "
          f"%{c(d2_30['risk_6y_factors'])}, tam %{c(d2_30['risk_score'])}. v3.1: risk faktörlerinden 6 yıllık risk "
-         f"%{c(d2['risk_6y_factors'])} ({d2['risk_level_factors_tr']}), belirtilerle birlikte %{c(d2['risk_score'])} "
-         f"({d2['risk_level_tr']}); iki açıklanamayan belirti olduğu için ayrıca ACİL.", "",
+         f"%{c(d2['risk_6y_factors'])} ({d2['risk_level_factors_display_tr'].lower()}); belirti katmanı "
+         f"%{c(d2['symptom_assessment']['percent'])} (eşiğin altında); tam skor %{c(d2['risk_score'])}. 40 yaş üstü ve "
+         f"iki açıklanamayan belirti olduğu için NICE kuralıyla ACİL.", "",
          "**v3 bantlarının gerekçesi.** %1,5 alt sınırı PLCOm2012'nin tarama eşiğidir (6 yıllık risk ≥ %1,51 → düşük doz "
          "BT önerilir; USPSTF ölçütlerine denk). %5 sınırı, NLST ağır içici popülasyonunun ortalama ~6,5 yıllık tanı "
          "oranının (%3,85) belirgin üstüdür ve v2'nin \"Orta\" alt sınırıyla aynıdır. Sınırlar uzman validasyonu ve "
@@ -181,10 +189,12 @@ def main():
           "- **B2a–c:** KOAH düğümü açıklama-giderme (explaining away) davranışını klinik yönde çalıştırır: "
           "KOAH 'yok' → semptomlar kansere daha çok yazılır (skor yükselir); KOAH 'var' → semptomlar kısmen "
           "KOAH'a yazılır ama KOAH'ın kendi OR'si tabanı yükseltir.",
-          "- **B3a–c:** OR normalizasyonu ile 'sorulmamış' ve 'ortalama maruziyet' NLST hücresine düşer; "
-          "'temiz' kişi NLST hücresinin altında kalır (v2'de üstündeydi).",
-          "- **B4:** v3 bantları PLCOm2012 tarama eşiğine (%1,51/6 yıl) bağlıdır; hemoptizi gibi alarm "
+          "- **B3a–c:** OR normalizasyonu ile 'sorulmamış' ve 'ortalama maruziyet' taban değerde kalır; "
+          "'temiz' kişi tabanın altına iner (v2'de üstündeydi).",
+          "- **B4:** 6 yıllık katmanın bantları PLCOm2012 tarama eşiğine (%1,51/6 yıl) bağlıdır; hemoptizi gibi alarm "
           "belirtileri skordan bağımsız 'ACİL' bayrağıyla yüzeye çıkar.",
+          "- **Belirti katmanı sütunu:** ⚠ işareti %3 eşiğinin aşıldığını gösterir. Belirtisi olmayan ya da belirtileri "
+          "sorulmamış satırlarda — yazar; bu satırlarda v3 % yalnız 6 yıllık katmanı (ve 'hayır' cevaplarının etkisini) yansıtır.",
           "- **B2d (7 'evet'):** v3.0'da %99,7 idi. Bu daha önce \"klinik karar zaten ACİL\" diye kabul edilmişti; "
           "40 yaş altında alarm çıkmadığında tek başına kalan abartılı skor (kullanıcı denemesi: %85) bunun yanlış "
           "olduğunu gösterdi. v3.1'de belirtiler ortak neden (\"başka bir hastalık\") üzerinden birbirini kısmen açıklar; "
