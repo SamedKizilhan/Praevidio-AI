@@ -68,6 +68,12 @@
         .risk-banner.high { background: linear-gradient(135deg, #c0392b, #e74c3c); }
 
         .full-line { margin: -10px 0 18px; font-size: 10.5pt; color: #444; }
+        /* üç skor: aynı punto, renkle ayrılır */
+        table.score-cells { width: 100%; border-collapse: separate; border-spacing: 8px 0; margin: 0 -8px 18px; table-layout: fixed; }
+        table.score-cells td { vertical-align: top; background: #f7f9fa; padding: 8px 10px; border-bottom: none; }
+        .sc-label { font-size: 8.5pt; color: #555; line-height: 1.3; min-height: 5.4em; }
+        .sc-value { font-size: 11pt; font-weight: 700; margin: 2px 0; }
+        .sc-note { font-size: 8.5pt; color: #555; line-height: 1.3; }
         .risk-score-value {
             font-size: 36pt;
             font-weight: 700;
@@ -227,6 +233,15 @@
     </div>
     {% for tr, en in context_lines %}<p class="context-line">{{ tr }}<br><em>{{ en }}</em></p>{% endfor %}
     {% if full_line %}<p class="full-line">{{ full_line }}</p>{% endif %}
+    {% if score_cells %}
+    <table class="score-cells"><tr>
+      {% for c in score_cells %}<td style="border-top: 3px solid {{ c.color }};">
+        <div class="sc-label">{{ c.label }}</div>
+        <div class="sc-value" style="color: {{ c.color }};">{{ c.value }}</div>
+        <div class="sc-note">{{ c.note }}</div>
+      </td>{% endfor %}
+    </tr></table>
+    {% endif %}
 
     <!-- NICE NG12 alarm (score-independent) -->
     {% if alarm %}

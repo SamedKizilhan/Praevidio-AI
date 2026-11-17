@@ -266,13 +266,26 @@ def prepare_template_data(risk_result: dict, evidence: dict = None) -> dict:
         ) if x[0]]
         sa = risk_result.get("symptom_assessment") or {}
         full_line = None
+        # Üç sayı yan yana, aynı punto, renkle ayrılmış (17 Kas 2026): 6 yıllık risk · belirti katmanı · tam skor
+        col6 = {"low": "#546e7a", "moderate": "#d35400", "high": "#c0392b"}[lvl6]
+        thr6 = "eşik / threshold %1.5 (PLCOm2012)"
+        cells = [{"label": "6 yıllık risk (risk etkenleri) / 6-year risk (risk factors)", "value": f"%{_fmt(p6)}",
+                  "note": f"{risk_result.get('risk_level_factors_display_tr') or RISK_LEVEL_LABELS[lvl6]['tr']} — {thr6}",
+                  "color": col6}]
         if sa.get("level") in ("low", "elevated"):
-            lvl_txt = {"low": "eşiğin altında / below threshold",
-                       "elevated": "eşiğin üzerinde / above threshold"}[sa["level"]]
-            full_line = (f"Belirti katmanı / Symptom layer — bugünkü belirtilerin akciğer kanserine bağlı olma olasılığı "
-                         f"(model) / probability that current symptoms are due to lung cancer: %{_fmt(sa['percent'])} "
-                         f"({lvl_txt}; eşik / threshold %{sa['threshold'] * 100:g}, NICE NG12). "
-                         f"Tam skor (karma ufuk, ek bilgi) / full score (mixed horizon): %{_fmt(score)}")
+            up = sa["level"] == "elevated"
+            cells.append({"label": "Belirti katmanı: bugünkü belirtilerin akciğer kanserine bağlı olma olasılığı / "
+                                   "Symptom layer: probability that current symptoms are due to lung cancer",
+                          "value": f"%{_fmt(sa['percent'])}",
+                          "note": ("Eşiğin üzerinde / above threshold" if up else "Eşiğin altında / below threshold")
+                                  + f" — eşik / threshold %{sa['threshold'] * 100:g} (NICE NG12); model tahmini",
+                          "color": "#c0392b" if up else "#546e7a"})
+        else:
+            cells.append({"label": "Belirti katmanı / Symptom layer", "value": "—",
+                          "note": "Belirti bildirilmedi / no symptoms reported", "color": "#90a4ae"})
+        cells.append({"label": "Tam skor (iki katman birlikte) / Full score (both layers)", "value": f"%{_fmt(score)}",
+                      "note": "Karma zaman ufku; ek bilgi, bantlanmaz / mixed horizon; supplementary, not banded",
+                      "color": "#37474f"})
         if risk_result.get("urgent_assessment"):
             alarm = {**alarm, "level": "urgent", "reasons_tr": risk_result.get("urgent_reasons_tr") or [],
                      "message_tr": alarm.get("message_tr") or "Kısa sürede bir hekim değerlendirmesi önerilir.",
@@ -288,7 +301,7 @@ def prepare_template_data(risk_result: dict, evidence: dict = None) -> dict:
     else:
         banner = {"label": "Risk Skoru / Risk Score", "value": f"{score:.1f}", "level": risk_level,
                   "level_tr": RISK_LEVEL_LABELS[risk_level]["tr"], "level_en": RISK_LEVEL_LABELS[risk_level]["en"]}
-        full_line, rec_level, context_lines = None, risk_level, []
+        full_line, rec_level, context_lines, cells = None, risk_level, [], []
         rec_tr, rec_en = RECOMMENDATIONS[risk_level]["tr"], RECOMMENDATIONS[risk_level]["en"]
         rf_source = "NLST Clinical Trial (n=53,452), NCI/NIH"
         sym_source = "Hamilton (2005), Beckles (2003), Kvale (2006), Hopwood (2000)"
@@ -296,6 +309,7 @@ def prepare_template_data(risk_result: dict, evidence: dict = None) -> dict:
     return {
         "banner": banner,
         "full_line": full_line,
+        "score_cells": cells,
         "context_lines": context_lines,
         "alarm": alarm if alarm.get("level") == "urgent" else None,
         "screening": screening,
