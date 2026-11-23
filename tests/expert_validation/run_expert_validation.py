@@ -1,31 +1,32 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 2026 Samed KIZILHAN — Praevidio AI (https://github.com/SamedKizilhan/Praevidio-AI)
 """
-Praevidio AI - Uzman Doğrulama Çalıştırıcı (Güz 2026)
-=====================================================
-10 klinik vakayı v2 ve v3 modellerine uygular ve ÜÇ dosya üretir:
+Praevidio AI — expert validation runner (Fall 2026)
+====================================================
+Runs ten clinical cases through the v2 and v3 models and writes three files:
 
-  1) uzman_tahmin_formu.md  → uzmana verilecek form: vaka metinleri + boş alanlar
-                              (model sonucu ve risk bantları GÖSTERİLMEZ)
-  2) model_sonuclari.md     → cevap anahtarı: v2/v3 skorları, katmanlar ve
-                              modellerin önereceği eylem (A/B/C)
-  3) uzman_cevaplari.csv    → uzmanın cevaplarının girileceği şablon (yoksa oluşturulur)
+  1) expert_prediction_form.md  the form given to the expert: case texts and empty fields, in Turkish
+                                (model results and risk bands are NOT shown)
+  2) model_answer_key.md/.json  the answer key: v2 and v3 scores, layers and the action each model
+                                would recommend (A/B/C)
+  3) expert_answers.csv         template for the expert's answers (created only if missing)
 
-Uzman her vaka için iki şey verir — hekimler bantlarla değil bu ikisiyle düşünür:
-  (a) tahmini 6 yıllık akciğer kanseri tanı riski (%)
-  (b) önereceği eylem:  A = rutin takip / ek işlem gerekmez
-                        B = düşük doz BT (LDCT) taraması önerilir
-                        C = kısa sürede hekim değerlendirmesi (göğüs röntgeni / sevk)
+For each case the expert gives two things, because physicians reason with these rather than with bands:
+  (a) estimated 6-year risk of a lung cancer diagnosis (%)
+  (b) recommended action:  A = routine follow-up, nothing further
+                           B = low-dose CT (LDCT) screening
+                           C = prompt physician assessment (chest X-ray / referral)
 
-Modellerin eylemi:
-  v3: NICE NG12 alarmı → C;  değilse 6 yıllık faktör riski ≥ %1,51 (PLCOm2012 eşiği)
-      veya USPSTF tarama adayı → B;  değilse A
-  v2: Yüksek bant → C;  Orta bant veya USPSTF tarama adayı → B;  değilse A
+Model actions:
+  v3: prompt assessment advised (NICE NG12 rule, symptom layer of 3 % or more, or haemoptysis) -> C;
+      otherwise 6-year risk from risk factors at or above 1.51 % (PLCOm2012 threshold) or USPSTF
+      screening candidate -> B;  otherwise A
+  v2: high band -> C;  moderate band or USPSTF screening candidate -> B;  otherwise A
 
-Çalıştırma:
-  python tests/expert_validation/run_expert_validation.py   (veya: make expert)
-Uzman cevapları girildikten sonra:
-  python tests/expert_validation/analyze_expert_validation.py   (veya: make expert-analyze)
+Run:
+  python tests/expert_validation/run_expert_validation.py   (or: make expert)
+After the expert's answers have been entered:
+  python tests/expert_validation/analyze_expert_validation.py   (or: make expert-analyze)
 """
 
 import json
@@ -39,18 +40,22 @@ from model.plcom2012 import SCREEN_THRESHOLD
 from model.screening import assess_screening_eligibility
 
 HERE = Path(__file__).parent
-FORM_PATH = HERE / "uzman_tahmin_formu.md"
-RESULTS_PATH = HERE / "model_sonuclari.md"
-ANSWERS_PATH = HERE / "uzman_cevaplari.csv"
-KEY_PATH = HERE / "model_sonuclari.json"
+FORM_PATH = HERE / "expert_prediction_form.md"
+RESULTS_PATH = HERE / "model_answer_key.md"
+ANSWERS_PATH = HERE / "expert_answers.csv"
+KEY_PATH = HERE / "model_answer_key.json"
 
+# Printed on the Turkish form
 ACTIONS = {"A": "Rutin takip / ek işlem gerekmez",
            "B": "Düşük doz BT taraması önerilir",
            "C": "Kısa sürede hekim değerlendirmesi (göğüs röntgeni / sevk)"}
 
 
+BAND_EN = {"low": "below threshold", "moderate": "moderate", "high": "high"}
+
+
 def action_v3(r3: dict, elig: dict) -> str:
-    if r3["alarm"]["level"] == "urgent":
+    if r3.get("urgent_assessment"):
         return "C"
     if r3["risk_6y_factors"] / 100.0 >= SCREEN_THRESHOLD or elig["eligible"] is True:
         return "B"
@@ -74,18 +79,26 @@ def run():
         r2, r3 = eng2.predict_risk(ev), eng3.predict_risk(ev)
         elig = assess_screening_eligibility(ev)
         bm = r3["benchmark_plcom2012"]
+        sa = r3.get("symptom_assessment") or {}
         rows.append({
-            "id": s["id"], "vignette": s["vignette"],
-            "v2_score": r2["risk_score"], "v2_level_tr": r2["risk_level_tr"], "v2_action": action_v2(r2, elig),
-            "v3_score": r3["risk_score"], "v3_level_tr": r3["risk_level_tr"],
-            "v3_6y": r3["risk_6y_factors"], "v3_action": action_v3(r3, elig),
-            "alarm": "ACİL" if r3["alarm"]["level"] == "urgent" else "—",
+            "id": s["id"], "vignette": s["vignette"], "summary_en": s["summary_en"],
+            "v2_score": r2["risk_score"], "v2_band": r2["risk_level"], "v2_action": action_v2(r2, elig),
+            "v3_score": r3["risk_score"], "v3_6y": r3["risk_6y_factors"], "v3_6y_band": BAND_EN[r3["risk_level_factors"]],
+            "v3_symptom_layer": sa.get("percent") if sa.get("level") not in (None, "none") else None,
+            "v3_action": action_v3(r3, elig),
+            "prompt_assessment": bool(r3.get("urgent_assessment")),
             "plco": bm["risk_6y"] if bm["applicable"] else None,
-            "screen": elig["label_tr"],
+            "screen": elig["label_en"],
         })
 
-    # ── 1) Uzman formu (model sonucu ve bant YOK) ──
+    # ── 1) Expert form, in Turkish (no model result, no band) ──
     F = ["# Praevidio AI — Uzman Değerlendirme Formu",
+         "",
+         "> *English note: this form is given to a Turkish-speaking chest physician and is therefore in Turkish. "
+         "It presents ten fictional cases; for each the expert estimates the 6-year lung cancer risk and picks an action "
+         "(A routine follow-up, B low-dose CT screening, C prompt assessment) without seeing the model output, then answers "
+         "seven questions about the model's assumptions. Generated by `make expert`; the model's answers are in "
+         "`model_answer_key.md`.*",
          "",
          "Değerli Hocam,",
          "",
@@ -146,40 +159,48 @@ def run():
           ""]
     FORM_PATH.write_text("\n".join(F), encoding="utf-8")
 
-    # ── 2) Cevap anahtarı ──
+    # ── 2) Answer key, in English ──
     def pct(x):
-        return "n/a" if x is None else f"%{x:.1f}"
-    R = ["# Praevidio AI — Model Sonuçları (Cevap Anahtarı)",
+        return "n/a" if x is None else f"{x:.1f}"
+    R = ["# Expert validation: model answer key",
          "",
-         "*Uzmana gösterilmez. Otomatik üretilir: `make expert`.*",
+         "*Not shown to the expert. Generated by `make expert`; do not edit by hand.*",
          "",
-         "Eylem: **A** rutin takip · **B** düşük doz BT taraması · **C** kısa sürede hekim değerlendirmesi. "
-         "v3 eylemi = NICE NG12 alarmı → C; 6 yıllık faktör riski ≥ %1,51 veya USPSTF adayı → B; değilse A. "
-         "v2 eylemi = Yüksek → C; Orta veya USPSTF adayı → B; değilse A.",
+         "Ten fictional cases are scored by the spring model (v2) and the current model (v3.1). The expert sees only the "
+         "case texts ([`expert_prediction_form.md`](expert_prediction_form.md), in Turkish) and gives a 6-year risk and "
+         "an action for each; `make expert-analyze` then compares the two.",
          "",
-         "| # | Vaka (özet) | v2 % | v2 bant | v2 eylem | v3 % | v3 6y % | v3 bant | v3 eylem | PLCOm2012 6y | Alarm | USPSTF |",
-         "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+         "Actions: **A** routine follow-up, **B** low-dose CT screening, **C** prompt physician assessment. "
+         "v3 action: prompt assessment advised (NICE NG12 rule, symptom layer of 3 % or more, or haemoptysis) gives C; "
+         "otherwise a 6-year risk of 1.51 % or more, or a USPSTF screening candidate, gives B; otherwise A. "
+         "v2 action: high band gives C; moderate band or USPSTF candidate gives B; otherwise A.",
+         "",
+         "All values are per cent. \"v3 6y\" is the 6-year layer (risk factors only) with its band; the symptom layer is the "
+         "probability that the current symptoms are due to lung cancer (a dash means no symptom was reported).",
+         "",
+         "| # | Case | v2 (band) | v2 action | v3 full | v3 6y (band) | v3 symptom layer | v3 action | PLCOm2012 6y | Prompt | USPSTF 2021 |",
+         "| --- | --- | ---: | :---: | ---: | ---: | ---: | :---: | ---: | --- | --- |"]
     for r in rows:
-        short = r["vignette"][:60] + ("…" if len(r["vignette"]) > 60 else "")
-        R.append(f"| {r['id']} | {short} | %{r['v2_score']:.1f} | {r['v2_level_tr']} | **{r['v2_action']}** | "
-                 f"%{r['v3_score']:.1f} | %{r['v3_6y']:.1f} | {r['v3_level_tr']} | **{r['v3_action']}** | "
-                 f"{pct(r['plco'])} | {r['alarm']} | {r['screen']} |")
-    R += ["", "Uzman cevapları `uzman_cevaplari.csv`'ye girildikten sonra karşılaştırma için: `make expert-analyze`.", ""]
+        sl = "–" if r["v3_symptom_layer"] is None else f"{r['v3_symptom_layer']:.2f}"
+        R.append(f"| {r['id']} | {r['summary_en']} | {r['v2_score']:.1f} ({r['v2_band']}) | **{r['v2_action']}** | "
+                 f"{r['v3_score']:.1f} | {r['v3_6y']:.1f} ({r['v3_6y_band']}) | {sl} | **{r['v3_action']}** | "
+                 f"{pct(r['plco'])} | {'yes' if r['prompt_assessment'] else '–'} | {r['screen']} |")
+    R += ["", "Once the expert's answers are entered in `expert_answers.csv`, run `make expert-analyze` for the comparison.", ""]
     RESULTS_PATH.write_text("\n".join(R), encoding="utf-8")
     KEY_PATH.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    # ── 3) Cevap şablonu (varsa ezilmez) ──
+    # ── 3) Answer template (never overwritten) ──
     if not ANSWERS_PATH.exists():
-        lines = ["id,uzman_risk_6y_yuzde,uzman_eylem,not"] + [f"{r['id']},,," for r in rows]
+        lines = ["id,expert_risk_6y_pct,expert_action,note"] + [f"{r['id']},,," for r in rows]
         ANSWERS_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-    print("🩺 UZMAN DOĞRULAMA — Cevap anahtarı")
+    print("Expert validation: answer key")
     print("=" * 78)
     for r in rows:
-        print(f"  {r['id']:4} v2 %{r['v2_score']:5.1f} {r['v2_action']} | v3 %{r['v3_score']:5.1f} "
-              f"6y %{r['v3_6y']:4.1f} {r['v3_action']} | PLCO {pct(r['plco']):6} {r['alarm']:4} | {r['screen']}")
-    print(f"\n📄 {FORM_PATH.name} (uzmana)  ·  {RESULTS_PATH.name} (cevap anahtarı)  ·  {ANSWERS_PATH.name} (şablon)")
-
+        print(f"  {r['id']:4} v2 {r['v2_score']:5.1f}% {r['v2_action']} | v3 {r['v3_score']:5.1f}% "
+              f"6y {r['v3_6y']:4.1f}% {r['v3_action']} | PLCO {pct(r['plco']):>5} "
+              f"{'prompt' if r['prompt_assessment'] else '-':6} | {r['screen']}")
+    print(f"\n{FORM_PATH.name} (for the expert)  ·  {RESULTS_PATH.name} (answer key)  ·  {ANSWERS_PATH.name} (template)")
 
 if __name__ == "__main__":
     run()

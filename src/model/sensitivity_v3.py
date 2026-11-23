@@ -1,12 +1,13 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 2026 Samed KIZILHAN — Praevidio AI (https://github.com/SamedKizilhan/Praevidio-AI)
 """
-Praevidio AI — v3 duyarlılık analizi
-=====================================
-q (semptomatik pay), ortak neden parametreleri (π, ρ), OR normalizasyonu değiştirildiğinde ve
-v3.0'a göre kilit vakaların skoru nasıl değişiyor; Hamilton zarfı korunuyor mu? Sonuç: docs/v3_duyarlilik.md
+Praevidio AI — sensitivity analysis of the v3 risk model
+=========================================================
+How the scores of eight key cases change when q (the symptomatic fraction), the common-cause
+parameters (π, ρ) or the odds-ratio normalisation are varied, compared with v3.0, and whether the
+Hamilton envelope still holds. Output: docs/sensitivity_v3.md
 
-Çalıştırma: python src/model/sensitivity_v3.py   (veya: make sensitivity)
+Run:  python src/model/sensitivity_v3.py   (or: make sensitivity)
 """
 import sys
 from pathlib import Path
@@ -14,39 +15,40 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from model.hybrid_bayesian_network_v3 import SYMPTOMATIC_FRACTION
 
-OUT = Path(__file__).resolve().parents[2] / "docs" / "v3_duyarlilik.md"
+OUT = Path(__file__).resolve().parents[2] / "docs" / "sensitivity_v3.md"
 S7 = ["COUGHING", "SHORTNESS_OF_BREATH", "CHEST_PAIN", "WHEEZING", "FATIGUE", "HEMOPTYSIS", "WEIGHT_LOSS"]
 B = {"AGE": 4, "GENDER": 1, "SMOKING": 1, "_age_exact": 72, "_cigs_per_day": 20, "_years_smoked": 50,
      "FAMILY_HISTORY": 0, "ASBESTOS": 0, "AIR_POLLUTION": 0}
 CASES = [
-    ("K1", "72y erkek aktif (50 py), semptom sorulmamış", B),
-    ("K2", "aynı, 7 semptom 'hayır'", {**B, **{s: 0 for s in S7}}),
-    ("K3", "aynı, sadece hemoptizi 'evet' (6 hayır)", {**B, **{s: 0 for s in S7}, "HEMOPTYSIS": 1}),
-    ("K4", "aynı, öksürük+nefes+hırıltı, KOAH ?", {**B, "COUGHING": 1, "SHORTNESS_OF_BREATH": 1, "WHEEZING": 1}),
-    ("K5", "aynı, 7 semptom 'evet'", {**B, **{s: 1 for s in S7}}),
-    ("K6", "58y kadın eski içici (15 py, 20 yıl önce), semptomsuz", {"AGE": 1, "GENDER": 0, "SMOKING": 0, "_age_exact": 58, "_pack_years": 15, "_years_quit": 20}),
-    ("K7", "62y erkek aktif (30 py), sadece hemoptizi (diğerleri ?)", {"AGE": 2, "GENDER": 1, "SMOKING": 1, "_age_exact": 62, "_cigs_per_day": 20, "_years_smoked": 30, "HEMOPTYSIS": 1}),
+    ("K1", "Man 72, current smoker (50 pack-years), symptoms not asked", B),
+    ("K2", "Same person, all seven symptoms 'no'", {**B, **{s: 0 for s in S7}}),
+    ("K3", "Same person, haemoptysis 'yes', six 'no'", {**B, **{s: 0 for s in S7}, "HEMOPTYSIS": 1}),
+    ("K4", "Same person, cough, dyspnoea and wheeze; COPD unknown", {**B, "COUGHING": 1, "SHORTNESS_OF_BREATH": 1, "WHEEZING": 1}),
+    ("K5", "Same person, all seven symptoms 'yes'", {**B, **{s: 1 for s in S7}}),
+    ("K6", "Woman 58, former smoker (15 pack-years, quit 20 years ago), symptoms not asked", {"AGE": 1, "GENDER": 0, "SMOKING": 0, "_age_exact": 58, "_pack_years": 15, "_years_quit": 20}),
+    ("K7", "Man 62, current smoker (30 pack-years), haemoptysis only (others not asked)", {"AGE": 2, "GENDER": 1, "SMOKING": 1, "_age_exact": 62, "_cigs_per_day": 20, "_years_smoked": 30, "HEMOPTYSIS": 1}),
 ]
-CASES.append(("K8", "45y erkek aktif (5 py), asbest, 5 belirti, KOAH yok (kullanıcı denemesi)",
+CASES.append(("K8", "Man 45, current smoker (5 pack-years), occupational exposure, five symptoms, no COPD (the trial that exposed v3.0)",
               {"AGE": 0, "GENDER": 1, "SMOKING": 1, "_age_exact": 45, "_cigs_per_day": 10, "_years_smoked": 10,
                "_pack_years": 5, "FAMILY_HISTORY": 0, "ASBESTOS": 1, "AIR_POLLUTION": 1, "COPD": 0,
                "COUGHING": 1, "SHORTNESS_OF_BREATH": 1, "CHEST_PAIN": 1, "FATIGUE": 1, "WEIGHT_LOSS": 1,
                "WHEEZING": 0, "HEMOPTYSIS": 0}))
 
-# (etiket, load_engine sürümü, ezilen parametreler)
+# (label, load_engine version, overridden parameters)
 CONFIGS = [
     ("v3.0", "v3.0", {}),
-    ("v3.1 (varsayılan)", "v3.1", {}),
+    ("v3.1 (default)", "v3.1", {}),
     ("q=0.25", "v3.1", {"q": 0.25}), ("q=0.50", "v3.1", {"q": 0.50}),
     ("π=0.15", "v3.1", {"other_prior": 0.15}), ("π=0.30", "v3.1", {"other_prior": 0.30}),
     ("ρ=0.70", "v3.1", {"other_share": 0.70}), ("ρ=0.85", "v3.1", {"other_share": 0.85}),
-    ("normalizasyon kapalı", "v3.1", {"normalize": False}),
+    ("normalisation off", "v3.1", {"normalize": False}),
 ]
 
 
 def envelope_worst(eng) -> float:
-    """Hamilton zarfı (tests/model/test_plausibility.py): en kötü kombinasyonun çarpan/sınır oranı
-    (70+ aktif içici; KOAH yok ve bilinmiyor). ≤1 → zarf içinde."""
+    """Hamilton envelope (tests/model/test_plausibility.py): the largest ratio of symptom multiplier to
+    its bound over all symptom combinations (current smoker aged 70+; COPD absent and unknown).
+    A value of 1 or less means every combination is inside the envelope."""
     import itertools
     base = {"AGE": 4, "_age_exact": 72, "GENDER": 1, "SMOKING": 1, "_cigs_per_day": 20, "_years_smoked": 50,
             "_pack_years": 50, "FAMILY_HISTORY": 0, "ASBESTOS": 0, "AIR_POLLUTION": 1}
@@ -72,11 +74,15 @@ def envelope_worst(eng) -> float:
 def main():
     from model.hybrid_bayesian_network_v3 import load_engine
     engines = {lbl: load_engine(ver, **kw) for lbl, ver, kw in CONFIGS}
-    hdr = "| Vaka | " + " | ".join(l for l, *_ in CONFIGS) + " |"
-    L = ["# v3 duyarlılık analizi", "",
-         "*Otomatik üretildi: `make sensitivity`. Hücreler: tam skor % (6 yıllık faktör katmanı %). "
-         f"v3.1 varsayılanı: q={SYMPTOMATIC_FRACTION}, π (başka hastalık önceliği)=0,20, ρ (ortak neden payı)=1,0, "
-         "taban PLCOm2012 / Wakelee 2007.*", "",
+    hdr = "| Case | " + " | ".join(l for l, *_ in CONFIGS) + " |"
+    L = ["# Sensitivity analysis of the v3 risk model", "",
+         "*Generated by `make sensitivity`; do not edit by hand.*", "",
+         "Eight cases are scored under nine parameter settings. Each cell shows the full score in per cent, with the "
+         "6-year layer (risk factors only) in parentheses. The first column is the October model (v3.0), the second the "
+         "current model (v3.1); every other column is v3.1 with one parameter changed.", "",
+         f"v3.1 defaults: q = {SYMPTOMATIC_FRACTION} (share of cancers that are symptomatic today), π = 0.20 (prior of the "
+         "latent *other illness* node), ρ = 1.0 (share of the non-cancer symptom rate routed through that node), 6-year "
+         "base from PLCOm2012 and Wakelee 2007.", "",
          hdr, "| --- |" + " ---: |" * len(CONFIGS)]
     print(hdr)
     for cid, name, ev in CASES:
@@ -87,22 +93,23 @@ def main():
         L.append(f"| {cid} {name} | " + " | ".join(cells) + " |")
         print(f"{cid} {name[:45]:45s} " + "  ".join(f"{c:>14s}" for c in cells))
     env = [envelope_worst(engines[lbl]) for lbl, *_ in CONFIGS]
-    L.append("| **Hamilton zarfı: en kötü çarpan / sınır** (≤1 = içinde) | " + " | ".join(f"**{x:.2f}**" for x in env) + " |")
-    print("zarf", ["%.2f" % x for x in env])
-    L += ["", "## Okuma", "",
-          "- **v3.0 → v3.1:** sigara içmişlerde taban PLCOm2012'ye geçtiği için 6 yıllık katman genel olarak 2–3 kat "
-          "(genç/hafif içicilerde 10–35 kat) düşer; ortak neden düğümü sayesinde çoklu belirti kombinasyonları "
-          "Hamilton 2005 zarfına girer (son satır).",
-          "- **q (bugün semptomatik pay):** 0,25–0,50 aralığında vaka sıralaması değişmez; q büyüdükçe belirtilerin "
-          "(hem 'evet' hem 'hayır') etkisi artar.",
-          "- **π, ρ (ortak neden):** ρ küçüldükçe belirtiler yeniden bağımsızlaşır ve zarf aşılmaya başlar; π büyüdükçe "
-          "belirti başına ortak neden katkısı azalır. Varsayılan (π=0,20, ρ=1,0), NHANES 2007–12'deki öksürük–hırıltı "
-          "birlikteliğine (OR 4,1; kansersiz, hiç içmemiş, KOAH'sız) p_o ≤ p_cancer kısıtı altında en yakın değerdir "
-          "(model OR 3,4).",
-          "- **Normalizasyon:** v3.1'de yalnız asbest ve il PM2.5 çarpanlarını etkiler (aile öyküsü ve KOAH "
-          "PLCOm2012'nin içinde)."]
+    L.append("| **Hamilton envelope: largest multiplier / bound** (1 or less = inside) | " + " | ".join(f"**{x:.2f}**" for x in env) + " |")
+    print("envelope", ["%.2f" % x for x in env])
+    L += ["", "## Reading the table", "",
+          "- **v3.0 to v3.1.** For ever-smokers the base moved to PLCOm2012, so the 6-year layer falls about two- to "
+          "three-fold in general and 10- to 35-fold for young or light smokers. With the common-cause node, combinations "
+          "of several symptoms come inside the envelope derived from Hamilton et al. 2005 (last row).",
+          "- **q (symptomatic today).** Between 0.25 and 0.50 the ranking of the cases does not change; a larger q gives "
+          "symptom answers, both 'yes' and 'no', more weight.",
+          "- **π and ρ (common cause).** As ρ falls the symptoms become independent again and the envelope is exceeded; "
+          "as π rises each symptom receives less from the common cause. The default (π = 0.20, ρ = 1.0) is the setting "
+          "closest to the cough–wheeze association in NHANES 2007–12 (odds ratio 4.1 among never-smokers without cancer "
+          "or COPD; the model gives 3.4) under the constraint that the other-illness probability of a symptom never "
+          "exceeds its probability in cancer.",
+          "- **Normalisation.** In v3.1 it affects only the occupational-exposure and provincial PM2.5 multipliers; "
+          "family history and COPD are already inside PLCOm2012."]
     OUT.write_text("\n".join(L) + "\n", encoding="utf-8")
-    print(f"\n📄 {OUT}")
+    print(f"\nReport: {OUT}")
 
 
 if __name__ == "__main__":

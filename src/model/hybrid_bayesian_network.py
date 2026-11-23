@@ -115,7 +115,7 @@ def get_hybrid_structure():
 # --- Literatür temelli odds-ratio'lar (yeni risk faktörleri) ---
 # Bunlar NLST tabanına çarpılarak P(cancer | ...) hesaplanır.
 # Başlangıç değerleri; duyarlılık analizi ile kalibre edilebilir
-# (bkz. docs/v2_genisletme_tasarim.md ve sensitivity_analysis_calibration.md).
+# (bkz. docs/history/v2_new_factor_calibration.md ve docs/history/v2_explaining_away_calibration.md).
 RISK_FACTOR_ORS = {
     # Ailede 1. derece akraba öyküsü — ILCCO pooled RR≈1.51, meta RR≈1.88
     "FAMILY_HISTORY": {0: 1.00, 1: 1.70},

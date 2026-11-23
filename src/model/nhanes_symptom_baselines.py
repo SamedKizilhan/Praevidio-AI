@@ -1,26 +1,26 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 2026 Samed KIZILHAN — Praevidio AI (https://github.com/SamedKizilhan/Praevidio-AI)
 """
-Praevidio AI — NHANES ile kansersiz semptom tabanları
-=======================================================
-Semptom CPT'lerinin "kanser YOK" sütunları (leak / sigara / KOAH katkıları) literatürden
-gelir ve hiçbir kohortta doğrulanmamıştır. NHANES 2007–2012 (ABD genel nüfus anketi,
-RDQ solunum modülü) ile kansersiz kişilerde:
-    P(kronik öksürük | sigara durumu, yaş grubu),  P(hırıltı | ...),  P(balgam | ...)
-hesaplanır ve v3 noisy-OR parametrelerinin ima ettiği değerlerle yan yana konur.
+Praevidio AI — symptom baselines in people without cancer, from NHANES
+=======================================================================
+The "no cancer" columns of the symptom tables (leak, smoking and COPD contributions) come from the
+literature and had not been checked against any cohort. NHANES 2007–2012 (US general-population
+survey, RDQ respiratory module) gives, for people without cancer,
+    P(chronic cough | smoking status, age group),  P(wheeze | ...),  P(phlegm | ...)
+and this script sets them beside the values implied by the noisy-OR parameters of the v3 model.
 
-Girdi:  data/raw/nhanes/{RDQ,SMQ,MCQ,DEMO}_{E,F,G}.xpt   (bash tools/download_nhanes.sh)
-Çıktı:  data/processed/nhanes_symptom_baselines.json + docs/nhanes_semptom_tabanlari.md
+Input:   data/raw/nhanes/{RDQ,SMQ,MCQ,DEMO}_{E,F,G}.xpt   (bash tools/download_nhanes.sh)
+Output:  data/processed/nhanes_symptom_baselines.json + docs/nhanes_symptom_baselines.md
 
-Değişkenler (NHANES kod kitapları):
-  RDQ031  Coughing most days ≥3 months (kronik öksürük)         1=Evet 2=Hayır
-  RDQ050  Bring up phlegm most days ≥3 months (balgam)           1/2
+Variables (NHANES codebooks):
+  RDQ031  Coughing most days, 3 months or more (chronic cough)   1 = yes, 2 = no
+  RDQ050  Bring up phlegm most days, 3 months or more            1/2
   RDQ070  Wheezing or whistling in chest, past 12 months          1/2
-  SMQ020  Smoked ≥100 cigarettes in life                           1/2
+  SMQ020  Smoked at least 100 cigarettes in life                   1/2
   SMQ040  Do you now smoke: 1 every day, 2 some days, 3 not at all
   MCQ220  Ever told you had cancer                                  1/2
   MCQ230A-D  Cancer type codes (23 = lung)
-  RIDAGEYR yaş, RIAGENDR cinsiyet (1 E, 2 K), WTINT2YR görüşme ağırlığı
+  RIDAGEYR age, RIAGENDR sex (1 male, 2 female), WTINT2YR interview weight
 """
 import json
 import sys
@@ -31,7 +31,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[2]
 RAW = ROOT / "data" / "raw" / "nhanes"
 OUT_JSON = ROOT / "data" / "processed" / "nhanes_symptom_baselines.json"
-OUT_MD = ROOT / "docs" / "nhanes_semptom_tabanlari.md"
+OUT_MD = ROOT / "docs" / "nhanes_symptom_baselines.md"
 CYCLES = ["E", "F", "G"]
 
 sys.path.insert(0, str(ROOT / "src"))
@@ -42,7 +42,7 @@ def load_cycle(letter: str) -> pd.DataFrame:
     for f in ("DEMO", "SMQ", "RDQ", "MCQ"):
         p = RAW / f"{f}_{letter}.xpt"
         if not p.exists():
-            raise FileNotFoundError(f"{p} yok — önce: bash tools/download_nhanes.sh")
+            raise FileNotFoundError(f"{p} is missing; run first: bash tools/download_nhanes.sh")
         frames.append(pd.read_sas(p, format="xport"))
     df = frames[0]
     for fr in frames[1:]:
@@ -52,9 +52,9 @@ def load_cycle(letter: str) -> pd.DataFrame:
 
 
 def derive(df: pd.DataFrame) -> pd.DataFrame:
-    """Sigara durumu, yaş grubu, kanser bayrağı ve semptomları türetir (anketi yanıtlayanlar)."""
+    """Derive smoking status, age group, cancer flags and symptoms (survey respondents)."""
     d = df.copy()
-    d = d[d["RIDAGEYR"] >= 40]                                   # RDQ kronik öksürük 40+ sorulur
+    d = d[d["RIDAGEYR"] >= 40]                                   # RDQ chronic cough is asked from age 40
     ever = d["SMQ020"] == 1
     now = d["SMQ040"].isin([1, 2])
     d["smoking"] = "never"
@@ -68,8 +68,8 @@ def derive(df: pd.DataFrame) -> pd.DataFrame:
     for c in cancer_cols:
         d["lung_cancer"] |= d[c] == 23
     for var, col in (("chronic_cough", "RDQ031"), ("phlegm", "RDQ050"), ("wheeze", "RDQ070")):
-        d[var] = d[col].map({1: 1.0, 2: 0.0})                   # 7/9 (bilmiyor/ret) → NaN
-    d["w"] = d["WTINT2YR"] / len(CYCLES)                         # 3 döngü birleşik ağırlık
+        d[var] = d[col].map({1: 1.0, 2: 0.0})                   # 7/9 (don't know / refused) -> NaN
+    d["w"] = d["WTINT2YR"] / len(CYCLES)                         # combined weight over three cycles
     return d
 
 
@@ -81,7 +81,7 @@ def weighted_rate(sub: pd.DataFrame, var: str):
 
 
 def implied_v3() -> dict:
-    """v3 noisy-OR parametrelerinin kansersiz kişide ima ettiği P(semptom | sigara)."""
+    """P(symptom | smoking) implied by the v3 noisy-OR parameters for a person without cancer."""
     from model.hybrid_bayesian_network_v3 import NOISY_OR, COPD_GIVEN_SMOKING
     out = {}
     for sym, p in NOISY_OR.items():
@@ -98,7 +98,7 @@ def implied_v3() -> dict:
 def main():
     df = pd.concat([load_cycle(c) for c in CYCLES], ignore_index=True)
     d = derive(df)
-    base = d[~d["any_cancer"] & d["smoking"].notna()]          # kansersiz (her türlü) + sigara bilinen
+    base = d[~d["any_cancer"] & d["smoking"].notna()]          # no cancer of any kind, smoking status known
     res = {"source": "NHANES 2007-2012 (E,F,G), age ≥40, no self-reported cancer, WTINT2YR/3 weighted",
            "n_total_40plus": int(len(d)), "n_no_cancer": int(len(base)),
            "n_self_reported_lung_cancer_40plus": int(d["lung_cancer"].sum()),
@@ -117,37 +117,45 @@ def main():
 
     # Markdown
     imp = res["implied_v3_no_cancer"]
-    L = ["# NHANES ile kansersiz semptom tabanları (v3 doğrulaması)", "",
-         f"*{res['source']}. n(40+)={res['n_total_40plus']}, kansersiz n={res['n_no_cancer']}, "
-         f"öz-bildirim akciğer kanseri (40+) n={res['n_self_reported_lung_cancer_40plus']} — kanser sütunu için yetersiz; "
-         "yalnız KANSERSİZ tabanlar kullanılır.*", "",
-         "| Semptom (NHANES tanımı) | Sigara | NHANES % (n) | 40-54 | 55-64 | 65+ | v3'ün ima ettiği % (kanser yok) |",
+    L = ["# Symptom baselines in people without cancer (NHANES check of the v3 model)", "",
+         "*Generated by `make nhanes`; do not edit by hand.*", "",
+         f"Source: {res['source']}. Respondents aged 40 or more: {res['n_total_40plus']}; without cancer: "
+         f"{res['n_no_cancer']}. Self-reported lung cancer (40+): {res['n_self_reported_lung_cancer_40plus']}, too few "
+         "for the cancer column, so only the baselines **without cancer** are used.", "",
+         "| Symptom (NHANES definition) | Smoking | NHANES % (n) | 40-54 | 55-64 | 65+ | Implied by v3 % (no cancer) |",
          "| --- | --- | ---: | ---: | ---: | ---: | ---: |"]
-    label = {"chronic_cough": ("Kronik öksürük (çoğu gün ≥3 ay)", "COUGHING"),
-             "phlegm": ("Balgam (çoğu gün ≥3 ay)", None),
-             "wheeze": ("Hırıltı/ıslık (son 12 ay)", "WHEEZING")}
-    def pct(x): return "—" if x is None else f"{x*100:.1f}"
+    label = {"chronic_cough": ("Chronic cough (most days, 3 months or more)", "COUGHING"),
+             "phlegm": ("Phlegm (most days, 3 months or more)", None),
+             "wheeze": ("Wheeze or whistling (past 12 months)", "WHEEZING")}
+    def pct(x): return "–" if x is None else f"{x*100:.1f}"
     for var, (lbl, v3key) in label.items():
         for status in ("never", "former", "current"):
             r = res["rates"][var][status]
-            v3v = pct(imp[v3key][status]) if v3key else "—"
+            v3v = pct(imp[v3key][status]) if v3key else "–"
             L.append(f"| {lbl} | {status} | {pct(r['all_40plus'])} ({r['n']}) | {pct(r['40-54']['rate'])} | "
                      f"{pct(r['55-64']['rate'])} | {pct(r['65+']['rate'])} | {v3v} |")
-    L += ["", "## Yorum", "",
-          "- NHANES 'kronik öksürük' (çoğu gün, ≥3 ay) tanımı ajanın 'geçmeyen öksürük' sorusundan daha dardır; "
-          "bu yüzden NHANES oranlarının model değerlerinin biraz altında kalması beklenir. **Kalibrasyon (16 Ekim 2026):** "
-          "hırıltı tabanları ilk v3'te ~1,8× düşüktü, `leak/smoke/copd` NHANES'e göre güncellendi (hiç %8, eski %14, aktif %26); "
-          "öksürükte hiç/eski tabanlar korundu, aktif içici katkısı NHANES oranı doğrultusunda artırıldı (→ ~%30).",
-          "- Yaş etkisi: 65+ grubunda kronik öksürük/balgam belirgin yüksek (aktif içicide %35); modelde semptomlar yaşa "
-          "bağlı değil — ileride AGE → solunum semptomu kenarı değerlendirilebilir.",
-          "- Öz-bildirim akciğer kanseri (40+) yalnız 37 kişi (sağ kalanlar); kanser sütunu için kullanılamaz.",
-          "- Hırıltı için NHANES 12 aylık pencere kullanır; v3 'solunumda hırıltı oluyor mu' sorusuyla yakın.",
-          "- Nefes darlığı NHANES RDQ'da bu döngülerde yoktur; literatür değeri korunur.",
-          "- Sigara etkisi (current/never oranı) v3'teki KOAH-aracılı mekanizmanın büyüklüğünü sınar: NHANES'te "
-          "current/never oranı v3'ünkinden büyükse `smoke` ya da `copd` katkısı artırılmalıdır."]
+    L += ["", "## Notes", "",
+          "- The NHANES definition of chronic cough (most days for three months or more) is narrower than the agent's "
+          "question about a cough that does not go away, so the NHANES rates are expected to sit slightly below the "
+          "model values. **Calibration (16 October 2026):** the wheeze baselines of the first v3 were about 1.8 times too "
+          "low and `leak`, `smoke` and `copd` were updated to NHANES (never 8 %, former 14 %, current 26 %); for cough "
+          "the never and former baselines were kept and the current-smoker contribution was raised toward the NHANES "
+          "rate (about 30 %).",
+          "- Age: chronic cough and phlegm are clearly higher at 65 or more (35 % in current smokers). Symptoms do not "
+          "depend on age in the model; an edge from age to the respiratory symptoms could be considered later.",
+          "- Only 37 respondents aged 40 or more reported lung cancer, all of them survivors; this cannot be used for "
+          "the cancer column.",
+          "- NHANES asks about wheeze over the past 12 months, which is close to the agent's question about wheezing "
+          "when breathing.",
+          "- Dyspnoea is not in the RDQ module of these cycles; the literature value is kept.",
+          "- The smoking effect (ratio of current to never) tests the size of the COPD-mediated mechanism in v3: if "
+          "the ratio in NHANES is larger than the model's, the `smoke` or `copd` contribution should be raised.",
+          "- The association *between* symptoms (cough and wheeze, odds ratio 4.1 in never-smokers without COPD) was "
+          "computed from the same data in November 2026 and calibrates the common-cause node of v3.1; see "
+          "[`model_v3_1_calibration_fix.md`](model_v3_1_calibration_fix.md)."]
     OUT_MD.write_text("\n".join(L) + "\n", encoding="utf-8")
     print(json.dumps(res["rates"], indent=1)[:1500])
-    print(f"\n📄 {OUT_MD}\n📄 {OUT_JSON}")
+    print(f"\nReport: {OUT_MD}\nData:   {OUT_JSON}")
 
 
 if __name__ == "__main__":

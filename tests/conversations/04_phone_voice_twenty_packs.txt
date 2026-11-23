@@ -1,5 +1,6 @@
 # Praevidio konuşma kaydı
-# oturum: 04_telefon_sesli_yirmi_paket  ·  model: v3  ·  nlp: keyword  ·  kanal: test-fixture
+# oturum: 04_phone_voice_twenty_packs  ·  model: v3  ·  nlp: keyword  ·  kanal: test-fixture
+# English note: recorded conversation in Turkish, the language of the app; format and keys in README.md.
 # 15 Kasım 2026 ikinci telefon denemesi (iPhone/Chrome, sesli, özgün kayıt llm modu). Özgün kayıtta: STT 'yarım paket'i 'yirmi paket' duydu ve sorgulanmadı; anılmayan 4 belirti (kan tükürme dahil) sorulmadan 'yok' kaydedildi; 41 yaş '55–59' grubuna yazıldı. Bu kayıt düzeltilmiş akıştır (keyword modunda oynatılır).
 agent: Merhaba. Sağlıklı bir risk analizi yapabilmem için öncelikle yaşınızı ve cinsiyetinizi belirtir misiniz?
 user: kırk bir yaşındayım, erkeğim.

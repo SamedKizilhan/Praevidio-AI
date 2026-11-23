@@ -1,416 +1,233 @@
-# Praevidio AI 🩺
+# Praevidio AI
 
-> **Praevidio** (Latin for *foreseeing*): An Intelligent Voice-Driven Platform for Lung Cancer Risk Analysis and Early Awareness in Turkey.
+> **Praevidio** (Latin, *I foresee*): a Turkish voice-driven assistant for lung cancer risk awareness and early referral.
 
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat&logo=python&logoColor=white)
-![pgmpy](https://img.shields.io/badge/pgmpy-1.0-orange?style=flat)
+![FastAPI](https://img.shields.io/badge/FastAPI-backend-009688?style=flat&logo=fastapi&logoColor=white)
+![pgmpy](https://img.shields.io/badge/pgmpy-Bayesian_network-orange?style=flat)
+![Tests](https://img.shields.io/badge/tests-174_passing-brightgreen?style=flat)
 ![License](https://img.shields.io/badge/License-AGPL_v3-blue.svg)
 
----
+Praevidio AI interviews a person in Turkish, by voice or text, about age, smoking, symptoms and other risk factors.
+It answers two questions that are usually mixed up, *should I be screened?* and *should I see a doctor about my
+symptoms?*, explains the answer in plain language and produces a report the person can take to a physician.
 
-## 🚀 Overview
+It is an awareness tool and not a diagnostic device: it never says "cancer" or "no cancer", and every result ends
+with a concrete next step.
 
-Praevidio AI is a hybrid AI system that combines **Large Language Models (LLMs)** with a **Bayesian Belief Network (BBN)** to perform voice-driven lung cancer risk assessment. It converts natural language symptom descriptions into structured clinical insights coded in **ICD-10** standards, generating "Doctor-Ready" reports to support early intervention.
+Senior project (CMPE 491/492), Department of Computer Engineering, Boğaziçi University, 2026.
 
-**Why Lung Cancer?**
-- Most common cancer & leading cause of cancer death among men in Turkey (ASR: 68.0/100,000)
-- Over **50% of cases** are diagnosed at Stage 4 (metastatic) — early intervention is critical
-- Core symptoms (cough, shortness of breath, wheezing) are highly suited for voice-based description
-- **64.6%** of Turkey's population has inadequate health literacy — voice interface improves accessibility
+## Why lung cancer, and why voice
 
-## ✨ Key Features
+- Lung cancer is the most common cancer and the leading cause of cancer death among men in Türkiye
+  (age-standardised rate 68.0 per 100,000).
+- More than half of the cases are diagnosed at stage 4, when treatment options are limited.
+- 64.6 % of the population has inadequate health literacy; a spoken conversation is easier than a form.
+- The risk factors and symptoms that matter (smoking dose, cough, breathlessness, coughing up blood) are things
+  people can describe in their own words.
 
-* **🎙️ Voice-Activated Symptom Intake:** Turkish-optimized Speech-to-Text (Whisper) for natural symptom description, accessible to all age groups and literacy levels.
-* **💬 Conversational Agent (v2):** Cascade speech pipeline (STT → LLM slot-filling → TTS) that greets the user, collects demographics, asks symptoms in sequence, gathers risk factors, then delivers a spoken risk summary and a downloadable PDF.
-* **🧬 Extended Risk Factors (v2):** Adds family history, occupational/asbestos exposure, and provincial air-pollution (PM2.5) — each integrated as a literature-based odds-ratio multiplier on the NLST base, with per-factor explainability.
-* **🫁 Screening Eligibility (v2):** A symptom-independent LDCT screening flag (USPSTF/NLST: age 50–80, ≥20 pack-years, current or quit ≤15y). Ensures a high-risk asymptomatic smoker is still directed to screening even when the symptom-based score is low — serving the project's "more screening, earlier diagnosis" goal.
-* **🚬 Pack-Year Smoking Refinement (v2):** The risk score uses smoking *dose* (pack-years), not just current/former: never/very-light smokers are no longer pinned to the NLST heavy-former-smoker base (down-adjusted), and heavy recent quitters (≥20 pack-years, quit ≤15y) are treated like active smokers — matching NLST's own high-risk definition.
-* **🧠 Hybrid Risk Engine:** Bayesian Belief Network (BBN) for explainable, probabilistic risk scoring — no black-box predictions.
-* **🔍 RAG-Powered ICD-10 Mapping:** Retrieval-Augmented Generation maps verbal symptoms to international medical codes (ICD-10/ICD-O-3).
-* **📄 Doctor-Ready PDF Reports:** Generates structured clinical summaries with ICD-10 coded findings, risk categories, and bilingual recommendations (TR/EN).
-* **📍 KETEM Integration (Planned):** Directs high-risk users to the nearest Cancer Early Diagnosis, Screening, and Training Center.
+## What it does
 
----
+| | |
+| --- | --- |
+| **Conversation** | A spoken or typed interview in Turkish. One open question about complaints, then only the symptoms that were not mentioned. Accepts "I don't know", repeats what it understood in the user's own words and takes corrections. |
+| **Side questions** | The user can ask "what does pack-year mean?" or "why do you ask?" at any point; the agent explains and returns to its question. |
+| **6-year risk** | Probability of a lung cancer diagnosis in the next six years from risk factors alone, on the PLCOm2012 model for ever-smokers and published incidence for never-smokers. Tied to the 1.5 % screening threshold. |
+| **Symptom layer** | Probability that the present symptoms are due to lung cancer, compared with the 3 % referral threshold of NICE NG12, together with the NICE rule itself and a haemoptysis rule for any age. |
+| **Plain-language result** | "About 42 in 10,000 people like you, against about 1.2 among peers without risk factors", and for smokers the risk at 50 if they continue and if they quit today. |
+| **Screening eligibility** | USPSTF 2021 criteria for low-dose CT, independent of symptoms. |
+| **Physician report** | PDF with the three scores and their thresholds, the reasons for an alert, the answers as given and ICD-10 codes. |
+| **Runs on a phone** | Installable web app (PWA) with hands-free voice mode; the same interview also runs in a terminal. |
 
-## 🏗️ System Architecture
+## How it works
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                              PRAEVIDIO AI  (v2)                            │
-├──────────────────────────────────────────────────────────────────────────┤
-│                                                                            │
-│  💬 CASCADE CONVERSATIONAL AGENT  (src/conversation/voice_agent.py)        │
-│  ┌────────────┐   🎤 mic    ┌──────────────┐    ┌─────────────────────┐    │
-│  │ TTS prompt │ ─────────▶ │  Whisper STT  │──▶ │ GPT-4o-mini / keyword│    │
-│  │ (greeting) │            │  (Turkish)    │    │  slot-filling        │    │
-│  └────────────┘            └──────────────┘    └──────────┬──────────┘    │
-│   greeting → demographics(age/gender/smoking) → 7 symptoms │ → risk factors │
-│                                                            ▼                │
-│   province ──▶ tr_il_pm25.json (IQAir) ──▶ AIR_POLLUTION   evidence dict     │
-│                                                            │                │
-│                                                            ▼                │
-│   ┌──────────────────────────────────────────────────────────────────┐    │
-│   │              HYBRID BAYESIAN BELIEF NETWORK  (pgmpy)              │    │
-│   │  Part A  — Risk factors from NLST (n=53,452):                    │    │
-│   │            P(Cancer | AGE, GENDER, SMOKING)                       │    │
-│   │  Part A2 — New factors, literature odds-ratio × NLST base:        │    │
-│   │            FAMILY_HISTORY ×1.70 · ASBESTOS ×1.50 ·                │    │
-│   │            AIR_POLLUTION ×1.15/1.30  (calibrated, construct-valid)│    │
-│   │  Part B  — 7 symptom CPTs from peer-reviewed literature           │    │
-│   │            (SMOKING confounder on respiratory symptoms)           │    │
-│   │            14 nodes, 16 edges                                     │    │
-│   └───────────────────────────────┬──────────────────────────────────┘    │
-│                                    ▼                                        │
-│            ┌────────────────────────────────────────────┐                  │
-│            │  Risk Score (0–100%) + level + ICD-10 +     │                  │
-│            │  per-factor OR explainability               │                  │
-│            └───────────────┬───────────────┬────────────┘                  │
-│                            ▼               ▼                                │
-│              🔊 Spoken summary (TTS)   📄 Doctor-Ready PDF                  │
-│              (soft, screening-oriented)  (TR/EN, risk drivers)             │
-│                                                                            │
-│  📈 Evaluation (src/model/evaluation.py): AUC-ROC · AUPRC · calibration    │
-│     (Brier/ECE/reliability) · Decision Curve Analysis  — NOT F1            │
-└──────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+  U["User<br>voice or text"] --> PWA["Web app (PWA)"]
+  PWA --> API["FastAPI backend"]
+  API --> AG["Conversation agent<br>state machine"]
+  AG --> EX["Answer extraction<br>rules or GPT-4o-mini"]
+  AG --> M["Risk model v3.1"]
+  M --> R1["6-year layer<br>screening question"]
+  M --> R2["Symptom layer<br>referral question"]
+  R1 --> OUT["Spoken summary, result screen,<br>physician report (PDF)"]
+  R2 --> OUT
 ```
 
-**Pipeline stages:**
-1. **Conversational intake:** The cascade agent greets the user (TTS), then collects demographics, symptoms (in sequence), and risk factors over multiple turns. Each answer is transcribed by Whisper and parsed into structured evidence (GPT-4o-mini or keyword).
-2. **Province → air pollution:** The stated province is mapped to a provincial PM2.5 tier (`tr_il_pm25.json`, IQAir 2023–2025) → `AIR_POLLUTION` evidence.
-3. **Evidence → Risk Score:** The Hybrid BBN performs probabilistic inference `P(Lung Cancer | Evidence)`. New risk factors enter as literature odds-ratio multipliers on the NLST base (no explaining-away — they are pure cancer parents).
-4. **Spoken summary + report:** A soft, screening-oriented summary is spoken back (TTS), and a bilingual Doctor-Ready PDF is generated with ICD-10 findings and per-factor risk drivers.
-5. **Evaluation:** Discrimination + calibration + clinical-utility metrics (AUC-ROC, AUPRC, Brier, ECE, reliability curve, Decision Curve Analysis) — replacing F1/accuracy as primary.
+The interview is a hand-written state machine, so the order of questions and every re-ask is explicit and
+testable. The language model only turns sentences into structured answers; it never produces a risk or advice.
+The risk comes from published models and a Bayesian network whose every number has a stated source.
+Details: [`docs/architecture.md`](docs/architecture.md).
 
-> *RAG (ChromaDB) still provides ICD-10 retrieval for the knowledge base; it is omitted from the diagram above for clarity.*
+| Layer | Technology |
+| --- | --- |
+| Client | Progressive web app, plain HTML, CSS and JavaScript, service worker |
+| Backend | Python 3.12, FastAPI, one agent thread per session |
+| Speech | OpenAI `gpt-4o-mini-transcribe` (speech-to-text), `tts-1` voice "nova" (text-to-speech) |
+| Answer extraction | Rule-based Turkish parser (offline) or GPT-4o-mini with guards |
+| Risk model | PLCOm2012, Wakelee 2007, Bayesian network in `pgmpy` |
+| Report | Jinja2 and WeasyPrint |
+| Tests | pytest: model, API and recorded conversations |
 
----
+## The risk model
 
-## 🛠️ Technical Stack
+| Layer | Question | Method | Threshold |
+| --- | --- | --- | --- |
+| 6-year layer | Should I be screened? | PLCOm2012 for ever-smokers, Wakelee 2007 incidence for never-smokers, normalised odds ratios for occupational exposure and air pollution | 1.5 % (PLCOm2012 screening threshold); 5 % for "high" |
+| Symptom layer | Should I see a doctor about my symptoms? | Bayesian network with a latent *symptomatic now* state and with COPD and *other illness* as competing explanations of symptoms | 3 % (NICE NG12 referral threshold) |
+| Prompt assessment | | NICE NG12 rule, or symptom layer at or above 3 %, or haemoptysis at any age | |
 
-| Layer | Technology | Purpose |
-|-------|-----------|---------| 
-| **Speech-to-Text** | OpenAI Whisper | Turkish voice transcription |
-| **Text-to-Speech** | OpenAI TTS (`tts-1`) | Spoken prompts & risk summary (cascade agent) |
-| **LLM** | GPT-4o-mini | Symptom + risk-factor slot extraction (cost-efficient) |
-| **Vector DB** | ChromaDB (dev) | ICD-10 knowledge retrieval |
-| **Probabilistic Model** | pgmpy (Hybrid BBN) | Explainable risk scoring |
-| **Clinical Data** | NLST (n=53,452) | Real-world risk factor CPTs |
-| **Data Science** | pandas, scikit-learn, seaborn | EDA & model evaluation |
-| **Report Gen** | Jinja2, WeasyPrint | PDF report generation |
-| **Clinical Standards** | ICD-10, ICD-O-3 | International medical coding |
-| **Language** | Python 3.12 | Core development |
+The model went through three versions, all still runnable with `load_engine("v2" | "v3.0" | "v3.1")`:
 
----
+| Version | When | Change |
+| --- | --- | --- |
+| v2 | Spring 2026 | One network: NLST risk factors and literature symptom probabilities on a single cancer node |
+| v3.0 | October 2026 | A review found four flaws; fixed with a latent symptomatic node, a COPD node, normalised odds ratios, a 6-year layer and the NICE rule |
+| v3.1 | November 2026 | A user trial exposed a fifth flaw (85 % for a 45-year-old with five symptoms); fixed with the PLCOm2012 and Wakelee base and a common-cause node calibrated on NHANES, then a separate symptom layer |
 
-## 📂 Project Structure
+Every score of every scenario under the three versions is in
+[`docs/model_comparison_v2_v3.md`](docs/model_comparison_v2_v3.md); every parameter and its source is in
+[`docs/model_parameters.md`](docs/model_parameters.md).
+
+## Validation
+
+- **174 automated tests** (`tests/model`, `tests/api`, `tests/conversations`), none of which call a paid API.
+- **Clinical plausibility.** All 127 symptom combinations, on several base profiles, stay inside bounds derived
+  from the positive predictive values of Hamilton et al. 2005; v3.0 broke them 270 times, v3.1 never does.
+- **External references.** The 6-year layer is checked against PLCOm2012 and Wakelee 2007, the symptom
+  frequencies and their association against NHANES 2007–12 (10,203 respondents aged 40 or more without cancer).
+- **Regression.** The October model is frozen as a baseline of 43 profiles, so each later change is visible
+  profile by profile ([`docs/model_v3_1_calibration_fix.md`](docs/model_v3_1_calibration_fix.md)).
+- **Recorded conversations.** Real trial conversations, including two phone sessions, are replayed against the
+  agent on every test run.
+- **Risk-factor layer on NLST** (spring evaluation, hold-out of 16,036): AUC 0.65, calibration slope 1.00,
+  expected calibration error 0.002. Accuracy and F1 are not reported, because the output is a risk and not a
+  class.
+- **In progress (December 2026).** Blind comparison with a chest physician on ten cases
+  (`tests/expert_validation/`) and a usability study with the Turkish System Usability Scale
+  (`tests/usability/`).
+
+## Quick start
+
+```bash
+git clone https://github.com/SamedKizilhan/Praevidio-AI.git
+cd Praevidio-AI
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env          # add OPENAI_API_KEY for voice and for llm mode
+
+make api                      # backend and web app
+# open http://localhost:8000/app/
+```
+
+Text mode with the rule-based parser needs no API key. Options are passed in the address:
+`?nlp=llm` (GPT-4o-mini extraction), `?model=v2`, `?token=<PRAEVIDIO_API_TOKEN>`.
+
+**On a phone.** The microphone needs HTTPS. Run `cloudflared tunnel --url http://localhost:8000`, open the printed
+address with `/app/` appended and set `PRAEVIDIO_API_TOKEN` in `.env` while the server is exposed.
+
+**In a terminal.**
+
+```bash
+make chat                     # typed interview
+make voice                    # microphone and speaker (needs sox)
+make chat NLP=keyword         # rule-based parser, offline
+```
+
+### Commands
+
+| Command | Purpose |
+| --- | --- |
+| `make api` | Backend and web app at `localhost:8000` (`/docs` for the interactive API reference) |
+| `make chat`, `make voice` | Interview in the terminal |
+| `make model-test`, `make api-test`, `make conversation-test` | Test suites |
+| `make replay F=<transcript>` | Replay a recorded conversation against the current agent |
+| `make compare` | Regenerate the comparison of the three model versions |
+| `make sensitivity`, `make v31-diff`, `make nhanes` | Regenerate the sensitivity, calibration-fix and NHANES reports |
+| `make expert`, `make expert-analyze` | Expert form and answer key; comparison once answers are entered |
+| `make sus` | Score the usability questionnaire |
+| `make eval` | Discrimination, calibration and decision-curve metrics on NLST |
+| `make scenarios`, `make calibrate`, `make explain` | Spring (v2) reports, kept in `docs/history/` |
+| `make help` | Full list |
+
+## Project structure
 
 ```
 Praevidio-AI/
 ├── src/
-│   ├── config.py                          # Centralized configuration & model settings
-│   ├── pipeline.py                        # End-to-end CLI (STT → NLP → RAG → BBN → PDF)
-│   ├── data_preprocessing.py              # Kaggle data cleaning & ICD-10 mapping
-│   ├── nlst_data_preprocessing.py         # NLST clinical data merge & normalization
+│   ├── api/                  FastAPI backend: sessions, turns, audio, report, serves the web app
+│   ├── web/                  Progressive web app (index.html, app.js, styles.css, service worker)
+│   ├── conversation/         voice_agent.py (state machine), clarify.py (side questions),
+│   │                         transcript.py and replay.py (recording and replaying conversations)
+│   ├── nlp/                  symptom_extractor.py: Turkish answers to structured evidence
+│   ├── stt/                  Speech-to-text wrapper
 │   ├── model/
-│   │   ├── bayesian_network.py            # Original BBN (Kaggle data, 15 nodes)
-│   │   ├── hybrid_bayesian_network.py     # Hybrid BBN v2 (NLST + literature + 3 new factors, 14 nodes)
-│   │   ├── hybrid_bayesian_network_v3.py  # v3: latent symptomatic + COPD + OR normalisation + NICE alarm (Fall 2026)
-│   │   ├── calibrate_risk_factors.py      # New-factor OR calibration & sensitivity analysis
-│   │   ├── explainability.py              # Shapley contributions + context-dependence + waterfall
-│   │   ├── screening.py                   # LDCT screening eligibility (USPSTF/NLST) — symptom-independent
-│   │   └── evaluation.py                  # Risk-appropriate metrics (AUC, calibration, DCA) — not F1
-│   ├── conversation/
-│   │   └── voice_agent.py                 # Cascade conversational agent (STT→LLM→TTS state machine)
-│   ├── api/
-│   │   ├── server.py                      # FastAPI backend (sessions, turns, audio, report, TTS, serves /app)
-│   │   └── sessions.py                    # Thread-per-session runner around ConversationAgent
-│   ├── web/                               # PWA client (index.html, app.js, styles.css, manifest, service worker, icons)
-│   ├── stt/
-│   │   └── whisper_stt.py                 # Whisper STT + Turkish medical term correction
-│   ├── nlp/
-│   │   └── symptom_extractor.py           # Keyword + GPT-4o-mini extraction (symptoms, demographics, new factors, province→PM2.5)
-│   ├── rag/
-│   │   └── rag_pipeline.py                # ChromaDB indexer + semantic ICD-10 retrieval
-│   └── report/
-│       ├── report_generator.py            # Jinja2 → WeasyPrint PDF (incl. new factors + risk drivers)
-│       └── templates/
-│           └── report_template.html       # Bilingual (TR/EN) A4 report template
+│   │   ├── hybrid_bayesian_network_v3.py   current risk model (v3.0 and v3.1)
+│   │   ├── hybrid_bayesian_network.py      spring model (v2)
+│   │   ├── plcom2012.py                    PLCOm2012 6-year risk
+│   │   ├── screening.py                    USPSTF eligibility, pack-year parsing
+│   │   ├── sensitivity_v3.py, nhanes_symptom_baselines.py, evaluation.py
+│   │   └── explainability.py, calibrate_risk_factors.py, bayesian_network.py   (spring)
+│   ├── report/               Physician report: generator and HTML template
+│   ├── rag/, pipeline.py     ICD-10 retrieval with ChromaDB and the batch pipeline (spring)
+│   └── config.py
+├── tests/
+│   ├── model/                Regression baseline, plausibility, context and symptom-layer tests
+│   ├── api/                  End-to-end API tests and side-question tests
+│   ├── conversations/        Recorded conversations replayed as regression tests
+│   ├── test_scenarios/       21 scenarios and the three-version comparison
+│   ├── expert_validation/    Ten cases, expert form, model answer key, analysis
+│   └── usability/            SUS-TR protocol, questionnaire and scoring
+├── docs/                     Design notes, parameters, generated reports (see below)
 ├── data/
-│   ├── raw/                               # Raw datasets (Kaggle + NLST)
-│   ├── processed/
-│   │   ├── lung_cancer_cleaned.csv        # Cleaned Kaggle data (3,000 samples)
-│   │   ├── nlst_cleaned.csv               # Cleaned NLST data (53,452 participants)
-│   │   ├── nlst_summary.json              # NLST statistics & conditional probabilities
-│   │   ├── eda_plots/                     # Exploratory data analysis visualizations
-│   │   ├── model_results/                 # Original BBN evaluation results
-│   │   ├── hybrid_model_results/          # Hybrid BBN demo scenarios & visualizations
-│   │   └── reports/                       # Generated PDF/HTML risk assessment reports
-│   ├── knowledge_base/
-│   │   ├── icd10_lung_codes.json          # Lung cancer ICD-10 codes & TR voice descriptors
-│   │   ├── symptom_risk_factors.json      # Clinical feature-risk mappings
-│   │   └── tr_il_pm25.json                # 81-province PM2.5 → air-pollution tier (IQAir 2023–2025)
-│   ├── chroma_db/                         # ChromaDB vector store (auto-generated)
-│   └── models/
-│       ├── bbn_lung_cancer_v1.pkl         # Trained BBN model (Kaggle)
-│       └── hybrid_bbn_nlst_v1.pkl         # Trained Hybrid BBN model (NLST)
-├── docs/
-│   ├── appendix_cpt_derivation.md         # Formal CPT derivation table & references
-│   ├── sensitivity_analysis_calibration.md # Explaining-away fix & calibration report
-│   ├── calibration_new_factors.md         # New-factor OR calibration & sensitivity report
-│   ├── contribution_coefficients.md       # Contribution coefficients of each factor
-│   ├── explainability_demo.md             # Shapley + context-dependence presentation notes
-│   ├── architecture.md                    # System architecture, RAG/ChromaDB, models, make-voice flow diagram
-│   ├── dictionary.md                      # Glossary (BBN, CPT, ICD-10, NLST, OR, AUC, DCA, …)
-├── tests/test_scenarios/                  # Clean demo/test scenarios + golden runner (make scenarios)
-│   ├── scenarios.json                     # Demo cases + controlled A/B pairs (incl. pack-year group)
-│   ├── run_scenarios.py                   # Runs, verifies levels, writes SENARYO_RAPORU.md
-│   └── SENARYO_RAPORU.md                  # Auto-generated, presentation-ready scenario report
-├── tests/expert_validation/               # Pulmonologist blind-prediction validation (make expert)
-│   ├── scenarios.json                     # 10 clinical vignettes
-│   ├── run_expert_validation.py           # → uzman_tahmin_formu.md + model_sonuclari.md
-│   └── model_sonuclari.md                 # Model answer key (vs expert predictions)
-├── Makefile                               # Short commands: make chat / voice / pipeline / eval / calibrate
-├── report/                                # CMPE 491 midterm report (LaTeX)
-├── requirements.txt
-└── README.md
+│   ├── knowledge_base/       ICD-10 codes, provincial PM2.5 tiers
+│   └── processed/            Cleaned NLST subset, NHANES results, evaluation outputs
+├── tools/                    NHANES download, conversation replay, listening test
+├── Makefile
+└── requirements.txt
 ```
 
----
+## Documentation
 
-## 📊 Current Status (Spring 2026 — Phase 4 In Progress)
-
-### Core Components
-
-| Component | Status | Details |
-|-----------|--------|---------|
-| Kaggle Data Preprocessing | ✅ Done | 3,000 samples cleaned, 13 features → ICD-10 mapped |
-| NLST Data Integration | ✅ Done | 53,452 real clinical trial participants merged & normalized |
-| ICD-10 Knowledge Base | ✅ Done | 6 subcodes, 8 symptoms, 5 risk factors, TR voice descriptors |
-| Original BBN (Kaggle) | ✅ Done | 15 nodes, 23 edges, MLE-fitted CPTs, 5-Fold CV |
-| Hybrid BBN (NLST + Lit.) | ✅ Done | 14 nodes, 16 edges — NLST + literature symptom CPTs + 3 new risk factors |
-| New Risk Factors (v2) | ✅ Done | Family history (OR≈1.7), occupational/asbestos (OR≈1.5), air pollution (provincial PM2.5, OR 1.0/1.15/1.30) — literature OR-multiplied onto NLST base |
-| Conversational Agent (v2) | ✅ Done | Cascade (STT→LLM→TTS) state-machine: greeting → demographics → symptoms → risk factors → voice summary → PDF |
-| CPT Derivation & Calibration | ✅ Done | 7 symptom CPTs with sensitivity analysis & explaining-away fix |
-| Risk Scoring Engine | ✅ Done | Evidence → risk score + ICD-10 findings + TR/EN recommendations |
-| Whisper STT | ✅ Done | Turkish voice input + medical term post-processing ("kan tükürdüm" → hemoptizi) |
-| NLP Symptom Extractor | ✅ Done | Dual mode: keyword matching (offline) + GPT-4o-mini (semantic) |
-| RAG Pipeline | ✅ Done | ChromaDB vector store, 34 ICD-10 documents, OpenAI embeddings |
-| PDF Report Generator | ✅ Done | Bilingual (TR/EN) Jinja2 → WeasyPrint, A4 doctor-ready reports |
-| End-to-End Pipeline | ✅ Done | CLI: `--interactive`, `--audio`, `--record`, `--demo` modes |
-
-### Upcoming Components
-
-| Component | Status | Details |
-|-----------|--------|---------|
-| Performance Benchmarks | ✅ Done (v2) | **Risk/screening-appropriate metrics** — AUC-ROC, AUPRC, calibration (Brier, ECE, reliability curve, slope/intercept), Decision Curve Analysis, sensitivity/specificity at thresholds. See `src/model/evaluation.py`. |
-| Mobile client (PWA) | ✅ Core done (Nov 2026) | Voice/text chat on the phone via the backend, result screen, report download; KETEM map next (a native Flutter app stays optional) |
-
-> **Note on evaluation metric (v2 revision):** F1-Score / accuracy are **no longer primary metrics**. Praevidio is a probabilistic *risk-stratification* tool, not a binary diagnostic classifier — it never declares "cancer / not cancer," it outputs a calibrated risk probability. With a ~3.85% base rate, F1 is threshold-sensitive and misleading (a trivial "always-positive" model scored F1≈0.67). The model is now evaluated on **discrimination (AUC-ROC/AUPRC)**, **calibration (Brier, ECE, reliability)**, and **clinical utility (Decision Curve Analysis)** — directly answering "when we say 15% risk, is it really ~15%?" and "does using this score beat screen-all / screen-none?"
-
----
-
-## 🆕 Fall 2026 — Model v3 and conversation flow v3
-
-The spring model is kept intact as **v2**; `src/model/hybrid_bayesian_network_v3.py` adds, as a separate
-module, (1) a latent *symptomatic* node that separates the NLST "6-year diagnosis" outcome from
-"symptomatic now" symptom evidence, (2) a COPD common-cause node (noisy-OR) for the three respiratory
-symptoms, (3) odds-ratio normalisation against the population mean, and (4) a two-layer output —
-`risk_6y_factors` (screening layer, bands tied to the PLCOm2012 1.51 % threshold) plus a score-independent
-**NICE NG12 alarm** flag. Design note: `docs/v3_tasarim.md`; side-by-side results: `make compare` →
-`docs/v2_vs_v3_karsilastirma.md`. The conversational agent now asks an open-ended complaint question first,
-accepts "bilmiyorum", confirms demographics, asks about COPD and speaks a two-layer summary
-(`make chat` / `make voice`, old model with `MODEL=v2`). STT default is `gpt-4o-mini-transcribe` with a
-medical-term context hint; a free native-Turkish TTS option (`PRAEVIDIO_TTS_PROVIDER=edge`) and a blind
-listening test (`make tts-test`) were added.
-
-**v3.1 (November 2026) — calibration fix.** A user trial exposed two over-estimates in v3.0: the 6-year layer
-used the NLST cohort level for young / light smokers (2–35× PLCOm2012), and multiple non-respiratory symptoms
-were independent given no cancer (5 symptoms ×380 → 85 %). v3.1 uses PLCOm2012 as the 6-year base for ever-smokers
-and Wakelee 2007 incidence for never-smokers, and adds a latent *other illness* common cause for all seven symptoms,
-calibrated to the NHANES cough–wheeze co-occurrence while keeping each symptom's no-cancer prevalence unchanged.
-`tests/model` (86 tests) freezes v3.0 (`load_engine("v3.0")`) and checks v3.1 against a Hamilton 2005 PPV envelope,
-PLCOm2012, Wakelee 2007, NHANES and monotonicity rules (`make model-test`); details and per-profile changes:
-`docs/v3_1_duzeltme.md` (`make v31-diff`).
-
-**Two questions, two layers.** *Should I be screened?* — the 6-year layer (risk factors only, PLCOm2012 threshold
-1.5 %, shown with the relative risk vs a same-age never-smoker and, for current smokers, a continue-vs-quit projection).
-*Should I see a doctor about my symptoms?* — the symptom layer: probability that the current symptoms are due to lung
-cancer (latent *symptomatic* node), threshold 3 % = NICE NG12 referral PPV (`PRAEVIDIO_SYMPTOM_REFERRAL_PPV`), combined
-with the NICE age rule and an any-age haemoptysis rule. The full score (mixed horizon) is no longer banded.
-See `docs/belirti_katmani.md`.
-
-**Side questions (clarification loop).** `src/conversation/clarify.py` lets the user ask instead of answer at any step. The state machine is unchanged: the single listening point (`_heard`) detects a side question, answers it, re-asks the current prompt word for word (TTS cache hit) and listens again (≤3 times per prompt). Answers come from a fixed Turkish glossary (paket-yıl — personalised with the user's own numbers —, KOAH, amfizem, hırıltı, kan tükürme, KETEM, düşük doz BT, 6-year risk, PM2.5 …) and per-question "why we ask" texts, so they work in keyword mode for free and are reproducible; only unmatched questions in `llm` mode go to a constrained GPT prompt (no diagnosis, no risk numbers, no treatment advice, urgent symptoms → doctor/112).
-
-**Conversation transcripts (debugging the dialogue).** Every conversation (CLI or PWA) is written line by line to
-`data/conversations/<session>.txt` with `agent:` / `user:` labels (voice answers marked `# ses → STT`, result and
-evidence at the end); the PWA result screen has *Konuşma kaydını indir* (`GET /sessions/{id}/transcript.txt`).
-To report a problem, add a line starting with `>>` under the turn where it happened. `make replay F=<file>` feeds
-the recorded `user:` lines to the current agent and shows the notes, the differences and the final evidence;
-`# beklenen: KEY=VALUE` lines become checks, and transcripts copied to `tests/conversations/` are regression tests
-(`make conversation-test`). Transcripts are health data: `data/conversations/` is git-ignored, audio is not stored,
-`PRAEVIDIO_SAVE_TRANSCRIPTS=0` turns recording off.
-
-## 🌐 Backend API (Fall 2026)
-
-`src/api/server.py` exposes the same conversation as the CLI over HTTP for the mobile/web client. The agent's logic is **not duplicated**: each session runs the existing `ConversationAgent` in its own thread behind a queue-backed channel (`src/api/sessions.py`); a request returns as soon as the agent asks its next question. Models are loaded once and shared.
-
-```bash
-make api                 # http://localhost:8000/docs  (interactive Swagger UI)
-make api-test            # end-to-end tests, no OpenAI calls
-```
-
-| Method & path | Purpose |
+| Document | Content |
 | --- | --- |
-| `GET /health` | Version, models, STT/TTS settings, active sessions |
-| `POST /sessions` | Start a conversation → greeting + first question (`{"model": "v3", "nlp_mode": "llm", "tts": true}`) |
-| `POST /sessions/{id}/turn` | Send a text answer → next messages, or the result when finished |
-| `POST /sessions/{id}/turn-audio` | Send a recorded answer (m4a/wav/webm); transcribed with the agent's context hint |
-| `GET /sessions/{id}` | Status, transcript, collected evidence, result |
-| `GET /sessions/{id}/report` | Doctor-ready PDF (HTML if WeasyPrint is unavailable) |
-| `GET /tts/{key}.mp3` | Spoken version of a message (`audio_url`, cached) |
+| [`docs/README.md`](docs/README.md) | Index of all documents |
+| [`docs/architecture.md`](docs/architecture.md) | Components, a conversation turn, endpoints, design choices |
+| [`docs/model_parameters.md`](docs/model_parameters.md) | Every parameter of the risk model, its source and its effect |
+| [`docs/model_v3_design.md`](docs/model_v3_design.md) | Why v2 was revised: four findings and their fixes |
+| [`docs/model_v3_1_calibration_fix.md`](docs/model_v3_1_calibration_fix.md) | The fifth finding: root causes, fixes, tests, change per profile |
+| [`docs/symptom_layer.md`](docs/symptom_layer.md) | Why screening and referral are separate layers |
+| [`docs/model_comparison_v2_v3.md`](docs/model_comparison_v2_v3.md) | All scenarios under v2, v3.0 and v3.1 |
+| [`docs/sensitivity_v3.md`](docs/sensitivity_v3.md), [`docs/nhanes_symptom_baselines.md`](docs/nhanes_symptom_baselines.md) | Sensitivity analysis; calibration against NHANES |
+| [`docs/dictionary.md`](docs/dictionary.md) | Glossary of clinical and modelling terms |
+| [`docs/ProjectPlan_Fall2026.md`](docs/ProjectPlan_Fall2026.md) | Plan and status of the fall term |
+| [`docs/history/`](docs/history/) | Archived documents of the spring model (v2) |
 
-Each turn returns `status` (`awaiting_input` / `finished` / …), the agent's `messages` (with `audio_url` when `tts=true`), the STT `hint` for the next answer and, at the end, a `result` with the full score, the 6-year screening layer, the NICE NG12 alarm, USPSTF eligibility, the PLCOm2012 benchmark and a `report_url`. Set `PRAEVIDIO_API_TOKEN` to require `Authorization: Bearer <token>`.
+Documents are in English. Design notes that were first written in Turkish keep the Turkish text below the English
+one, and material that is read by Turkish speakers (the expert form, the usability questionnaire, recorded
+conversations) stays in Turkish with an English note at the top.
 
-```bash
-curl -s -X POST localhost:8000/sessions -H 'Content-Type: application/json' -d '{"nlp_mode":"keyword"}'
-curl -s -X POST localhost:8000/sessions/<id>/turn -H 'Content-Type: application/json' -d '{"text":"62 yaşındayım erkeğim"}'
-```
+## Status
 
-## 📱 Mobile client — PWA (Fall 2026)
+| Term | Delivered |
+| --- | --- |
+| Spring 2026 (CMPE 491) | Data preparation (NLST), the v2 Bayesian network, terminal voice agent, ICD-10 retrieval, PDF report, evaluation on NLST |
+| Fall 2026 (CMPE 492) | Model review and v3.0, calibration fix v3.1, symptom layer, conversation flow with confirmations and side questions, FastAPI backend, PWA with voice mode, transcripts and replay tests, physician report with three scores |
+| Remaining to 21 December 2026 | Expert validation session, usability study, map of the nearest cancer screening centres (KETEM), release v1.0.0 |
 
-`src/web/` is an installable Progressive Web App served by the backend at **`/app/`** (`/` redirects there), so the phone client needs no app store and no Flutter/Android SDK. It talks only to the API above.
-
-* **Two modes, chosen at the start (switchable from the top bar):** *voice* — every question is played with the cached TTS voice and the microphone opens by itself afterwards (hands-free; recording stops after ~1.6 s of silence, simple energy-based VAD, sent to `/turn-audio`); *text* — no autoplay, the user types. Both modes show quick-reply chips built from the agent's STT hint (Evet / Hayır / Bilmiyorum / Bu ne demek?).
-* **Side questions:** the user can ask instead of answering ("5 paket-yıl ne demek?", "neden soruyorsunuz?", "tekrar eder misiniz?"); the agent explains and then repeats its question — see below.
-* **Result screen:** NICE NG12 alarm box, 6-year screening risk with its band, full score, USPSTF screening note, recommendation and the doctor-ready report download. KETEM map: next.
-* **PWA:** manifest + icons ("Add to Home Screen"), service worker caching only the app shell (API responses are never cached), light/dark theme, large fonts.
-
-```bash
-make api                                   # then open http://localhost:8000/app/
-# URL options: ?nlp=llm (GPT slot filling) · ?model=v2 · ?token=<PRAEVIDIO_API_TOKEN>
-```
-
-The microphone works only in a secure context: `localhost` on the computer, or HTTPS on a phone — e.g. `cloudflared tunnel --url http://localhost:8000` and open the printed `https://…/app/` link (set `PRAEVIDIO_API_TOKEN` when exposing the server). Text mode also works over plain HTTP on the local network.
-
-## 🚀 Quick Start
-
-```bash
-# Clone the repository
-git clone https://github.com/SamedKizilhan/Praevidio-AI.git
-cd Praevidio-AI
-
-# Create and activate virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Set up your OpenAI API key
-cp .env.example .env
-# Edit .env and add your OPENAI_API_KEY
-```
-
-### Data Preprocessing
-
-```bash
-# Run Kaggle data preprocessing
-python src/data_preprocessing.py
-
-# Run NLST data preprocessing
-python src/nlst_data_preprocessing.py
-```
-
-### Model Training
-
-```bash
-# Train and evaluate the original BBN (Kaggle) - Artificial Data
-python src/model/bayesian_network.py
-
-# Build and validate the Hybrid BBN (NLST + Literature) - Real Data - RECOMMENDED
-python src/model/hybrid_bayesian_network.py
-```
-
-### ⚡ Shortcuts (Makefile)
-
-The `Makefile` wraps the common commands (it auto-detects `.venv`):
-
-```bash
-make chat        # conversational agent — text channel (type answers)
-make voice       # conversational agent — voice channel (mic + TTS; needs sox)
-make scenarios   # run test scenarios (golden checks + controlled pairs) → writes SENARYO_RAPORU.md
-make expert      # expert-validation set: 10 vignettes → prediction form + model answer key
-make eval        # risk-appropriate metrics (AUC / calibration / DCA)
-make explain     # risk-score explainability (Shapley + context-dependence)
-make calibrate   # new-factor OR calibration & sensitivity
-make demo        # quick pipeline demo scenarios
-make model       # build/validate/save the hybrid BBN
-make help        # list all commands
-```
-
-> Switch slot-extraction mode with `make chat NLP=keyword` (default is `llm`).
-
-### 🩺 Pipeline Usage (CLI)
-
-```bash
-# Conversational agent (v2) — greeting → demographics → symptoms → risk factors → spoken summary → PDF
-python src/conversation/voice_agent.py --channel text              # typed (works anywhere, for testing)
-python src/conversation/voice_agent.py --channel voice --nlp-mode llm  # microphone + TTS
-
-# Risk/screening-appropriate evaluation (AUC, calibration, DCA — replaces F1)
-python src/model/evaluation.py
-
-# Explain a risk score: per-factor Shapley contributions + context-dependence + waterfall
-python src/model/explainability.py
-
-# Quick demo — runs predefined clinical scenarios
-python src/pipeline.py --demo
-
-# Interactive text mode (type symptoms in Turkish)
-python src/pipeline.py --interactive
-
-# Interactive mode with GPT-4o-mini extraction
-python src/pipeline.py --interactive --nlp-mode llm
-
-# Record from microphone → full pipeline (requires sox)
-brew install sox
-python src/pipeline.py --record --nlp-mode llm
-
-# Process an existing audio file
-python src/pipeline.py --audio recording.m4a --nlp-mode llm
-```
-
-### RAG Index
-
-```bash
-# Build/rebuild the ChromaDB vector index
-python src/rag/rag_pipeline.py
-```
-
----
-
-## 📈 Motivation & Impact
-
-Late diagnosis is the leading cause of cancer mortality. In Turkey, barriers like health literacy and psychological anxiety often delay clinical visits. **Praevidio AI** addresses these by:
-
-1. **Bridging the Awareness Gap:** Voice-driven risk assessment accessible to low-literacy populations.
-2. **Explainable AI:** Bayesian Networks provide transparent, traceable risk calculations — no black boxes.
-3. **Clinical Standards:** All outputs mapped to ICD-10 codes for physician compatibility.
-4. **Early Detection:** Aiming to shift diagnoses from Stage 4 to earlier stages where survival rates exceed **90%**.
-
----
-
-## 📚 Data Sources & Attribution
+## Data sources and attribution
 
 The source code is licensed under AGPL-3.0-or-later (see below). **Data files are not covered by the AGPL; they keep their original licences and terms.**
 
 | Source | Used for | Licence / terms | Files in this repository |
 | --- | --- | --- | --- |
 | NLST public clinical subset (TCIA / NCI Imaging Data Commons, release 2021-05-27) | Base CPTs P(cancer \| age, sex, smoking); evaluation (AUC, calibration, DCA) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) + [TCIA Data Usage Policy](https://www.cancerimagingarchive.net/data-usage-policies-and-restrictions/) | `data/raw/nlst_780_*`, `data/raw/dictionary_idc_*`, `data/processed/nlst_cleaned.csv`, `data/processed/nlst_summary.json` |
-| NHANES 2007–2012, RDQ/SMQ/MCQ/DEMO (CDC / NCHS) | No-cancer chronic cough and wheeze baselines (v3 calibration) | U.S. public domain; citation requested | `data/processed/nhanes_symptom_baselines.json` (raw files are downloaded by `make nhanes-download`, not redistributed) |
-| PLCOm2012 model (Tammemägi et al., 2013) | External 6-year risk benchmark | Published coefficients; cite the paper | `src/model/plcom2012.py` |
-| Peer-reviewed literature (Hamilton 2005, Beckles 2003, Kvale 2006, Hopwood & Stephens 2000, ILCCO, PLCOm2012, LLP …) | Symptom CPTs and risk-factor odds ratios | Cited facts | see `docs/appendix_cpt_derivation.md`, `docs/v3_tasarim.md` |
-| NICE guideline NG12 — *Suspected cancer: recognition and referral* | Score-independent alarm rule | NICE guidance; cite | `src/model/hybrid_bayesian_network_v3.py` |
+| NHANES 2007–2012, RDQ/SMQ/MCQ/DEMO (CDC / NCHS) | Chronic cough and wheeze baselines and their association in people without cancer (v3 calibration) | U.S. public domain; citation requested | `data/processed/nhanes_symptom_baselines.json` (raw files are downloaded by `make nhanes-download`, not redistributed) |
+| PLCOm2012 model (Tammemägi et al., 2013) | 6-year base risk for ever-smokers (v3.1) and external benchmark | Published coefficients; cite the paper | `src/model/plcom2012.py` |
+| Peer-reviewed literature (Hamilton 2005, Beckles 2003, Kvale 2006, Hopwood & Stephens 2000, ILCCO, PLCOm2012, LLP …) | Symptom CPTs and risk-factor odds ratios | Cited facts | see `docs/model_parameters.md`, `docs/history/v2_symptom_cpt_derivation.md` |
+| Wakelee et al., 2007 | 6-year base risk for never-smokers (v3.1) | Published incidence rates; cite the paper | `src/model/hybrid_bayesian_network_v3.py` |
+| Hamilton et al., 2005 | Plausibility bounds on the effect of symptoms | Published predictive values; cite the paper | `tests/model/test_plausibility.py` |
+| NICE guideline NG12 — *Suspected cancer: recognition and referral* | Prompt-assessment rule and the 3 % referral threshold of the symptom layer | NICE guidance; cite | `src/model/hybrid_bayesian_network_v3.py` |
 | IQAir *World Air Quality Report* (2023–2025 figures) | Provincial PM2.5 tiers | Figures compiled from the public report; see IQAir terms of use | `data/knowledge_base/tr_il_pm25.json` |
 | SUS-TR (Demirkol & Şeneler, 2018) | Usability questionnaire | Published instrument; cite | `tests/usability/` |
 | Kaggle "Lung Cancer" survey dataset (3,000 rows) | Legacy spring prototype only (`src/model/bayesian_network.py`) — **not used by v2/v3** | Provenance and licence not verified | `data/raw/lung_cancer_kaggle.csv`, `data/processed/lung_cancer_cleaned.csv` |
@@ -421,6 +238,8 @@ The source code is licensed under AGPL-3.0-or-later (see below). **Data files ar
 - National Lung Screening Trial Research Team. Reduced lung-cancer mortality with low-dose computed tomographic screening. *N Engl J Med* 2011;365:395–409. https://doi.org/10.1056/NEJMoa1102873
 - Centers for Disease Control and Prevention (CDC), National Center for Health Statistics (NCHS). *National Health and Nutrition Examination Survey Data*, 2007–2012. Hyattsville, MD: U.S. Department of Health and Human Services, CDC.
 - Tammemägi MC, Katki HA, Hocking WG, et al. Selection criteria for lung-cancer screening. *N Engl J Med* 2013;368:728–736. https://doi.org/10.1056/NEJMoa1211776
+- Wakelee HA, Chang ET, Gomez SL, et al. Lung cancer incidence in never smokers. *J Clin Oncol* 2007;25:472–478. https://pubmed.ncbi.nlm.nih.gov/17290054/
+- Hamilton W, Peters TJ, Round A, Sharp D. What are the clinical features of lung cancer before the diagnosis is made? A population based case-control study. *Thorax* 2005;60:1059–1065. https://doi.org/10.1136/thx.2005.045880
 - National Institute for Health and Care Excellence. *Suspected cancer: recognition and referral* (NICE guideline NG12). https://www.nice.org.uk/guidance/ng12
 - Demirkol D, Şeneler Ç. A Turkish translation of the System Usability Scale: the SUS-TR. *Uşak Üniversitesi Sosyal Bilimler Dergisi* 2018;11(3):237–253.
 
@@ -428,7 +247,7 @@ The source code is licensed under AGPL-3.0-or-later (see below). **Data files ar
 
 ---
 
-## 📄 License
+## License
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
@@ -442,5 +261,5 @@ From the Fall 2026 term onward this project is licensed under the **GNU Affero G
 
 ---
 
-*CMPE 491 Senior Project — Boğaziçi University, Spring 2026*
+*CMPE 491/492 Senior Project, Boğaziçi University, 2026*
 *Advisor: Prof. Dr. Şefik Şuayb Arslan*

@@ -1,5 +1,6 @@
 # Praevidio konuşma kaydı
-# oturum: 02_35y_kadin_tum_belirtiler  ·  model: v3  ·  nlp: keyword  ·  kanal: test-fixture
+# oturum: 02_woman_35_all_symptoms  ·  model: v3  ·  nlp: keyword  ·  kanal: test-fixture
+# English note: recorded conversation in Turkish, the language of the app; format and keys in README.md.
 # 4 Kasım 2026 simülasyonu: 35 yaş, aktif içici 18 paket-yıl, aile öyküsü + meslek + yüksek hava, KOAH yok, 7 belirti.
 agent: Merhaba. Sağlıklı bir risk analizi yapabilmem için öncelikle yaşınızı ve cinsiyetinizi belirtir misiniz?
 user: 35 yaşında kadınım

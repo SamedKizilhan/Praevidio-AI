@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 2026 Samed KIZILHAN — Praevidio AI (https://github.com/SamedKizilhan/Praevidio-AI)
-"""Örnek kayıtları yeniden üretir (ajan metni bilinçli değiştiğinde): python tests/conversations/make_fixtures.py"""
+"""Regenerates the recorded conversations (run after the agent's wording is changed on purpose):
+python tests/conversations/make_fixtures.py
+
+The conversations, notes and expectation keys are in Turkish because the app speaks Turkish; the format is
+described in tests/conversations/README.md."""
 import contextlib
 import io
 import sys
@@ -15,8 +19,10 @@ PHONE_NOTE = ("15 Kasım 2026 telefon denemesi (pwa-voice, yazılıya geçildi).
               "anlaşılmamış, yaş üç kez sorulmuştu; düzeltmeden sonra ilk cevap yettiği için fazlalık iki cevap "
               "('45', 'Bu ne demek?', '45 yaşındayım') bu kayıttan çıkarıldı.")
 
+EN_NOTE = "# English note: recorded conversation in Turkish, the language of the app; format and keys in README.md."
+
 FIXTURES = [
-    ("01_paket_yil_ara_soru",
+    ("01_pack_year_side_question",
      ["45 yaşındayım erkeğim", "günde 10 tane, yaklaşık 10 yıldır içiyorum", "5 paket-yıl ne demek ki?", "evet",
       "şikâyetim yok", "Bu ne demek?", "hayır", "hayır", "hayır", "hayır", "hayır", "hayır", "hayır",
       "hayır", "neden soruyorsunuz?", "hayır", "hayır", "İstanbul"],
@@ -25,7 +31,7 @@ FIXTURES = [
       'ajan_der="asbeste"', 'COUGHING=0', 'COPD=0', '_province="İstanbul"', 'ajan_der="tarama eşiğinin altında"',
       'ajan_der="bugün bırakırsanız"', 'belirti="none"', 'acil=false', 'bitti=true'],
      {"5 paket-yıl ne demek ki?": "önceden açıklamadan sonraki soruya geçiyordu — artık açıklayıp aynı soruyu tekrar sormalı"}),
-    ("02_35y_kadin_tum_belirtiler",
+    ("02_woman_35_all_symptoms",
      ["35 yaşında kadınım", "günde bir paket, 18 yıldır içiyorum", "evet",
       "öksürüyorum, nefes darlığım var, göğsüm ağrıyor, hırıltı oluyor, çok halsizim, kan tükürdüm ve kilo verdim",
       "evet", "evet", "hayır", "Iğdır"],
@@ -37,7 +43,7 @@ FIXTURES = [
       'ajan_demez="birkaç haftadır"', 'ajan_der="kısa sürede"', 'alarm="none"', 'belirti="elevated"', 'acil=true',
       'bitti=true'],
      {"Iğdır": "ÇÖZÜLDÜ (4 Kas 2026): 40 yaş altında NICE alarmı yoktu ve 'birkaç haftadır sürüyorsa' deniyordu; belirti katmanı (bugünkü belirtilerin kansere bağlı olma olasılığı, eşik %3) ve her yaşta hemoptizi kuralı ile artık 'kısa sürede hekim' öneriliyor; tam skor ('%14,4 yüksek risk') bantlanmıyor"}),
-    ("03_telefon_45_yas_erkek",
+    ("03_phone_male_45_short_answers",
      ["45 yaş erkek", "Günde 1 paket 10 yıl", "Evet", "Öksürük göğüs ağrısı halsizlik", "Hayır", "Evet", "Hayır", "Evet",
       "Bilmiyorum", "Hayır", "Hayır", "İstanbul"],
      PHONE_NOTE,
@@ -47,7 +53,7 @@ FIXTURES = [
       'alarm="urgent"', 'belirti="low"', 'acil=true', 'bitti=true'],
      {"45 yaş erkek": "özgün kayıtta: 'Şunu tam alamadım: yaşınızı' — artık ilk cevapta anlaşılmalı",
       "Günde 1 paket 10 yıl": "özgün kayıtta onay 'yaklaşık 10 paket-yıl' diyordu — kullanıcının söylediği biçimde olmalı"}),
-    ("04_telefon_sesli_yirmi_paket",
+    ("04_phone_voice_twenty_packs",
      ["kırk bir yaşındayım, erkeğim.", "günde yirmi paket, beş yıl.", "günde on tane içiyorum, yarım paket.", "evet",
       "öksürüyorum, biraz nefes darlığı var. normalin üstünde bir halsizlik de yaşıyorum.",
       "hayır", "hayır", "hayır", "hayır", "yok.", "evet.", "hayır.", "istanbul."],
@@ -71,7 +77,7 @@ def make(name, answers, header_note, expects, notes_after):
     with contextlib.redirect_stdout(io.StringIO()):
         ag.run()
     lines = ag.transcript.lines[:]
-    out = [lines[0], f"# oturum: {name}  ·  model: v3  ·  nlp: keyword  ·  kanal: test-fixture", "# " + header_note]
+    out = [lines[0], f"# oturum: {name}  ·  model: v3  ·  nlp: keyword  ·  kanal: test-fixture", EN_NOTE, "# " + header_note]
     for line in lines[3:]:
         if line.startswith("# rapor:"):
             continue

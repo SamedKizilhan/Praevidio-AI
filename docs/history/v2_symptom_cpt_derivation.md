@@ -1,5 +1,7 @@
 # Appendix: Symptom CPT Derivation Table
 
+> **Archived: spring 2026, risk model v2.** This appendix derives the symptom probability tables of the first model, in which every symptom depended directly on cancer and smoking status. In the current model (v3.1) the symptoms are noisy-OR nodes with a latent *symptomatic now* state and with COPD and *other illness* as competing causes; those parameters are documented in [`model_parameters.md`](../model_parameters.md). It is kept as a record of how the project developed; v2 still runs with `load_engine("v2")`, and the current model is described in [`docs/README.md`](../README.md).
+
 ## Conditional Probability Table Parameterization for the Hybrid Bayesian Belief Network
 
 **Praevidio AI — Lung Cancer Risk Assessment Engine**

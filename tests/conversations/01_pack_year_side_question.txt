@@ -1,5 +1,6 @@
 # Praevidio konuşma kaydı
-# oturum: 01_paket_yil_ara_soru  ·  model: v3  ·  nlp: keyword  ·  kanal: test-fixture
+# oturum: 01_pack_year_side_question  ·  model: v3  ·  nlp: keyword  ·  kanal: test-fixture
+# English note: recorded conversation in Turkish, the language of the app; format and keys in README.md.
 # 3 Kasım 2026 kullanıcı bildirimi: '5 paket-yıl ne demek?' sorusu cevapsız kalıyordu (düzeltildi).
 agent: Merhaba. Sağlıklı bir risk analizi yapabilmem için öncelikle yaşınızı ve cinsiyetinizi belirtir misiniz?
 user: 45 yaşındayım erkeğim

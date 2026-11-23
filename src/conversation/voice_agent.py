@@ -12,7 +12,7 @@ Etkileşimli (karşılıklı konuşmalı) bir oturum yürütür:
 Mimari: CASCADE (STT → LLM/keyword slot çıkarımı → TTS).
 OpenAI Realtime yerine cascade tercih edildi; yapılandırılmış anket için
 daha kontrollü, loglanabilir, ucuz ve demo'da tekrarlanabilir
-(gerekçe: docs/v2_genisletme_tasarim.md §4).
+(gerekçe: docs/architecture.md).
 
 İki kanal:
   --channel text   : klavyeden yaz / ekrana yazdır (her ortamda çalışır, test için)

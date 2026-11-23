@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 2026 Samed KIZILHAN — Praevidio AI (https://github.com/SamedKizilhan/Praevidio-AI)
 """
-Konuşma kaydı regresyon testleri: tests/conversations/*.txt kayıtları yeniden oynatılır (keyword modu,
-OpenAI çağrısı yok); "# beklenen:" satırları tutmalı ve görüşme kayıttaki gibi akmalı.
-Yeni vaka eklemek: PWA'dan "Konuşma kaydını indir" → bu klasöre kopyala → ">>" notu ve "# beklenen:" ekle.
+Regression tests on recorded conversations: every tests/conversations/*.txt is replayed (keyword mode, no
+OpenAI call); the "# beklenen:" (expected) lines must hold and the interview must flow as recorded.
+To add a case: "Konuşma kaydını indir" (download transcript) in the PWA, copy the file into this folder, add
+">>" notes and "# beklenen:" lines. Format: tests/conversations/README.md.
 """
 import sys
 from pathlib import Path
@@ -20,5 +21,5 @@ def test_recorded_conversation(path):
     from conversation.replay import replay
     r = replay(path, nlp_mode="keyword")
     assert not r["fails"], "\n".join(r["fails"])
-    assert not r["diff"], "akış kayıttan farklı:\n" + "\n".join(r["diff"])
-    assert r["unused_answers"] == 0, "kayıttaki bazı cevaplar kullanılmadı (ajan daha az soru sordu)"
+    assert not r["diff"], "the flow differs from the recording:\n" + "\n".join(r["diff"])
+    assert r["unused_answers"] == 0, "some recorded answers were not used (the agent asked fewer questions)"

@@ -1,221 +1,186 @@
-# Praevidio AI — System Architecture
+# Praevidio AI: system architecture
 
-This document explains how the system is wired together: orchestration approach,
-component layers, RAG, the models we use, and the end-to-end execution order from
-`make voice` to the final report. A visual flow diagram is at the end.
+How the system is put together as of November 2026: the components, what happens in one conversation turn, where
+the data lives and why the main design choices were made. The risk model itself is documented in
+[`model_parameters.md`](model_parameters.md).
 
----
+## 1. Overview
 
-## 1. Orchestration approach
+A user talks to the app in Turkish, by voice or by text, on a phone or a computer. A conversation agent asks about
+age, smoking, symptoms and risk factors; a risk model turns the answers into a two-layer result; the user hears
+and sees the result and can download a report for their physician.
 
-**We do not use an agent-orchestration framework.** The conversation is driven by a
-hand-written Python **state machine** (`src/conversation/voice_agent.py`): for each
-step we explicitly *ask → listen → extract → re-ask if a required slot is missing*.
-
-This is a deliberate choice. The flow is a deterministic clinical questionnaire with
-a fixed set of slots; a framework's abstractions would add complexity without value.
-The "intelligence" is not an LLM agent loop — it is the **Bayesian network**; the LLM
-is only a translator from natural language to structured evidence.
-
-> Note: `langchain*` previously appeared in `requirements.txt` but was never imported
-> in `src/`; it has been removed. RAG is done directly with the ChromaDB client.
-
-**When a framework would help, and the alternatives:**
-
-| Framework | Good for | Fit here |
-|---|---|---|
-| LangChain / **LangGraph** | chains, tool-calling, graph-based flows | LangGraph could standardize our state machine; not required |
-| LlamaIndex | RAG-heavy apps (indexing, retrievers) | our RAG is simple; not needed |
-| Google ADK | multi-agent, Gemini ecosystem | we use OpenAI; not a natural fit |
-| OpenAI Agents SDK | lightweight multi-agent + tools | single agent; not needed |
-| CrewAI / AutoGen | multiple cooperating agents (roles) | overkill for one agent |
-| Semantic Kernel | enterprise .NET/Python, planners | not needed |
-
-If the system grows into a **multi-agent, dynamic tool-selecting** design, LangGraph
-or the OpenAI Agents SDK would be the natural upgrade.
-
----
-
-## 2. Component layers
-
-```
-OFFLINE (preparation):
-  NLST raw data ──> nlst_data_preprocessing.py ──> nlst_cleaned.csv
-                                                       │
-  knowledge_base/*.json ──> rag_pipeline.py ──> ChromaDB index (ICD-10)
-
-RUNTIME (each session):
-  Voice / Text
-     │  STT (Whisper)
-     ▼
-  Slot extraction (GPT-4o-mini / keyword)  ── province→PM2.5, pack-years
-     │
-     ▼
-  [RAG ICD-10 mapping — only in the pipeline.py flow]
-     │
-     ▼
-  Hybrid BBN inference (pgmpy)  + pack-year smoking refinement
-     │
-     ▼
-  Screening eligibility (symptom-independent)
-     │
-     ├──> Spoken summary (TTS)
-     └──> PDF report (Jinja2 + WeasyPrint)
+```mermaid
+flowchart LR
+  subgraph Client
+    PWA["PWA in the browser<br>src/web"]
+    CLI["Terminal<br>make chat / make voice"]
+  end
+  subgraph Backend["Backend (Python)"]
+    API["FastAPI<br>src/api"]
+    AGENT["Conversation agent<br>state machine<br>src/conversation"]
+    NLP["Answer extraction<br>src/nlp"]
+    MODEL["Risk model v3.1<br>src/model"]
+    REPORT["Physician report<br>src/report"]
+  end
+  OPENAI["OpenAI API<br>speech-to-text, text-to-speech,<br>GPT-4o-mini"]
+  PWA -- "HTTPS, JSON and audio" --> API
+  API --> AGENT
+  CLI --> AGENT
+  AGENT --> NLP
+  AGENT --> MODEL
+  AGENT --> REPORT
+  API -. audio .-> OPENAI
+  NLP -. "llm mode only" .-> OPENAI
 ```
 
-The core reasoning is the **Bayesian Belief Network** (`pgmpy`), chosen for
-explainability and auditability; the LLM only converts free text into structured
-evidence.
+The terminal and the web app share **one** agent. The API does not reimplement the interview; it runs the same
+`ConversationAgent` object that `make chat` runs and passes messages in and out.
 
----
+## 2. Components
 
-## 3. What "slot extraction" means (GPT-4o-mini)
+| Layer | Code | What it does |
+| --- | --- | --- |
+| Web client | `src/web/` (`index.html`, `app.js`, `styles.css`, `sw.js`, `manifest.webmanifest`) | Installable progressive web app without a build step. Voice mode (record, send, play the reply) and text mode, quick-reply buttons including "what does this mean?", result screen with the 6-year risk, frequency bars and advice, report and transcript download. |
+| API | `src/api/server.py`, `sessions.py` | FastAPI. One session per conversation; each session runs an agent in its own thread. Optional bearer token (`PRAEVIDIO_API_TOKEN`). Serves the web client at `/app`. |
+| Conversation agent | `src/conversation/voice_agent.py` | Hand-written state machine: demographics and smoking, confirmation, symptoms, risk factors, result. Decides what to ask next and when to re-ask. |
+| Side questions | `src/conversation/clarify.py` | Answers "what does pack-year mean?", "why do you ask?" or "can you repeat?" from a fixed glossary of 16 terms and 10 reasons, then repeats the pending question. |
+| Transcripts | `src/conversation/transcript.py`, `replay.py`, `tools/replay_conversation.py` | Every conversation is written as plain `agent:` / `user:` lines and can be replayed against the current agent; recorded cases are regression tests. |
+| Answer extraction | `src/nlp/symptom_extractor.py` | Turns a Turkish sentence into structured evidence. `keyword` mode is rule-based and offline; `llm` mode asks GPT-4o-mini for a JSON object and passes it through guards. Also maps the province to an air-pollution tier. |
+| Speech | `src/stt/whisper_stt.py`, `Channel` in `voice_agent.py` | Speech-to-text with `gpt-4o-mini-transcribe` and a hint of medical terms; text-to-speech with OpenAI `tts-1`, voice "nova", cached per sentence. |
+| Risk model | `src/model/hybrid_bayesian_network_v3.py`, `plcom2012.py`, `screening.py` | The two-layer result, the prompt-assessment rule and USPSTF screening eligibility. `load_engine("v2" \| "v3.0" \| "v3.1")` keeps earlier versions runnable. |
+| Report | `src/report/report_generator.py`, `templates/report_template.html` | Physician report as PDF (Jinja2 and WeasyPrint): the three scores with their thresholds, the alert box with reasons, answers as given, ICD-10 codes of the reported symptoms. |
+| ICD-10 retrieval | `src/rag/rag_pipeline.py`, `src/pipeline.py`, `data/knowledge_base/` | ChromaDB index of ICD-10 lung codes, used by the batch pipeline (`make pipeline`) to map free text to codes. The conversation agent does not need it. |
 
-**Slot filling** = turning a free-form sentence into a fixed set of structured fields
-("slots"). We give GPT-4o-mini a strict instruction: *read this Turkish sentence and
-return a JSON object with these exact keys; use 1/0/null.* The model never makes a
-medical decision — it only fills the form.
+## 3. One conversation turn
 
-Example:
-
-```
-User says:  "67 yaşında erkeğim, günde bir paket sigara içiyorum,
-             öksürüyorum ve kan tükürdüm. Konya'da yaşıyorum."
-
-GPT-4o-mini returns (the "slots"):
-{ "AGE_EXACT": 67, "AGE": 3, "GENDER": 1, "SMOKING": 1,
-  "CIGARETTES_PER_DAY": 20, "YEARS_SMOKED": null,
-  "COUGHING": 1, "HEMOPTYSIS": 1, "SHORTNESS_OF_BREATH": 0, ...,
-  "FAMILY_HISTORY": null, "ASBESTOS": null, "PROVINCE": "Konya" }
-
-Post-processing (symptom_extractor.py):
-  PROVINCE "Konya" → tr_il_pm25.json → AIR_POLLUTION = 2 (high)
-  CIGARETTES_PER_DAY × YEARS_SMOKED → _pack_years
-```
-
-The resulting evidence dict is exactly what `HybridLungCancerEngine.predict_risk()`
-expects. Two modes exist: **`llm`** (GPT-4o-mini, semantic, robust to phrasing) and
-**`keyword`** (offline keyword matching, no API key). `null` means "not mentioned" →
-left unobserved (the BBN marginalizes it), which is different from an explicit 0.
-
-Why GPT-4o-mini specifically: it is cheap, fast, and accurate enough for structured
-extraction with `temperature=0` and a JSON-only instruction. We don't need a frontier
-model because the task is constrained (fill a known schema), not open-ended reasoning.
-
----
-
-## 4. RAG and ChromaDB
-
-**Purpose:** map free-text symptom phrases ("göğsümde baskı var") to **ICD-10 codes**
-from a curated knowledge base (`knowledge_base/icd10_lung_codes.json`). *(Used in the
-`pipeline.py` flow; the `make voice` agent goes straight to the BBN and does symptom →
-evidence mapping with the LLM/keyword extractor instead.)*
-
-**How ChromaDB works:**
-1. Each document is turned into an **embedding** (OpenAI `text-embedding-3-small`,
-   ~1536-dim vector); semantically similar texts land close together.
-2. Vectors are stored in a persistent local store (`data/chroma_db/`: SQLite + binary
-   index files).
-3. A query is embedded the same way; ChromaDB does **approximate nearest-neighbor**
-   search (HNSW graph, cosine similarity) and returns the top-k closest documents.
-4. With no API key, we fall back to ChromaDB's local `DefaultEmbeddingFunction`
-   (sentence-transformers) so the demo works offline.
-
-Alternative vector DBs: FAISS (library), Qdrant, Weaviate, Milvus, pgvector. Chroma
-was chosen for zero-setup, local, persistent development.
-
----
-
-## 5. Models and alternatives
-
-| Layer | We use | Alternatives |
-|---|---|---|
-| STT | OpenAI `whisper-1` | faster-whisper / whisper.cpp (local), Google STT, Azure Speech, Deepgram, AssemblyAI |
-| Reasoning / extraction | `gpt-4o-mini` | GPT-4o, Claude, Gemini; local Llama-3/Mistral; fine-tuned small model |
-| TTS | OpenAI `tts-1` | ElevenLabs, Azure/Google TTS, local Coqui XTTS / Piper |
-| Embeddings | `text-embedding-3-small` | BGE-m3, multilingual-e5 (good for Turkish), Cohere, local sentence-transformers |
-| Risk engine | `pgmpy` (Bayesian network) | pomegranate, custom Bayes implementation |
-
-Because the product is Turkish-first, future options include faster-whisper (cost /
-privacy) for STT and multilingual-e5 for embeddings.
-
----
-
-## 6. Execution order: `make voice` → report
-
-```
-Makefile  (target: voice)
-   └─> python src/conversation/voice_agent.py --channel voice --nlp-mode llm
-
-src/config.py ............ loaded on import (paths, model names, thresholds)
-
-voice_agent.py: main()
-   └─ ConversationAgent._load_engine()
-        └─ model/hybrid_bayesian_network.py : build_hybrid_model()
-             ├─ read nlst_cleaned.csv → P(cancer | age,gender,smoking) CPT
-             ├─ expand CPT with RISK_FACTOR_ORS (family/asbestos/air OR)
-             └─ HybridLungCancerEngine ready
-
-ConversationAgent.run():
- 1) collect_demographics()        [2 questions: age+gender, then smoking+pack-years]
-      Channel.say(...)            → OpenAI tts-1 (afplay)
-      Channel.listen()
-        └─ _record_until_enter()  → sox 'rec' (auto-start / ENTER to stop) → .wav
-      stt/whisper_stt.py: transcribe_audio()   → Whisper → text
-      nlp/symptom_extractor.py: extract_symptoms(mode="llm")
-        ├─ extract_with_llm()     → gpt-4o-mini, JSON slot extraction
-        ├─ resolve_air_pollution()→ knowledge_base/tr_il_pm25.json (province→tier)
-        └─ model/screening.py: parse_pack_years()  → pack-years
-
- 2) collect_symptoms()            [7 symptoms in sequence] → STT → parse_yes_no/extractor
- 3) collect_risk_factors()        [family, occupation, province] → resolve_air_pollution
-
- 4) assess_and_summarize()
-      engine.predict_risk(evidence)
-        ├─ _refine_smoking()      → pack-year adjustment (never / heavy-former)
-        └─ pgmpy VariableElimination → P(cancer | all evidence) = risk score
-      model/screening.py: assess_screening_eligibility()   → screening flag
-      Channel.say(summary)        → OpenAI tts-1 (spoken summary + screening note)
-
- 5) _generate_report()
-      report/report_generator.py: generate_report()
-        ├─ prepare_template_data()→ risk + risk_drivers + screening + smoking_note
-        ├─ render_html()          → Jinja2 + templates/report_template.html
-        └─ WeasyPrint             → .pdf  (data/processed/reports/)
+```mermaid
+sequenceDiagram
+  participant U as User (PWA)
+  participant A as API
+  participant G as Agent thread
+  participant O as OpenAI
+  U->>A: POST /sessions
+  A->>G: start ConversationAgent
+  G-->>A: first question, then waits
+  A-->>U: messages, audio links, input hint
+  U->>A: POST /sessions/{id}/turn-audio (recording)
+  A->>O: speech-to-text
+  O-->>A: text
+  A->>G: answer placed in the queue
+  G->>G: extract, update evidence, choose next question
+  G-->>A: next question, or the result
+  A-->>U: messages, or finished with result
+  U->>A: GET /tts/{key}.mp3
+  A->>O: text-to-speech (cached)
 ```
 
----
+The agent calls `say()` and `listen()` on a channel. In the terminal the channel prints and reads the keyboard or
+the microphone. In the API the channel is a queue: `say()` appends to the outgoing messages and `listen()` blocks
+the thread until the next request delivers an answer. The interview logic is therefore identical everywhere and
+is tested once.
 
-## 7. Visual flow diagram (`make voice`)
+### Endpoints
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /health` | Liveness and loaded model versions |
+| `POST /sessions` | Start a conversation; returns the first question |
+| `POST /sessions/{id}/turn` | Send a typed or tapped answer |
+| `POST /sessions/{id}/turn-audio` | Send a recorded answer |
+| `GET /sessions/{id}` | Session state and, when finished, the result |
+| `GET /sessions/{id}/report` | Physician report (PDF) |
+| `GET /sessions/{id}/transcript.txt` | Transcript of the conversation |
+| `POST /sessions/{id}/client-log` | Client-side diagnostics (for example microphone problems) added to the transcript |
+| `GET /tts/{key}.mp3` | Spoken version of an agent message |
+| `GET /app` | The web client |
+
+## 4. The interview
+
+1. **Demographics and smoking.** Age and sex, then smoking status with cigarettes per day and years. A bare "no"
+   is followed by "did you smoke in the past?". Implausible doses (more than 60 cigarettes a day) are questioned.
+2. **Confirmation.** The agent repeats what it understood in the user's own terms ("you have smoked 10 cigarettes
+   a day for 10 years") and accepts corrections in one turn.
+3. **Symptoms.** One open question; whatever the user mentions is recorded, and each symptom that was not
+   mentioned is then asked individually. "I don't know" leaves a field unobserved, which the model treats
+   differently from "no".
+4. **Risk factors.** Family history, occupational exposure, COPD diagnosis, province.
+5. **Result.** Spoken summary, result screen, report.
+
+At any point the user may ask a side question; the agent answers it and returns to the pending question, at most
+three times in a row.
+
+## 5. From answers to a result
 
 ```mermaid
 flowchart TD
-    A([make voice]) --> B[voice_agent.py · main]
-    B --> C[_load_engine → build_hybrid_model<br/>reads nlst_cleaned.csv + RISK_FACTOR_ORS]
-    C --> D{ConversationAgent.run}
-
-    D --> E[1 · collect_demographics<br/>age+gender, then smoking+pack-years]
-    E --> F[2 · collect_symptoms · 7 in sequence]
-    F --> G[3 · collect_risk_factors<br/>family / occupation / province]
-
-    subgraph TURN [Each turn: cascade STT→LLM]
-      direction TB
-      T1[Channel.say → OpenAI tts-1] --> T2[_record_until_enter → sox .wav]
-      T2 --> T3[whisper_stt.transcribe_audio → Whisper]
-      T3 --> T4[symptom_extractor.extract_symptoms<br/>gpt-4o-mini slot extraction]
-      T4 --> T5[province→tr_il_pm25.json · parse_pack_years]
-    end
-
-    E -.uses.-> TURN
-    F -.uses.-> TURN
-    G -.uses.-> TURN
-
-    G --> H[4 · assess_and_summarize]
-    H --> I[engine.predict_risk<br/>_refine_smoking + pgmpy VariableElimination]
-    I --> J[screening.assess_screening_eligibility]
-    J --> K[Channel.say → spoken summary TTS]
-    K --> L[5 · generate_report]
-    L --> M[prepare_template_data → render_html<br/>Jinja2 report_template.html]
-    M --> N[WeasyPrint → PDF]
-    N --> O([data/processed/reports/*.pdf])
+  EV["Evidence<br>age, sex, smoking dose,<br>risk factors, symptoms"] --> L1
+  EV --> BN
+  L1["6-year layer<br>PLCOm2012 (ever-smokers)<br>Wakelee 2007 (never-smokers)<br>normalised odds ratios"] --> BAND["Band<br>below 1.5 %, 1.5–5 %, 5 % or more"]
+  BN["Bayesian network<br>symptomatic, COPD, other illness"] --> L2["Symptom layer<br>threshold 3 %"]
+  L2 --> URG
+  NICE["NICE NG12 rule"] --> URG
+  HEM["Haemoptysis at any age"] --> URG
+  URG["Prompt physician assessment?"] --> OUT
+  BAND --> OUT
+  CTX["Relative risk, natural frequency,<br>projection for smokers"] --> OUT
+  SCR["USPSTF 2021 eligibility"] --> OUT
+  OUT["Result: screen, spoken summary, report"]
 ```
+
+The app shows the 6-year risk with its band, the comparison with peers as a natural frequency, and a message
+about the symptoms. The number of the symptom layer and the full score appear only in the physician report.
+Details and sources: [`model_parameters.md`](model_parameters.md).
+
+## 6. Data and privacy
+
+| Data | Where | Kept in the repository |
+| --- | --- | --- |
+| NLST public subset (cleaned) | `data/processed/nlst_cleaned.csv` | yes (CC BY 4.0) |
+| NHANES 2007–12 files | `data/raw/nhanes/` | no; downloaded with `make nhanes-download` |
+| Provincial PM2.5 tiers, ICD-10 codes | `data/knowledge_base/` | yes |
+| Conversation transcripts | `data/conversations/` | no; health data, git-ignored |
+| Generated reports | `data/processed/reports/` | no |
+| Audio | not stored; recordings are transcribed and discarded | – |
+| API keys and access token | `.env` | no |
+
+Speech and, in `llm` mode, the text of an answer are sent to OpenAI for processing. The risk model, the
+conversation logic and the report run locally on the backend.
+
+## 7. Design choices
+
+**A state machine instead of an agent framework.** The interview is a clinical questionnaire with a fixed set of
+fields. A hand-written state machine makes the order of questions, the re-asking and the corrections explicit and
+testable, and the recorded conversations in `tests/conversations/` can be replayed deterministically. An agent
+framework would add an abstraction without adding capability here.
+
+**The language model translates; it does not decide.** GPT-4o-mini converts a sentence into fields and may answer
+a side question under tight constraints. It never produces a risk, a diagnosis or advice. Guards discard a symptom
+value when the user's sentence does not mention that symptom, and the age group is derived from the stated age and
+never taken from the model.
+
+**A Bayesian network instead of a classifier.** Every edge and number has a stated source, missing answers are
+handled by marginalisation, and the behaviour can be checked against clinical references case by case
+(`tests/model/`). No patient-level training data with symptoms was available, which rules out a learned model.
+
+**Two layers instead of one score.** Screening and referral are different questions with different thresholds;
+see [`symptom_layer.md`](symptom_layer.md).
+
+**A progressive web app instead of a native app.** One codebase reaches iOS and Android through a link, with no
+store review, and is enough for the usability study. The API is client-agnostic, so a native client can be added
+later.
+
+**Speech through a cascade.** Speech-to-text, then the agent, then text-to-speech. Each stage can be inspected in
+the transcript, which matters more for a health application than the lower latency of an end-to-end voice model.
+
+## 8. Running it
+
+| Command | What it starts |
+| --- | --- |
+| `make api` | Backend and web client at `http://localhost:8000/app` |
+| `make chat` / `make voice` | The same interview in the terminal, typed or spoken |
+| `make model-test`, `make api-test`, `make conversation-test` | The three test suites |
+| `make compare`, `make sensitivity`, `make v31-diff`, `make nhanes` | Regenerate the model reports in `docs/` |
+
+To try the app on a phone, expose the local backend through a tunnel (for example
+`cloudflared tunnel --url http://localhost:8000`) and open the printed address with `/app` appended.

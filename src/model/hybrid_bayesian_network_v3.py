@@ -5,7 +5,7 @@ Praevidio AI - Hybrid Bayesian Belief Network v3
 =================================================
 v2 (hybrid_bayesian_network.py) OLDUĞU GİBİ KORUNUR; bu modül v2'nin NLST
 tabanını ve belgelenmiş semptom olasılıklarını yeniden kullanır, ama dört
-metodolojik düzeltme ekler (gerekçe: docs/v3_tasarim.md):
+metodolojik düzeltme ekler (gerekçe: docs/model_v3_design.md):
 
   1. LATENT "SEMPTOMATİK" DÜĞÜMÜ
        LUNG_CANCER → SYMPTOMATIC → semptomlar
@@ -65,7 +65,7 @@ MODEL_VERSION = "v3"
 
 # q = P(şu an semptomatik | ~6 yıl içinde tanı alacak).  Tarama popülasyonunda
 # vakaların çoğu başlangıçta asemptomatiktir; 0.35 başlangıç değeri, uzman görüşü
-# ve Hamilton PPV tutarlılık testiyle ayarlanır (docs/v3_tasarim.md §2).
+# ve Hamilton PPV tutarlılık testiyle ayarlanır (docs/model_v3_design.md §2).
 SYMPTOMATIC_FRACTION = float(os.getenv("PRAEVIDIO_Q_SYMPTOMATIC", "0.35"))
 
 # Literatür OR'leri (v2 + KOAH). KOAH: PLCOm2012 exp(0.3553)=1.43 (Tammemägi 2013)
@@ -87,7 +87,7 @@ NORMALIZE_ORS = os.getenv("PRAEVIDIO_NORMALIZE_ORS", "1") not in ("0", "false", 
 #   leak   : kansersiz, içmeyen, KOAH'sız taban (v2 LC=0,SM=0 sütunu)
 #   cancer : v2'nin P(s|LC=1,SM=0) değerini aynen üreten katkı
 #   smoke  : KOAH DIŞI sigara katkısı (küçük); copd: KOAH katkısı (büyük)
-# NHANES 2007-12 kalibrasyonu (16 Ekim 2026, docs/nhanes_semptom_tabanlari.md; 40+ yaş, kansersiz):
+# NHANES 2007-12 kalibrasyonu (16 Ekim 2026, docs/nhanes_symptom_baselines.md; 40+ yaş, kansersiz):
 #   kronik öksürük  hiç %5,7 / eski %9,2 / aktif %25,1   → model (daha geniş "geçmeyen öksürük" tanımı):
 #                   %10 / %16,5 / %30  (leak korundu, aktif içici katkısı NHANES oranına göre artırıldı)
 #   hırıltı (12 ay) hiç %8,4 / eski %14,4 / aktif %27,2  → model %8 / %14 / %26  (leak 0.05→0.08; v3.0 ~1,8× düşüktü)
@@ -113,7 +113,7 @@ SIMPLE_SYMPTOMS = {
 #   OTHER_SHARE  ρ : her belirtinin kansersiz taban sıklığının (leak) ortak nedenden gelen payı
 # Belirti başına katkı p_o = ρ·leak/π; leak' = 1 − (1−leak)/(1−ρ·leak) → kansersiz kişide her
 # belirtinin marjinal sıklığı (NHANES kalibrasyonu) DEĞİŞMEZ, yalnız belirtiler arası korelasyon eklenir.
-# Kalibrasyon (Kas 2026, tests/model + docs/v3_1_duzeltme.md): NHANES 2007-12 kansersiz, 40+, hiç
+# Kalibrasyon (Kas 2026, tests/model + docs/model_v3_1_calibration_fix.md): NHANES 2007-12 kansersiz, 40+, hiç
 # içmemiş ve KOAH/amfizem/kronik bronşit tanısı olmayanlarda OR(kronik öksürük, hırıltı) = 4,1
 # (n=5053); v3.0'da bu grupta OR = 1,0 (bağımsız). p_o ≤ p_cancer kısıtıyla ulaşılabilen en yakın
 # değer π=0,20, ρ=1,0 → OR 3,4 (veriden hafif düşük = açıklama etkisini abartmaz).

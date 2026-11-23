@@ -1,5 +1,7 @@
 # Sensitivity Analysis and CPT Calibration Report
 
+> **Archived: spring 2026, risk model v2.** This report documents how the explaining-away problem in the v2 symptom tables (a smoker's symptoms were attributed to smoking and lowered the cancer score) was found and corrected in May 2026. From v3 on the problem is handled in the structure of the network, through the COPD and *other illness* nodes; see [`model_v3_design.md`](../model_v3_design.md). It is kept as a record of how the project developed; v2 still runs with `load_engine("v2")`, and the current model is described in [`docs/README.md`](../README.md).
+
 ## Hybrid BBN — Symptom CPT Explaining-Away Correction
 
 **Document Version:** 1.0  

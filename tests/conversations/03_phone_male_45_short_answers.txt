@@ -1,5 +1,6 @@
 # Praevidio konuşma kaydı
-# oturum: 03_telefon_45_yas_erkek  ·  model: v3  ·  nlp: keyword  ·  kanal: test-fixture
+# oturum: 03_phone_male_45_short_answers  ·  model: v3  ·  nlp: keyword  ·  kanal: test-fixture
+# English note: recorded conversation in Turkish, the language of the app; format and keys in README.md.
 # 15 Kasım 2026 telefon denemesi (pwa-voice, yazılıya geçildi). Özgün kayıtta '45 yaş erkek' ve '45' anlaşılmamış, yaş üç kez sorulmuştu; düzeltmeden sonra ilk cevap yettiği için fazlalık iki cevap ('45', 'Bu ne demek?', '45 yaşındayım') bu kayıttan çıkarıldı.
 agent: Merhaba. Sağlıklı bir risk analizi yapabilmem için öncelikle yaşınızı ve cinsiyetinizi belirtir misiniz?
 user: 45 yaş erkek

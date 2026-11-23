@@ -1,5 +1,7 @@
 # Praevidio AI — Kullanılabilirlik Anketi (SUS-TR)
 
+> *English note: this questionnaire is filled in by Turkish-speaking participants and is therefore in Turkish. Part 1 is the validated Turkish translation of the System Usability Scale (SUS-TR, Demirkol and Şeneler 2018); Part 2 has four app-specific statements (the result was understood, it did not cause unnecessary worry, the voice conversation felt natural, the app understood me) and three open questions. The protocol is in [`README.md`](README.md).*
+
 **Katılımcı kodu:** ______  **Tarih:** ______  **Yaş grubu:** ☐ 18–34 ☐ 35–49 ☐ 50–64 ☐ 65+
 
 **Akıllı telefonu ne sıklıkla kullanıyorsunuz?** ☐ Her gün, uzun süre ☐ Her gün, kısa süre ☐ Haftada birkaç kez ☐ Nadiren
